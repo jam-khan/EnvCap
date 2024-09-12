@@ -6,21 +6,8 @@ module EnvCap.Core where
 
 -- ** Syntax **
 
--- Types            A, B, L ::= Int | Empty | A & B | A -> B | {l : A}
-data TypeContext a b
-    = TInt
-    | TEmpty
-    | TAnd a b
-    | TArrow a b
-    | TRecord String a
-    deriving (Show, Eq)
-
--- Expressions            e ::= ? | e.n | i | eps | lamda A . e | e1 |> e2 
---                                | <v, lamda A . e> | e1 e2 | e1 merge e2 | {l = e} | e.l
--- Values                 v ::= i | eps | <v, lambda A . e> | v1 merge v2 | {l = v}
--- Frames                 F ::= [].n | [] merge e| [] e | [] |> e | v[] | {l = []} | [].l
--- Syntactic Sugar      _n_ ::= ?.n
---                      _l_ ::= ?.l
+-- Types    
+-- A, B, L ::= Int | Empty | A & B | A -> B | {l : A}
 
 -- **** Types and contexts ****
 
@@ -36,6 +23,15 @@ data TypeContext a b
 -- Note: multi-fied record types can be obtained
 --      {l1 : A1, ..., ln : An} obtained by {l1 : A1} & ... & {ln : An}
 
+data Type = TInt
+            | TEmpty
+            | TAnd Type Type
+            | TArrow Type Type
+            | TRecord { label :: String, typeVal :: Type }
+            deriving (Eq, Show)
+
+-- Expressions            e ::= ? | e.n | i | eps | lamda A . e | e1 |> e2 
+--                                | <v, lamda A . e> | e1 e2 | e1 merge e2 | {l = e} | e.l
 -- **** Expressions ****
 
 -- Meta-variables e range over expressions
@@ -50,6 +46,18 @@ data TypeContext a b
 --      ?.n                 : What does it do???????????????????
 --      {l = e}             : Single-field record
 --      e.l                 : lookup by label (possible to have labelled entries in the environment)
+
+data Expr
+    =   EQuery
+    |   EProj Expr String
+    |   EInt TInt
+    |   EEmpty Type
+    deriving (Eq, Show)
+
+-- Values                 v ::= i | eps | <v, lambda A . e> | v1 merge v2 | {l = v}
+-- Frames                 F ::= [].n | [] merge e| [] e | [] |> e | v[] | {l = []} | [].l
+-- Syntactic Sugar      _n_ ::= ?.n
+--                      _l_ ::= ?.l
 
 -- **** Values and frames ****
 
