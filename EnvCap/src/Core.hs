@@ -1,5 +1,4 @@
 module EnvCap.Core where
-import qualified Data.Bool as e
 -- Core LamdaE Calculus Representation
 
 -- LamdaE Calculus 
@@ -7,7 +6,15 @@ import qualified Data.Bool as e
 
 -- ** Syntax **
 
--- Types            A, B, L ::= Int | eps | A & B | A -> B | {l : A}
+-- Types            A, B, L ::= Int | Empty | A & B | A -> B | {l : A}
+data TypeContext a b
+    = TInt
+    | TEmpty
+    | TAnd a b
+    | TArrow a b
+    | TRecord String a
+    deriving (Show, Eq)
+
 -- Expressions            e ::= ? | e.n | i | eps | lamda A . e | e1 |> e2 
 --                                | <v, lamda A . e> | e1 e2 | e1 merge e2 | {l = e} | e.l
 -- Values                 v ::= i | eps | <v, lambda A . e> | v1 merge v2 | {l = v}
@@ -63,3 +70,6 @@ import qualified Data.Bool as e
 --  F ::= [].n | [] merge e| [] e | [] |> e | v[] | {l = []} | [].l
 
 -- Note: {l1 = e1, ..., ln = en} = {l1 = e1} merge ... merge {ln = en}
+
+
+
