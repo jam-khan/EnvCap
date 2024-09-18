@@ -2,6 +2,68 @@ module EnvCap.Core where
 -- Core LamdaE Calculus Representation
 
 -- LamdaE Calculus 
+
+data Typ = 
+        TInt                    -- Integer type
+    |   TEmpty                  -- Unit type for empty environment
+    |   TAnd Typ Typ            -- Intersection type
+    |   TArrow Typ Typ          -- Arrow type, e.g. A -> B
+    |   TRecord { label :: String, typeVal :: Typ } -- Single-Field Record Type
+    deriving (Eq, Show)
+
+
+-- ******* Potential Improvement? ********
+data LookupResult = Found Typ | NotFound
+    deriving (Eq, Show)
+
+-- Look up function for Types
+lookupType :: Typ -> Int -> LookupResult
+lookupType (TAnd left right) n
+    | n == 0 = Found left
+    | n == 1 = Found right
+    | otherwise = case lookupType left (n - 1) of
+                    Found foundType -> Found foundType
+                    NotFound        -> lookupType right (n - 1)
+lookupType _ _ = NotFound
+
+-- ******* Testing ********
+-- ******* Potential Improvement? ********
+
+-- Operations Definitions
+data Op =   App -- Application
+        |   Box -- Box
+        |   Mrg -- Merge
+        deriving (Eq, Show)
+
+data Expr = Ctx                     -- Context
+        |   Unit                    -- Unit
+        |   Lit Int                 -- Integer literal
+        |   BinOp Op Expr Expr      -- Binary operations: Application, Box and Merge
+        |   Lam Typ Expr            -- Lambda Abstraction
+        |   Proj Expr Int           -- Projection
+        |   Clos Expr Typ Expr      -- Closure
+        |   Rec  String Expr        -- Single-Field Record
+        |   RProj Expr String       -- Record Projection by Label
+        deriving (Eq, Show)
+
+
+-- Values
+data Value = VInt                    -- Integer value
+        |    VUnit                   -- Unit value
+        |    VClos Value Typ Expr    -- Closure
+        |    VRcd String Value       -- Single-field record value
+        |    VMrg Value Value        -- Merge of two values
+        deriving (Eq, Show)
+
+
+isValue :: Expr -> Bool
+isValue (Lit _)             = True
+isValue Unit                = True
+isValue (Clos v _ _)        = isValue v
+isValue (Rec _ v)           = isValue v 
+isValue (BinOp Mrg v1 v2)   = isValue v1 && isValue v2
+isValue _                   = False
+
 -- Specifications and Implementation Details
 
 -- ** Syntax **
@@ -23,13 +85,6 @@ module EnvCap.Core where
 -- Note: multi-fied record types can be obtained
 --      {l1 : A1, ..., ln : An} obtained by {l1 : A1} & ... & {ln : An}
 
-data Type = TInt
-            | TEmpty
-            | TAnd Type Type
-            | TArrow Type Type
-            | TRecord { label :: String, typeVal :: Type }
-            deriving (Eq, Show)
-
 -- Expressions            e ::= ? | e.n | i | eps | lamda A . e | e1 |> e2 
 --                                | <v, lamda A . e> | e1 e2 | e1 merge e2 | {l = e} | e.l
 -- **** Expressions ****
@@ -47,12 +102,8 @@ data Type = TInt
 --      {l = e}             : Single-field record
 --      e.l                 : lookup by label (possible to have labelled entries in the environment)
 
-data Expr
-    =   EQuery
-    |   EProj Expr String
-    |   EInt TInt
-    |   EEmpty Type
-    deriving (Eq, Show)
+
+-- We want to be able to Lookup Type
 
 -- Values                 v ::= i | eps | <v, lambda A . e> | v1 merge v2 | {l = v}
 -- Frames                 F ::= [].n | [] merge e| [] e | [] |> e | v[] | {l = []} | [].l
