@@ -28,3 +28,4 @@ data Value = VInt                    -- Integer value
         |    VRcd String Value       -- Single-field record value
         |    VMrg Value Value        -- Merge of two values
         deriving (Eq, Show)
+

@@ -1,6 +1,6 @@
 module LambdaE.Eval where
 
-import LambdaE.Syntax ( Op(..), Expr(..) )
+import LambdaE.Syntax ( Op(..), Expr(..), Value )
 
 isValue :: Expr -> Bool
 isValue (Lit _)             = True
@@ -10,6 +10,18 @@ isValue (Rec _ v)           = isValue v
 isValue (BinOp Mrg v1 v2)   = isValue v1 && isValue v2
 isValue _                   = False
 
+
+
+-- When we perform projection
+-- We need to deal with nitty gritty details of Projection
+
+
+
+
+-- Step will take a Expr and return a value
+
+-- step :: Expr -> Value
+-- step :: Expr -> Value 
 
 -- data Expr = Ctx                     -- Context
 --         |   Unit                    -- Unit
@@ -22,5 +34,5 @@ isValue _                   = False
 --         |   RProj Expr String       -- Record Projection by Label
 --         deriving (Eq, Show)
 
-step :: Expr -> Maybe Expr
-step :: 
+-- step :: Expr -> Maybe Expr
+-- step :: 
