@@ -7,5 +7,6 @@ data Typ =
     |   TArrow Typ Typ          -- Arrow type, e.g. A -> B
     |   TRecord {               -- Single-Field Record Type
             label :: String, 
-            typeVal :: Typ } 
+            typeVal :: Typ }
     deriving (Eq, Show)
+
