@@ -22,10 +22,29 @@ data Expr = Ctx                     -- Context
 
 
 -- Values
-data Value = VInt                    -- Integer value
-        |    VUnit                   -- Unit value
+data Value = VInt Expr               -- Integer value
+        |    VUnit Expr              -- Unit value
         |    VClos Value Typ Expr    -- Closure
         |    VRcd String Value       -- Single-field record value
         |    VMrg Value Value        -- Merge of two values
         deriving (Eq, Show)
 
+-- Checks on Syntax
+-- Enforcing VInt Lit Int
+isVInt :: Value -> Bool
+isVInt (VInt ( Lit _ )) = True
+isVInt _                = False
+
+-- Enforcing VUnit Unit
+isVUnit :: Value -> Bool
+isVUnit (VUnit Unit)  = True
+isVUnit _             = False
+
+isValue :: Value -> Bool
+isValue val = 
+        case val of
+                VInt _          -> isVInt val
+                VUnit _         -> isVUnit val
+                VClos v typ exp -> isValue v 
+                VRcd label val  -> isValue val
+                VMrg v1 v2      -> isValue v1 && isValue v2

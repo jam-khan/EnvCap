@@ -10,6 +10,7 @@ import LambdaE.Check
 
 import Control.Exception
 import LambdaE.Types (Typ(TArrow, TRecord))
+import LambdaE.Syntax (Value(VUnit))
 
 main :: IO ()
 main = hspec $ do
@@ -34,29 +35,18 @@ main = hspec $ do
     
   describe "Value" $ do
     it "should represent integer values correctly" $ do
-      let value = VInt
-      value `shouldSatisfy` isVInt
+      VInt (Lit 1) `shouldSatisfy` isVInt
+      VInt Unit `shouldNotSatisfy` isVInt
 
     it "should represent unit values correctly" $ do
-      let value = VUnit
-      value `shouldSatisfy` isVUnit
-
-  describe "Typ" $ do
-    it "should represent types correctly" $ do
-      show TInt `shouldBe` "TInt"
-      show TEmpty `shouldBe` "TEmpty"
-      TInt `shouldNotBe` TEmpty
-      TArrow TInt TInt `shouldBe` TArrow TInt TInt
-      TArrow TInt TInt `shouldNotBe` TArrow TInt TEmpty
-      TAnd TInt TInt `shouldNotBe` TAnd TInt TEmpty
-      TAnd (TAnd TEmpty TInt) TInt `shouldNotBe` TAnd TEmpty TInt
-      TRecord { label = "A", typeVal = TInt} `shouldBe` TRecord { label = "A", typeVal = TInt }
+      VUnit Unit `shouldSatisfy` isVUnit
+      VUnit (Lit 1) `shouldNotSatisfy` isVUnit
+    
+    it "should represent correct values syntax" $ do
+      VUnit (Lit 1)            `shouldNotSatisfy` isValue
+      VInt Unit                `shouldNotSatisfy` isValue 
+      VInt Ctx                 `shouldNotSatisfy` isValue
+      VUnit Unit               `shouldSatisfy` isValue
+      VInt (Lit 10)            `shouldSatisfy` isValue
       
--- Helper functions to check Value constructors.
-isVInt :: Value -> Bool
-isVInt VInt = True
-isVInt _    = False
-
-isVUnit :: Value -> Bool
-isVUnit VUnit = True
-isVUnit _     = False
+          

@@ -1,4 +1,6 @@
 module LambdaE.Types ( Typ(..) ) where
+import Data.String (IsString(..))
+
 
 data Typ = 
         TInt                    -- Integer type

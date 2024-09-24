@@ -30,12 +30,4 @@ main = hspec $ do
       TAnd TInt TInt `shouldNotBe` TAnd TInt TEmpty
       TAnd (TAnd TEmpty TInt) TInt `shouldNotBe` TAnd TEmpty TInt
       TRecord { label = "B", typeVal = TInt} `shouldNotBe` TRecord { label = "A", typeVal = TInt }
-      
--- Helper functions to check Value constructors.
-isVInt :: Value -> Bool
-isVInt VInt = True
-isVInt _    = False
 
-isVUnit :: Value -> Bool
-isVUnit VUnit = True
-isVUnit _     = False
