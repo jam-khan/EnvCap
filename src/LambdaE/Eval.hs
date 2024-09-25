@@ -59,6 +59,9 @@ selectRec (RProj (Rec label expr) l) =
 selectMRGL :: 
 
 
+-- Modular Type Checking for now.
+
+
 
 -- Step will take a Expr and return a value
 
