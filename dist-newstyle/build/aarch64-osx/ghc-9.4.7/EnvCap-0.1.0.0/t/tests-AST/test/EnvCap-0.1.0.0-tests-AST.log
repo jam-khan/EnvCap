@@ -1,0 +1,11 @@
+Test suite tests-AST: RUNNING...
+
+Typ
+  should represent types correctly [✔]
+  should compare equivalent types correctly [✔]
+  should compare not equivalent types correctly [✔]
+
+Finished in 0.0014 seconds
+3 examples, 0 failures
+Test suite tests-AST: PASS
+Test suite logged to: /Users/jamkabeeralikhan/Documents/Developer/ECOOP25/EnvCap/dist-newstyle/build/aarch64-osx/ghc-9.4.7/EnvCap-0.1.0.0/t/tests-AST/test/EnvCap-0.1.0.0-tests-AST.log
