@@ -1,8 +1,7 @@
-module LambdaE.Eval where
+module LambdaE.BigStep where
 
 import LambdaE.Syntax ( Op(..), Expr(..), Value(..) )
 import Data.Maybe (fromMaybe)
-
 
 
 data LookupResultV = Found Value | NotFound
@@ -25,9 +24,6 @@ lookupv (BinOp Mrg e1 e2) n = lookupv e1 (n - 1)
 lookupv _ _                 = Nothing
 
 
-
-
-
 -- record lookup
 rlookupv :: Expr -> String -> Maybe Expr
 rlookupv (Rec l e) label
@@ -42,9 +38,17 @@ rlookupv _ _ = Nothing
 exampleExpr :: Expr
 exampleExpr = BinOp Mrg (Rec "x" (Lit 1)) (Rec "y" (Lit 100))
 
-
 testRLookupV :: String -> Maybe Expr
 testRLookupV = rlookupv exampleExpr
--- When we perform projection
--- We need to deal with nitty gritty details of Projection
--- Step rules
+
+
+
+-- Big Step Evaluation
+evalBig :: Expr -> Expr -> Expr
+evalBig Γ (Lit 1)               = (Lit 1)
+evalBig Γ Unit                  = Unit
+evalBig Γ Ctx                   = Γ
+evalBig Γ (BinOp Mrg e1 e2)     = BinOp Mrg v1 v2
+                                    where   v1 = evalBig Γ e1
+                                            v2 = evalBig (BinOp Mrg Γ v1) e2
+evalBig Γ (BinOp Mrg e1 e2)     = BinOp 
