@@ -18,37 +18,50 @@ data LookupResultV = Found Value | NotFound
         lookupv (binop mrg v1 v2) (S n) v3.
 -}
 
-lookupv :: Expr -> Int -> Maybe Expr
-lookupv (BinOp Mrg e1 e2) 0 = Just e2
-lookupv (BinOp Mrg e1 e2) n = lookupv e1 (n - 1)
+
+lookupv :: Value -> Int -> Maybe Value
+lookupv (VMrg v1 v2) 0 = Just v2
+lookupv (VMrg v1 v2) n = lookupv v1 (n - 1)
 lookupv _ _                 = Nothing
 
 
 -- record lookup
-rlookupv :: Expr -> String -> Maybe Expr
-rlookupv (Rec l e) label
+rlookupv :: Value -> String -> Maybe Value
+rlookupv (VRcd l e) label
     | l == label = Just e
-rlookupv (BinOp Mrg e1 e2) label =
-    case rlookupv e1 label of
+rlookupv (VMrg v1 v2) label =
+    case rlookupv v1 label of
         Just value  -> Just value
-        Nothing     -> rlookupv e2 label
+        Nothing     -> rlookupv v2 label
 rlookupv _ _ = Nothing
 
 -- Example
-exampleExpr :: Expr
-exampleExpr = BinOp Mrg (Rec "x" (Lit 1)) (Rec "y" (Lit 100))
+-- exampleExpr :: Expr
+-- exampleExpr = BinOp Mrg (Rec "x" (Lit 1)) (Rec "y" (Lit 100))
 
-testRLookupV :: String -> Maybe Expr
-testRLookupV = rlookupv exampleExpr
+-- testRLookupV :: String -> Maybe Expr
+-- testRLookupV = rlookupv exampleExpr
 
-
+-- Evaluate the environment first!
 
 -- Big Step Evaluation
-evalBig :: Expr -> Expr -> Expr
-evalBig Γ (Lit 1)               = (Lit 1)
-evalBig Γ Unit                  = Unit
-evalBig Γ Ctx                   = Γ
-evalBig Γ (BinOp Mrg e1 e2)     = BinOp Mrg v1 v2
-                                    where   v1 = evalBig Γ e1
-                                            v2 = evalBig (BinOp Mrg Γ v1) e2
-evalBig Γ (BinOp Mrg e1 e2)     = BinOp 
+-- We assume that eval is gonna get environment as a value
+
+evalBig :: Value -> Expr -> Maybe Value
+evalBig env (Lit 1)               = Just (VInt (Lit 1))
+evalBig env Unit                  = Just VUnit
+evalBig env Ctx                   = Just env
+evalBig env 
+    (BinOp App (Clos e2 t e) e1)  = evalBig env (BinOp Box (BinOp Mrg e2 e1) e)
+evalBig env (BinOp App e1 e2)     = evalBig (VMrg env v1) e2
+                                    where Just v1 = evalBig env e1
+evalBig env (BinOp Box e1 e2)     = evalBig v1 e2
+                                    where Just v1 = evalBig env e1 
+evalBig env (BinOp Mrg e1 e2)     = Just (VMrg v1 v2)
+                                    where   Just v1 = evalBig env e1
+                                            Just v2 = evalBig (VMrg env v1) e2
+evalBig env (Lam t e)             = Just (VClos env t e)
+evalBig env (Proj e n)            = lookupv v1 n
+                                    where   Just v1 = evalBig env e
+evalBig env (RProj e s)           = rlookupv v1 s
+                                    where   Just v1 = evalBig env e
