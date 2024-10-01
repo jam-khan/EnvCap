@@ -1,5 +1,5 @@
 
--- Spec.hs
+-- syntaxTests.hs
 {-# LANGUAGE OverloadedStrings #-}
 
 import Test.Hspec
@@ -38,15 +38,14 @@ main = hspec $ do
       VInt (Lit 1) `shouldSatisfy` isVInt
       VInt Unit `shouldNotSatisfy` isVInt
 
-    it "should represent unit values correctly" $ do
-      VUnit Unit `shouldSatisfy` isVUnit
-      VUnit (Lit 1) `shouldNotSatisfy` isVUnit
+    -- it "should represent unit values correctly" $ do
+    --   VUnit Unit `shouldSatisfy` isVUnit
+    --   VUnit (Lit 1) `shouldNotSatisfy` isVUnit
     
     it "should represent correct values syntax" $ do
-      VUnit (Lit 1)            `shouldNotSatisfy` isValue
       VInt Unit                `shouldNotSatisfy` isValue 
       VInt Ctx                 `shouldNotSatisfy` isValue
-      VUnit Unit               `shouldSatisfy` isValue
+      VUnit                    `shouldSatisfy` isValue
       VInt (Lit 10)            `shouldSatisfy` isValue
       
           
