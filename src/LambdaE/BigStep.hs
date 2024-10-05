@@ -43,6 +43,11 @@ rlookupv _ _ = Nothing
 -- testRLookupV = rlookupv exampleExpr
 
 -- Evaluate the environment first!
+-- Wrapper for Big Step evaluator
+evalB :: Expr -> Expr -> Maybe Value
+evalB e expr = case evalBig VUnit e of
+                    Just v -> evalBig v expr
+                    _      -> Nothing
 
 -- Big Step Evaluation
 -- We assume that eval is gonna get environment as a value
@@ -51,6 +56,9 @@ evalBig :: Value -> Expr -> Maybe Value
 evalBig env (Lit 1)               = Just (VInt (Lit 1))
 evalBig env Unit                  = Just VUnit
 evalBig env Ctx                   = Just env
+evalBig env (Clos e1 t e)         = case evalBig env e1 of
+                                        Just v  -> Just (VClos v t e)
+                                        Nothing -> Nothing
 evalBig env 
     (BinOp App (Clos e2 t e) e1)  = evalBig env (BinOp Box (BinOp Mrg e2 e1) e)
 evalBig env (BinOp App e1 e2)     = evalBig (VMrg env v1) e2
@@ -65,3 +73,5 @@ evalBig env (Proj e n)            = lookupv v1 n
                                     where   Just v1 = evalBig env e
 evalBig env (RProj e s)           = rlookupv v1 s
                                     where   Just v1 = evalBig env e
+evalBig _ _                       = Nothing
+

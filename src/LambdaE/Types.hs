@@ -4,7 +4,7 @@ import Data.String (IsString(..))
 
 data Typ = 
         TInt                    -- Integer type
-    |   TEmpty                  -- Unit type for empty environment
+    |   TUnit                  -- Unit type for empty environment
     |   TAnd Typ Typ            -- Intersection type
     |   TArrow Typ Typ          -- Arrow type, e.g. A -> B
     |   TRecord {               -- Single-Field Record Type
