@@ -33,8 +33,8 @@ data Typ =
     |   TUnit                  -- Unit type for empty environment
     |   TAnd Typ Typ           -- Intersection type
     |   TArrow Typ Typ         -- Arrow type, e.g. A -> B
-    |   TRecord {label :: String, typeVal :: Typ }  -- Single-Field Record Type         
-    deriving (Eq, Show)  -- Move deriving here
+    |   TRecord String Typ     -- Single-Field Record Type         
+    deriving (Eq, Show)
 
 isValue :: Value -> Bool
 isValue val = 

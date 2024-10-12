@@ -59,8 +59,8 @@ main = hspec $ do
     
     it "should compare equivalent types correctly" $ do
       TArrow TInt TInt `shouldBe` TArrow TInt TInt
-      TRecord { label = "A", typeVal = TInt} `shouldBe` TRecord { label = "A", typeVal = TInt }
-      TRecord { label = "X", typeVal = TUnit} `shouldBe` TRecord { label = "X", typeVal = TUnit }
+      TRecord "A" TInt `shouldBe` TRecord "A" TInt
+      TRecord "X" TUnit `shouldBe` TRecord "X" TUnit
       TAnd TUnit TInt `shouldBe` TAnd TUnit TInt
     
     it "should compare not equivalent types correctly" $ do
@@ -68,5 +68,5 @@ main = hspec $ do
       TArrow TInt TInt `shouldNotBe` TArrow TInt TUnit
       TAnd TInt TInt `shouldNotBe` TAnd TInt TUnit
       TAnd (TAnd TUnit TInt) TInt `shouldNotBe` TAnd TUnit TInt
-      TRecord { label = "B", typeVal = TInt} `shouldNotBe` TRecord { label = "A", typeVal = TInt }
+      TRecord "B" TInt `shouldNotBe` TRecord "A" TInt
     
