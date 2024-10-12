@@ -12,12 +12,18 @@ lookupv _ _                 = Nothing
 
 -- record lookup
 rlookupv :: Value -> String -> Maybe Value
-rlookupv (VRcd l e) label
-    | l == label = Just e
+rlookupv (VRcd l v) label
+    | l == label = Just v
+-- Avoiding ambigous lookups
+-- If lookup label present in both or none
+-- then, result is Nothing
+-- So, must be present only once
+-- WRITE ** UNIT TESTING **
 rlookupv (VMrg v1 v2) label =
-    case rlookupv v1 label of
-        Just value  -> Just value
-        Nothing     -> rlookupv v2 label
+    case (rlookupv v1 label, rlookupv v2 label) of
+        (Just vL, Nothing)      -> Just vL
+        (Nothing, Just vR)      -> Just vR
+        (_, _)                  -> Nothing
 rlookupv _ _ = Nothing
 
 evalB :: Expr -> Expr -> Maybe Value
