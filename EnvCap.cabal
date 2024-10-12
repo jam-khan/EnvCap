@@ -22,7 +22,7 @@ maintainer:         jamkhan@connect.hku.hk
 extra-source-files: CHANGELOG.md
 
 library
-    exposed-modules: LambdaE.BigStep LambdaE.Types LambdaE.Syntax LambdaE.Eval LambdaE.Check 
+    exposed-modules: LambdaE.BigStep LambdaE.Syntax
 
     -- Modules included in this library but not exported.
     -- other-modules:
@@ -48,18 +48,18 @@ executable EnvCap
     hs-source-dirs:   app
     default-language: Haskell2010
 
-test-suite tests-AST
+test-suite tests-Syntax
     type: exitcode-stdio-1.0
-    main-is: typeTests.hs
+    main-is: syntaxTests.hs
     hs-source-dirs: test
     build-depends:  base >= 4.7 && <5,
                     hspec >= 2.7 && <3,
                     EnvCap
     default-language: Haskell2010
 
-test-suite tests-Types
+test-suite tests-Eval
     type: exitcode-stdio-1.0
-    main-is: syntaxTests.hs
+    main-is: bigStepTests.hs
     hs-source-dirs: test
     build-depends:  base >= 4.7 && <5,
                     hspec >= 2.7 && <3,
