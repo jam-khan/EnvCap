@@ -1,4 +1,4 @@
-module LambdaE.TypeSystem where
+module LambdaE.TypeChecker where
 import LambdaE.Syntax (Expr(..), Typ(..), Value(..), Op(..))
 
 

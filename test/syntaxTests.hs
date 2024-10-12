@@ -1,5 +1,3 @@
-
--- syntaxTests.hs
 {-# LANGUAGE OverloadedStrings #-}
 
 import Test.Hspec 
