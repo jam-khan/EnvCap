@@ -6,17 +6,6 @@ import Data.Maybe (fromMaybe)
 data LookupResultV = Found Value | NotFound
     deriving (Eq, Show)
 
-{-
-    Coq Definition
-
-    Inductive lookupv : exp -> nat -> exp -> Prop :=
-    | lvzero : forall v1 v2, 
-        lookupv (binop mrg v1 v2) 0 v2
-    | lvsucc : forall v1 v2 n v3, 
-        lookupv v1 n v3 -> 
-        lookupv (binop mrg v1 v2) (S n) v3.
--}
-
 
 lookupv :: Value -> Int -> Maybe Value
 lookupv (VMrg v1 v2) 0 = Just v2
@@ -34,35 +23,16 @@ rlookupv (VMrg v1 v2) label =
         Nothing     -> rlookupv v2 label
 rlookupv _ _ = Nothing
 
--- Example
--- exampleExpr :: Expr
--- exampleExpr = BinOp Mrg (Rec "x" (Lit 1)) (Rec "y" (Lit 100))
-
--- testRLookupV :: String -> Maybe Expr
--- testRLookupV = rlookupv exampleExpr
-
--- Evaluate the environment first!
--- Wrapper for small step evaluator
 evalS :: Expr -> Expr -> Maybe Value
 evalS e expr = case evalSmall VUnit e of
                     Just v -> evalSmall v expr
                     _      -> Nothing
 
 
-
-step :: Expr -> Maybe Expr
-step (Lit n) = Nothing
-step Unit    = Nothing
-step Ctx     = Nothing
-
-
-step (BinOp Mrg e1 e2) = 
-    case step 
-
 -- Big Step Evaluation
 -- We assume that eval is gonna get environment as a value
 evalSmall :: Value -> Expr -> Maybe Value
-evalSmall env (Lit 1)               = Just (VInt (Lit 1))
+evalSmall env (Lit n)               = Just (VInt n)
 evalSmall env Unit                  = Just VUnit
 evalSmall env Ctx                   = Just env
 evalSmall env 
@@ -79,4 +49,7 @@ evalSmall env (Proj e n)            = lookupv v1 n
                                     where   Just v1 = evalSmall env e
 evalSmall env (RProj e s)           = rlookupv v1 s
                                     where   Just v1 = evalSmall env e
+evalSmall env (Rec s e)             = case evalSmall env e of
+                                        Just v -> Just (VRcd s v)
+                                        _      -> Nothing
 evalSmall _ _                       = Nothing

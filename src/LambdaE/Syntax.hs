@@ -1,8 +1,5 @@
 module LambdaE.Syntax where
 
-import LambdaE.Types ( Typ(..) )
--- import qualified LambdaE.Types ( Typ ) -- Import Typ from Types module
-
 -- Operations Definitions
 data Op =   App -- Application
         |   Box -- Box
@@ -24,28 +21,26 @@ data Expr = Ctx                     -- Context
 
 -- Values
 data Value =    VUnit                   -- Unit value
-        |       VInt Expr               -- Integer value
+        |       VInt Int                -- Integer value
         |       VClos Value Typ Expr    -- Closure
         |       VRcd String Value       -- Single-field record value
         |       VMrg Value Value        -- Merge of two values
         deriving (Eq, Show)
 
--- Checks on Syntax
--- Enforcing VInt Lit Int
-isVInt :: Value -> Bool
-isVInt (VInt ( Lit _ )) = True
-isVInt _                = False
 
--- -- Enforcing VUnit Unit
--- isVUnit :: Value -> Bool
--- isVUnit (VUnit Unit)  = True
--- isVUnit _             = False
+data Typ = 
+        TInt                   -- Integer type
+    |   TUnit                  -- Unit type for empty environment
+    |   TAnd Typ Typ           -- Intersection type
+    |   TArrow Typ Typ         -- Arrow type, e.g. A -> B
+    |   TRecord {label :: String, typeVal :: Typ }  -- Single-Field Record Type         
+    deriving (Eq, Show)  -- Move deriving here
 
 isValue :: Value -> Bool
 isValue val = 
         case val of
                 VUnit           -> True
-                VInt _          -> isVInt val
+                VInt _          -> True
                 VClos v typ exp -> isValue v 
                 VRcd label val  -> isValue val
                 VMrg v1 v2      -> isValue v1 && isValue v2

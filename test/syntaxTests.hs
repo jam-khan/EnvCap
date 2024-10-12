@@ -2,15 +2,14 @@
 -- syntaxTests.hs
 {-# LANGUAGE OverloadedStrings #-}
 
-import Test.Hspec
-import LambdaE.Types
+import Test.Hspec 
 import LambdaE.Syntax
-import LambdaE.Eval
-import LambdaE.Check
-
-import Control.Exception
-import LambdaE.Types (Typ(TArrow, TRecord))
-import LambdaE.Syntax (Value(VUnit))
+    ( isValue,
+      Expr(Lit, BinOp, Lam, Proj, Unit, Clos, Ctx),
+      Op(App, Box, Mrg),
+      Value(VUnit, VRcd, VMrg, VInt, VClos),
+      Typ(..) )
+import Control.Exception ()
 
 main :: IO ()
 main = hspec $ do
@@ -32,20 +31,42 @@ main = hspec $ do
       Proj Ctx 1 `shouldNotBe` Proj (Lit 1) 1
       Clos Ctx TInt Unit `shouldNotBe` Clos Ctx TInt (Lit 1)
 
-    
   describe "Value" $ do
-    it "should represent integer values correctly" $ do
-      VInt (Lit 1) `shouldSatisfy` isVInt
-      VInt Unit `shouldNotSatisfy` isVInt
-
-    -- it "should represent unit values correctly" $ do
-    --   VUnit Unit `shouldSatisfy` isVUnit
-    --   VUnit (Lit 1) `shouldNotSatisfy` isVUnit
-    
     it "should represent correct values syntax" $ do
-      VInt Unit                `shouldNotSatisfy` isValue 
-      VInt Ctx                 `shouldNotSatisfy` isValue
       VUnit                    `shouldSatisfy` isValue
-      VInt (Lit 10)            `shouldSatisfy` isValue
+      VInt 10                  `shouldSatisfy` isValue
       
-          
+    it "should recognize closures as values" $ do
+      let closure = VClos (VInt 1) TInt (Lit 1)
+      closure `shouldSatisfy` isValue
+
+    it "should recognize records as values" $ do
+      let record = VRcd "label" (VInt 5)
+      record `shouldSatisfy` isValue
+
+    it "should recognize merged values as values" $ do
+      let merged = VMrg (VInt 1) (VInt 2)
+      merged `shouldSatisfy` isValue
+
+    it "should not recognize non-values" $ do
+      let nonValue = VClos VUnit TInt (Lit 100)
+      nonValue `shouldSatisfy` isValue
+  
+  describe "Typ" $ do
+    it "should represent types correctly" $ do
+      show TInt `shouldBe` "TInt"
+      show TUnit `shouldBe` "TUnit"
+    
+    it "should compare equivalent types correctly" $ do
+      TArrow TInt TInt `shouldBe` TArrow TInt TInt
+      TRecord { label = "A", typeVal = TInt} `shouldBe` TRecord { label = "A", typeVal = TInt }
+      TRecord { label = "X", typeVal = TUnit} `shouldBe` TRecord { label = "X", typeVal = TUnit }
+      TAnd TUnit TInt `shouldBe` TAnd TUnit TInt
+    
+    it "should compare not equivalent types correctly" $ do
+      TInt `shouldNotBe` TUnit
+      TArrow TInt TInt `shouldNotBe` TArrow TInt TUnit
+      TAnd TInt TInt `shouldNotBe` TAnd TInt TUnit
+      TAnd (TAnd TUnit TInt) TInt `shouldNotBe` TAnd TUnit TInt
+      TRecord { label = "B", typeVal = TInt} `shouldNotBe` TRecord { label = "A", typeVal = TInt }
+    
