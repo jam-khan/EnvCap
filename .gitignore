@@ -4,3 +4,4 @@ oopsla24-artifact/*
 dist-newstyle/*
 Literature/*
 extra/*
+src/Addition.hs

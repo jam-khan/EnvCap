@@ -53,12 +53,26 @@ infer ctx (BinOp Mrg e1 e2) = Just (TAnd tA tB)
                             where   Just tA = infer ctx e1
                                     Just tB = infer (TAnd ctx tA) e2
 -- TYP-APP
-infer ctx (BinOp App e1 e2) =
-        if check ctx e2 tA  then Just tB
-                            else Nothing
-        where Just (TArrow tA tB) = infer ctx e1
--- TYP-LAM  ** Check **
--- TYP-CLOS ** Check **
+infer ctx (BinOp App e1 e2) = 
+    case infer ctx e1 of
+        Just (TArrow tA tB) ->  if  check ctx e2 tA 
+                                then Just tB
+                                else Nothing
+        _                   -> Nothing
+-- TYP-LAM
+infer ctx (Lam tA e) = 
+    case infer (TAnd ctx tA) e of
+        Just tB -> Just (TArrow tA tB)
+        _       -> Nothing
+
+-- TYP-CLOS
+infer ctx (Clos e1 tA e2) =
+    case infer ctx e1 of
+        Just ctx1   -> 
+            case infer (TAnd ctx1 tA) e2 of
+                Just tB     -> Just (TArrow tA tB)
+                _           -> Nothing
+        _           -> Nothing
 -- TYP-RCD
 infer ctx (Rec l e)     = Just (TRecord l tA)
                         where Just tA = infer ctx e
@@ -70,17 +84,8 @@ infer ctx (RProj e l)   =
                                             then Just tA else Nothing
                         Nothing     -> Nothing
         Nothing     -> Nothing
-infer _ _ = Nothing
 
 check :: Typ -> Expr -> Typ -> Bool
--- TYP-LAM
-check ctx (Lam t e) (TArrow tA tB) = 
-    t == tA && check (TAnd ctx tA) e tB
--- TYP-CLOS
-check ctx (Clos e1 t e2) (TArrow tA tB) =
-    case infer ctx e1 of
-        Just ctx1       -> check (TAnd ctx1 tA) e2 tB
-        Nothing         -> False
 -- TYP-EQ
 check ctx e tA      = case infer ctx e of
                         Just tB -> tA == tB

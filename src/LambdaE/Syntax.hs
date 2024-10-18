@@ -37,10 +37,8 @@ data Typ =
     deriving (Eq, Show)
 
 isValue :: Value -> Bool
-isValue val = 
-        case val of
-                VUnit           -> True
-                VInt _          -> True
-                VClos v typ exp -> isValue v 
-                VRcd label val  -> isValue val
-                VMrg v1 v2      -> isValue v1 && isValue v2
+isValue VUnit                   = True
+isValue (VInt _)                = True
+isValue (VClos v t e)           = isValue v
+isValue (VRcd label val)        = isValue val
+isValue (VMrg v1 v2)            = isValue v1 && isValue v2
