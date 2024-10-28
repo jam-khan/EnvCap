@@ -22,7 +22,7 @@ maintainer:         jamkhan@connect.hku.hk
 extra-source-files: CHANGELOG.md
 
 library
-    exposed-modules: LambdaE.BigStep LambdaE.Syntax LambdaE.TypeChecker
+    exposed-modules: Core.Semantics Core.Syntax Core.TypeChecker
 
     -- Modules included in this library but not exported.
     -- other-modules:
@@ -51,7 +51,7 @@ executable EnvCap
 test-suite tests-Syntax
     type: exitcode-stdio-1.0
     main-is: syntaxTests.hs
-    hs-source-dirs: test
+    hs-source-dirs: test/coreTests
     build-depends:  base >= 4.7 && <5,
                     hspec >= 2.7 && <3,
                     EnvCap,
@@ -60,8 +60,8 @@ test-suite tests-Syntax
 
 test-suite tests-Eval
     type: exitcode-stdio-1.0
-    main-is: bigStepTests.hs
-    hs-source-dirs: test
+    main-is: semanticsTests.hs
+    hs-source-dirs: test/coreTests
     build-depends:  base >= 4.7 && <5,
                     hspec >= 2.7 && <3,
                     EnvCap,
@@ -71,7 +71,7 @@ test-suite tests-Eval
 test-suite tests-TypeChecker
     type: exitcode-stdio-1.0
     main-is: typeCheckerTests.hs
-    hs-source-dirs: test
+    hs-source-dirs: test/coreTests
     build-depends:  base >= 4.7 && <5,
                     hspec >= 2.7 && <3,
                     EnvCap,

@@ -2,10 +2,10 @@
 {-# LANGUAGE InstanceSigs #-}
 
 import Test.Hspec 
-import LambdaE.Syntax
+import Core.Syntax
     ( isValue,
-      Expr(..),
-      Op(App, Box, Mrg),
+      Exp(..),
+      BinaryOp(App, Box, Mrg),
       Value(VUnit, VRcd, VMrg, VInt, VClos),
       Typ(..))
 import Control.Exception ()
@@ -19,8 +19,8 @@ import Test.QuickCheck
 --        
 
 -- Arbitrary instances for Op
-instance Arbitrary Op where
-  arbitrary :: Gen Op
+instance Arbitrary BinaryOp where
+  arbitrary :: Gen BinaryOp
   arbitrary = elements [App, Box, Mrg]
 
 -- Arbitrary instances for Typ
@@ -32,16 +32,18 @@ instance Arbitrary Typ where
                       TRecord <$> arbitrary <*> arbitrary]
 -- Arbitrary instances for Value
 instance Arbitrary Value where
+    arbitrary :: Gen Value
     arbitrary = oneof 
         [ return VUnit
         , VInt <$> arbitrary
-        , VClos <$> arbitrary <*> arbitrary <*> arbitrary  -- Closure with random Value, Typ, and Expr
-        , VRcd <$> arbitrary <*> arbitrary  -- Record with random String and Value
-        , VMrg <$> arbitrary <*> arbitrary  -- Merge two random Values
+        , VClos <$> arbitrary <*> arbitrary <*> arbitrary   -- Closure with random Value, Typ, and Exp
+        , VRcd <$> arbitrary <*> arbitrary                  -- Record with random String and Value
+        , VMrg <$> arbitrary <*> arbitrary                  -- Merge two random Values
         ]
         
--- Arbitrary instances for Expr
-instance Arbitrary Expr where
+-- Arbitrary instances for Exp
+instance Arbitrary Exp where
+  arbitrary :: Gen Exp
   arbitrary = oneof [return Ctx, return Unit,
                       Lit     <$> arbitrary,
                       BinOp   <$> arbitrary <*> arbitrary <*> arbitrary,
@@ -52,7 +54,7 @@ instance Arbitrary Expr where
                       RProj   <$> arbitrary <*> arbitrary]
 
 
--- Properties
+-- Property isValue
 prop_isValue :: Value -> Bool
 prop_isValue v = isValue v == case v of
     VUnit         -> True
@@ -60,6 +62,8 @@ prop_isValue v = isValue v == case v of
     VClos v' _ _  -> isValue v'
     VRcd _ v'     -> isValue v'
     VMrg v1 v2    -> isValue v1 && isValue v2
+
+
 
 main :: IO ()
 main = hspec $ do
@@ -69,14 +73,14 @@ main = hspec $ do
       show Box    `shouldBe`  "Box"
       show Mrg    `shouldBe`  "Mrg"
 
-  describe "Expr" $ do
-    it "should construct and compare expressions" $ do
+  describe "Exp" $ do
+    it "should construct and compare Expessions" $ do
       BinOp App (Lit 1) (Lit 2) 
                                 `shouldBe`  BinOp App (Lit 1) (Lit 2)
       Unit                      `shouldBe`  Unit
       Lam TInt (Lit 1)          `shouldBe`  Lam TInt (Lit 1)
      
-    it "should not be equal to different expressions" $ do
+    it "should not be equal to different Expessions" $ do
       Lit 1               `shouldNotBe`   Lit 2
       Proj Ctx 1          `shouldNotBe`   Proj (Lit 1) 1
       Clos Ctx TInt Unit  `shouldNotBe`   Clos Ctx TInt (Lit 1)
@@ -85,7 +89,6 @@ main = hspec $ do
     it "should represent correct values syntax" $ do
       VUnit     `shouldSatisfy` isValue
       VInt 10   `shouldSatisfy` isValue
-      -- Property test
       quickCheck prop_isValue
       
     it "should recognize closures as values" $ do
@@ -121,5 +124,3 @@ main = hspec $ do
       TAnd TInt TInt              `shouldNotBe`     TAnd TInt TUnit
       TAnd (TAnd TUnit TInt) TInt `shouldNotBe`     TAnd TUnit TInt
       TRecord "B" TInt            `shouldNotBe`     TRecord "A" TInt
-
-    -- Property-based testing
