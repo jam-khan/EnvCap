@@ -68,11 +68,11 @@ instance Eq BinaryOp where
     -- Booleans         -- Done -- Type Checker
     -- Conditionals     -- Done -- Type Checker
     -- Arithmetic       -- Done -- Type Checker
-
-
+    -- Let bindings     -- Sortof (Just sugar)
 
     -- Recursion        -- X
-    -- Let bindings     -- X
+    
+
     -- Builtin lists
     -- Pairs
     -- Algebraic Datatypes (Without Polymorphism)
@@ -88,8 +88,9 @@ data Exp =  Ctx                     -- Context
         |   Rec   String Exp        -- Single-Field Record
         |   RProj Exp String        -- Record Projection by Label
         -- Extensions
-        |   EBool Bool
-        |   If    Exp Exp Exp 
+        |   Let   Exp Exp           -- Let Bindings
+        |   EBool Bool              -- Boolean Term
+        |   If    Exp Exp Exp       -- Conditionals
         deriving (Eq, Show)
 
 -- Values

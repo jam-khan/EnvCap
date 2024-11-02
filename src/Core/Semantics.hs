@@ -2,6 +2,7 @@ module Core.Semantics where
 import Core.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), LogicOp(..), Typ (TBool))
 import Data.Maybe (fromMaybe)
 import GHC.GHCi.Helpers (evalWrapper)
+import Foreign.C.Error (ePROGUNAVAIL)
 
 
 lookupv :: Value -> Int -> Maybe Value
@@ -77,7 +78,7 @@ evalBig env (BinOp App e1 e2)     = case evalBig env e1 of
 evalBig env (BinOp Mrg e1 e2)     = Just (VMrg v1 v2)
                                     where   Just v1 = evalBig env e1
                                             Just v2 = evalBig (VMrg env v1) e2
--- BSTEP-Arith
+-- BSTEP-ARITH
 evalBig env 
         (BinOp (Arith op) e1 e2) = case op of 
                                         Add     ->  Just (VInt (v1 + v2))
@@ -87,12 +88,12 @@ evalBig env
                                                                 else Just (VInt (v1 `div` v2))
                                     where Just (VInt v1)   = evalBig env e1
                                           Just (VInt v2)   = evalBig env e2
--- BSTEP-Comp
+-- BSTEP-COMP
 evalBig env
         (BinOp (Comp op) e1 e2) =   Just (VBool (compareOp op v1 v2))
                                     where   Just v1 = evalBig env e1
                                             Just v2 = evalBig env e2
--- BSTEP-Logic
+-- BSTEP-LOGIC
 evalBig env
         (BinOp (Logic op) e1 e2) =  Just v3
                                     where   Just (VBool b1) = evalBig env e1
@@ -100,8 +101,11 @@ evalBig env
                                             v3              = case op of
                                                                 And -> VBool (b1 && b2)
                                                                 Or  -> VBool (b1 || b2)
--- BSTEP-Not
+-- BSTEP-NOT
 evalBig env (UnOp Not e1) = evalBig env (BinOp (Logic And) e1 (EBool False))
+-- BSTEP-LET
+evalBig env (Let e1 e2)   = evalBig (VMrg env v1) e2
+                                where Just v1 = evalBig env e1
 -- BSTEP-LAM
 evalBig env (Lam t e)             = Just (VClos env t e)
 -- BSTEP-REC
