@@ -1,4 +1,3 @@
--- typeSystemTests.hs
 {-# LANGUAGE OverloadedStrings #-}
 
 import Test.Hspec 

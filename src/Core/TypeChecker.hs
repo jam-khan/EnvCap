@@ -1,4 +1,5 @@
 module Core.TypeChecker where
+    
 import Core.Syntax (Exp(..), Typ(..), Value(..), BinaryOp(..))
 
 

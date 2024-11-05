@@ -1,4 +1,5 @@
 module Core.Semantics where
+
 import Core.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), LogicOp(..), Typ (TBool))
 import Data.Maybe (fromMaybe)
 import GHC.GHCi.Helpers (evalWrapper)
