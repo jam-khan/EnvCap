@@ -20,17 +20,16 @@ maintainer:         jamkhan@connect.hku.hk
 -- copyright:
 -- category:
 extra-source-files: CHANGELOG.md
-
 library
-    exposed-modules: Core.Semantics Core.Syntax Core.TypeChecker
-
+    exposed-modules: Core.Semantics Core.Syntax Core.TypeChecker PBT.Arbitrary PBT.Generators PBT.Properties
     -- Modules included in this library but not exported.
     -- other-modules:
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends:    base ^>=4.17.2.0
-    hs-source-dirs:   src
+    build-depends:    base ^>=4.17.2.0,
+                      QuickCheck
+    hs-source-dirs:   src, test
     default-language: Haskell2010
 
 executable EnvCap
@@ -50,8 +49,8 @@ executable EnvCap
 
 test-suite tests-Syntax
     type: exitcode-stdio-1.0
-    main-is: syntaxTests.hs
-    hs-source-dirs: test/coreTests
+    main-is: SyntaxTests.hs
+    hs-source-dirs: Test/CoreTests, Test/PBT
     build-depends:  base >= 4.7 && <5,
                     hspec >= 2.7 && <3,
                     EnvCap,
@@ -60,8 +59,8 @@ test-suite tests-Syntax
 
 test-suite tests-Eval
     type: exitcode-stdio-1.0
-    main-is: semanticsTests.hs
-    hs-source-dirs: test/coreTests
+    main-is: SemanticsTests.hs
+    hs-source-dirs: Test/CoreTests, Test/PBT
     build-depends:  base >= 4.7 && <5,
                     hspec >= 2.7 && <3,
                     EnvCap,
@@ -70,8 +69,8 @@ test-suite tests-Eval
 
 test-suite tests-TypeChecker
     type: exitcode-stdio-1.0
-    main-is: typeCheckerTests.hs
-    hs-source-dirs: test/coreTests
+    main-is: TypeCheckerTests.hs
+    hs-source-dirs: Test/CoreTests, Test/PBT
     build-depends:  base >= 4.7 && <5,
                     hspec >= 2.7 && <3,
                     EnvCap,

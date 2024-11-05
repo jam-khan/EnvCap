@@ -5,73 +5,12 @@ import Test.Hspec ( hspec, describe, it, shouldBe, shouldSatisfy )
 import Core.Syntax
     ( Exp(Lit, Proj, RProj, Rec, Lam, Unit, Ctx, BinOp, Clos),
       BinaryOp(..),
-      Value(VMrg, VRcd, VUnit, VInt, VClos), Typ(..) )
+      Value(VMrg, VRcd, VUnit, VInt, VClos), Typ(..), ArithOp(..))
 import Core.Semantics ( evalB, evalBig, lookupv, rlookupv )
 import Data.Maybe (isJust, isNothing, fromJust)
-
+import PBT.Properties (prop_lookupvMerged)
 import Test.QuickCheck
 
--- Arbitrary instances for Op
-instance Arbitrary BinaryOp where
-  arbitrary :: Gen BinaryOp
-  arbitrary = elements [App, Box, Mrg]
-
--- Arbitrary instances for Typ
-instance Arbitrary Typ where
-  arbitrary :: Gen Typ
-  arbitrary = oneof [return TInt, return TUnit,
-                      TArrow <$> arbitrary <*> arbitrary,
-                      TAnd   <$> arbitrary <*> arbitrary,
-                      TRecord <$> arbitrary <*> arbitrary]
-
--- Arbitrary instances for Value
-instance Arbitrary Value where
-    arbitrary :: Gen Value
-    arbitrary = oneof 
-        [ return VUnit
-        , VInt <$> arbitrary
-        , VClos <$> arbitrary <*> arbitrary <*> arbitrary   -- Closure with random Value, Typ, and Exp
-        , VRcd <$> arbitrary <*> arbitrary                  -- Record with random String and Value
-        , VMrg <$> arbitrary <*> arbitrary                  -- Merge two random Values
-        ]
-        
--- Arbitrary instances for Exp
-instance Arbitrary Exp where
-  arbitrary :: Gen Exp
-  arbitrary = oneof [return Ctx, return Unit,
-                      Lit     <$> arbitrary,
-                      BinOp   <$> arbitrary <*> arbitrary <*> arbitrary,
-                      Lam     <$> arbitrary <*> arbitrary,
-                      Proj    <$> arbitrary <*> arbitrary,
-                      Clos    <$> arbitrary <*> arbitrary <*> arbitrary,
-                      Rec     <$> arbitrary <*> arbitrary,
-                      RProj   <$> arbitrary <*> arbitrary]
-
-
-genValue :: Gen Value
-genValue = oneof 
-        [ return VUnit
-        , VInt <$> arbitrary
-        , VClos <$> arbitrary <*> arbitrary <*> arbitrary   -- Closure with random Value, Typ, and Exp
-        , VRcd <$> arbitrary <*> arbitrary                  -- Record with random String and Value
-        , VMrg <$> arbitrary <*> arbitrary                  -- Merge two random Values
-        ]
-
-genExp :: Gen Exp
-genExp = oneof
-    [ Lit <$> arbitrary
-    , return Unit
-    , Ctx <$ return ()
-    , Lam TInt <$> genExp
-    , BinOp App <$> genExp <*> genExp
-    , BinOp Mrg <$> genExp <*> genExp
-    , RProj <$> (Rec <$> arbitrary <*> genExp) <*> arbitrary
-    ]
-
-prop_lookupvMerged :: Property
-prop_lookupvMerged = forAll genValue $ \value ->
-    let mergedValue = VMrg value (VInt 0)
-    in lookupv mergedValue 0 === Just (VInt 0)
 
 main :: IO ()
 main = hspec $ do

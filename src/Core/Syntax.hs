@@ -71,8 +71,8 @@ instance Eq BinaryOp where
     -- Let bindings     -- Sortof (Just sugar)
 
     -- Recursion        -- X
-    
 
+    
     -- Builtin lists
     -- Pairs
     -- Algebraic Datatypes (Without Polymorphism)
