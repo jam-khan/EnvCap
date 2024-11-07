@@ -1,12 +1,16 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE InstanceSigs #-}
 
 import Test.Hspec ( hspec, describe, it, shouldBe, shouldSatisfy )
-import LambdaE.Syntax
-    ( Expr(Lit, Proj, RProj, Rec, Lam, Unit, Ctx, BinOp, Clos),
-      Op(Mrg, Box, App),
-      Value(VMrg, VRcd, VUnit, VInt, VClos), Typ(..) )
-import LambdaE.BigStep ( evalB, evalBig, lookupv, rlookupv )
+import Core.Syntax
+    ( Exp(Lit, Proj, RProj, Rec, Lam, Unit, Ctx, BinOp, Clos),
+      BinaryOp(..),
+      Value(VMrg, VRcd, VUnit, VInt, VClos), Typ(..), ArithOp(..))
+import Core.Semantics ( evalB, evalBig, lookupv, rlookupv )
 import Data.Maybe (isJust, isNothing, fromJust)
+import PBT.Properties (prop_lookupvMerged)
+import Test.QuickCheck
+
 
 main :: IO ()
 main = hspec $ do
@@ -18,6 +22,12 @@ main = hspec $ do
             lookupv mergedValue 1 `shouldBe` Just (VInt 2)
             lookupv mergedValue 2 `shouldBe` Just (VInt 1)
             lookupv mergedValue 3 `shouldBe` Nothing
+    
+    -- Property-based testing
+    describe "Property-Based Tests" $ do
+        it "should correctly lookup in merged values" $
+            property prop_lookupvMerged
+
 
     describe "rlookupv" $ do
         it "should find a value in a record" $ do
@@ -36,56 +46,54 @@ main = hspec $ do
             rlookupv mergedRecord "label2" `shouldBe` Just (VInt 84)
 
     describe "evalBig" $ do
-        it "should evaluate a literal expression correctly" $ do
+        it "should evaluate a literal Expession correctly" $ do
             evalB Unit (Lit 5) `shouldBe` Just (VInt 5)
 
         it "should return context correctly" $ do
             evalB Unit Ctx `shouldBe` Just VUnit -- Assuming Ctx returns the current environment
 
-        it "should evaluate Unit expression correctly" $ do
+        it "should evaluate Unit Expession correctly" $ do
             evalB Unit Unit `shouldBe` Just VUnit
 
-        it "should evaluate application of a lambda expression correctly" $ do
-            let lambdaExpr = Lam TInt Ctx
-            evalB Unit (BinOp App lambdaExpr (Lit 5)) `shouldSatisfy` isJust
+        it "should evaluate application of a lambda Expession correctly" $ do
+            let lambdaExp = Lam TInt Ctx
+            evalB Unit (BinOp App lambdaExp (Lit 5)) `shouldSatisfy` isJust
     
         it "should evaluate application of a box correctly" $ do
-            let lambdaExpr = BinOp Box (BinOp Mrg Unit (Lit 100)) (Proj Ctx 0)
-            evalB Unit lambdaExpr `shouldBe` Just (VInt 100)
+            let lambdaExp = BinOp Box (BinOp Mrg Unit (Lit 100)) (Proj Ctx 0)
+            evalB Unit lambdaExp `shouldBe` Just (VInt 100)
 
         it "should evaluate a closure correctly" $ do
-            let closureExpr = Lam TInt Unit
-            evalBig VUnit closureExpr `shouldSatisfy` isJust
+            let closureExp = Lam TInt Unit
+            evalBig VUnit closureExp `shouldSatisfy` isJust
 
         it "should handle projections correctly" $ do
-            let expr = RProj (Rec "x" (Lit 100)) "x"
-            evalBig VUnit expr `shouldBe` Just (VInt 100)
+            let exp = RProj (Rec "x" (Lit 100)) "x"
+            evalBig VUnit exp `shouldBe` Just (VInt 100)
 
         it "should handle recursive definitions correctly" $ do
-            let recExpr = Rec "fact"
+            let recExp = Rec "fact"
                             (Lam TInt 
                             (BinOp App 
                                 (BinOp App 
                                 Ctx 
                                 (Lit 0)) 
                                 Unit))
-            evalBig VUnit recExpr `shouldSatisfy` isJust
+            evalBig VUnit recExp `shouldSatisfy` isJust
 
-        it "should return Nothing for undefined expressions" $ do
+        it "should return Nothing for undefined Expessions" $ do
             evalBig VUnit Ctx `shouldSatisfy` isJust -- Assuming Ctx should return an environment
     
         it "should return closures propertly" $ do
             evalB Unit (Clos Ctx TUnit (Lit 100)) `shouldBe` Just (VClos VUnit TUnit (Lit 100))
 
     it "should merge two values correctly" $ do
-        let env = VUnit             -- Define your initial environment
-            expr1 = VInt 1          -- First value to merge
-            expr2 = VInt 2          -- Second value to merge
-            mergedExpr = BinOp Mrg (Lit 1) (Lit 2)  -- Expression to evaluate
+        let env = VUnit
+            exp1 = VInt 1
+            exp2 = VInt 2
+            mergedExp = BinOp Mrg (Lit 1) (Lit 2)
     
-        -- Evaluate the first expression
-        let v1 = evalBig env (Lit 1)  -- Should yield Just (VInt (Lit 1))
-        -- Evaluate the second expression in a merged context
-        let v2 = evalBig (VMrg env (fromJust v1)) (Lit 2)  -- Should yield Just (VInt (Lit 2))
+        let v1 = evalBig env (Lit 1)
+        let v2 = evalBig (VMrg env (fromJust v1)) (Lit 2)
 
-        evalBig env mergedExpr `shouldBe` Just (VMrg (fromJust v1) (fromJust v2))
+        evalBig env mergedExp `shouldBe` Just (VMrg (fromJust v1) (fromJust v2))

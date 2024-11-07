@@ -1,17 +1,16 @@
--- typeSystemTests.hs
 {-# LANGUAGE OverloadedStrings #-}
 
 import Test.Hspec 
-import LambdaE.TypeChecker
+import Core.TypeChecker
     ( lookupt,
       isLabel,
       containment,
       rlookupt,
       infer )
-import LambdaE.Syntax
+import Core.Syntax
     ( Typ(..),
-      Expr(..),
-      Op(..) )
+      Exp(..),
+      BinaryOp(..) )
 
 
 ctx :: Typ
@@ -75,29 +74,29 @@ main = hspec $ do
       rlookupt typ "z" `shouldBe` Nothing
 
   describe "infer" $ do
-    it "should infer types correctly from expressions with literals and projections" $ do
+    it "should infer types correctly from Expessions with literals and projections" $ do
       let ctx = TAnd (TRecord "x" TInt) (TRecord "y" TUnit)
-          expr1 = Proj (BinOp Mrg Unit (Lit 42)) 0
-          expr2 = Rec "z" (Lit 42)
+          exp1 = Proj (BinOp Mrg Unit (Lit 42)) 0
+          exp2 = Rec "z" (Lit 42)
 
-      infer ctx expr1 `shouldBe` Just TInt
-      infer ctx expr2 `shouldBe` Just (TRecord "z" TInt)
+      infer ctx exp1 `shouldBe` Just TInt
+      infer ctx exp2 `shouldBe` Just (TRecord "z" TInt)
 
     it "should infer record projections correctly by label" $ do
       let ctx = TAnd (TRecord "z" TInt) (TRecord "y" TUnit)
-          expr3 = RProj (Rec "z" (Lit 42)) "z"
-      infer ctx expr3 `shouldBe` Just TInt 
+          exp3 = RProj (Rec "z" (Lit 42)) "z"
+      infer ctx exp3 `shouldBe` Just TInt 
 
-    it "should return Nothing for invalid projections or unrecognized expressions" $ do
+    it "should return Nothing for invalid projections or unrecognized Expessions" $ do
       let ctx = TAnd (TRecord "a" TInt) (TRecord "b" TUnit)
-          invalidExpr = RProj Ctx ""
-      infer ctx invalidExpr `shouldBe` Nothing
+          invalidExp = RProj Ctx ""
+      infer ctx invalidExp `shouldBe` Nothing
 
     it "should return Nothing for mismatched types" $ do
         infer ctx (BinOp App (Lam TInt (Lit 42)) (Lam TUnit (Lit 1))) `shouldBe` Nothing
         infer ctx (BinOp App (Lam TInt (Lit 42)) (Lit 5)) `shouldBe` Just TInt
       
-    it "should handle lambda expressions correctly" $ do
+    it "should handle lambda Expessions correctly" $ do
         infer ctx (BinOp App 
                         (Lam TInt (Lam TInt Ctx)) 
                         (Lit 5)) `shouldBe` Just (TArrow TInt (TAnd (TAnd TUnit TInt) TInt))

@@ -1,5 +1,6 @@
-module LambdaE.TypeChecker where
-import LambdaE.Syntax (Expr(..), Typ(..), Value(..), Op(..))
+module Core.TypeChecker where
+
+import Core.Syntax (Exp(..), Typ(..), Value(..), BinaryOp(..))
 
 
 -- Lookup based on indexing
@@ -35,7 +36,7 @@ rlookupt (TAnd tA tB) label =
 rlookupt _ _                = Nothing
 
 -- ==> direction
-infer :: Typ -> Expr -> Maybe Typ
+infer :: Typ -> Exp -> Maybe Typ
 -- TYP-CTX
 infer ctx Ctx               = Just ctx
 -- TYP-PROJ
@@ -85,21 +86,37 @@ infer ctx (RProj e l)   =
                         Nothing     -> Nothing
         Nothing     -> Nothing
 
-check :: Typ -> Expr -> Typ -> Bool
+-- Extensions
+
+{-
+                    --------------------------- (TYP-Bool)
+                        v |- Bool => TBool
+
+        v |- e1 <= Bool         v |- e2 => t           v |- e3 <= t
+        ----------------------------------------------------------- (TYP-IF)
+                        v |- If e1 e2 e3 => t1
+-}
+-- TYP-BOOL
+infer ctx (EBool bool)      = Just TBool
+-- TYP-IF
+infer ctx (If cond e1 e2)   =   if check ctx cond TBool && (t1 == t2)
+                                    then Just t1
+                                    else Nothing
+                                where
+                                    Just t1 = infer ctx e1
+                                    Just t2 = infer ctx e2
+
+
+
+
+check :: Typ -> Exp -> Typ -> Bool
 -- TYP-EQ
 check ctx e tA      = case infer ctx e of
                         Just tB -> tA == tB
                         _       -> False
 
+
 -- First finish above
 -- Write unit testing (IMPORTANT)
 -- Write property-based testing (IMPORTANT)
-
-
--- Extensions
-    -- Booleans
-    -- Conditionals
-    -- Arithmetic
-    -- Recursion
-    -- Let bindings
 
