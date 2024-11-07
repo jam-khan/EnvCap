@@ -17,12 +17,16 @@ An implementation of EnvCap Programming Language with environment-based λ_E wit
 - [x] Unit testing setup
 - [x] Big Step Operational Semantics
 - [x] Bidirectional type checker
-- [ ] Booleans
-- [ ] Conditionals
-- [ ] Arithmetic Operations
+- [x] Booleans
+- [x] Conditionals
+- [x] Arithmetic Operations
 - [ ] Recursion
-- [ ] Let Bindings
-
+- [x] Let Bindings
+- [x] Built-in Lists
+- [ ] Sums
+- [ ] Pairs
+- [ ] Variants
+- [ ] Tuple
 <!-- ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request.
