@@ -65,17 +65,31 @@ instance Eq BinaryOp where
         _           == _           = False
 
 -- Extensions
-    -- Booleans         -- Done -- Type Checker
-    -- Conditionals     -- Done -- Type Checker
+    -- Booleans         
+        -- Semantics    : Done 
+        -- Type System  : To be done
+    -- Conditionals     
+        -- Semantics    : Done
+        -- Type System  : To be done
+    -- Arithmetic
+        -- Semantics    : Done
+        -- Type System  : To be done 
+    -- Let bindings
+        -- Semantics    : Done
+        -- Type System  : To be done
+    -- Built-in List
+
     -- Arithmetic       -- Done -- Type Checker
     -- Let bindings     -- Sortof (Just sugar)
-
-    -- Recursion        -- X
-
-    
+    -- Pairs            -- Done
     -- Builtin lists
     -- Pairs
+    -- Sums
+    -- Recursion
+
     -- Algebraic Datatypes (Without Polymorphism)
+-- Product Types
+-- Simply add the pairs by sugar
 
 data Exp =  Ctx                     -- Context
         |   Unit                    -- Unit
@@ -88,9 +102,14 @@ data Exp =  Ctx                     -- Context
         |   Rec   String Exp        -- Single-Field Record
         |   RProj Exp String        -- Record Projection by Label
         -- Extensions
+        |   If    Exp Exp Exp       -- Conditionals
         |   Let   Exp Exp           -- Let Bindings
         |   EBool Bool              -- Boolean Term
-        |   If    Exp Exp Exp       -- Conditionals
+        |   Fix   Exp               -- Recursion
+        |   Pair  Exp Exp           -- Pair
+        |   Nil  Typ                -- Nil for list
+        |   Cons Exp Exp            -- List
+        -- |      Sums
         deriving (Eq, Show)
 
 -- Values
@@ -100,6 +119,8 @@ data Value =    VUnit                   -- Unit value
         |       VClos Value Typ Exp     -- Closure
         |       VRcd String Value       -- Single-field record value
         |       VMrg Value Value        -- Merge of two values
+        |       VNil Typ                -- Nil for list
+        |       VCons Value Value        -- List
         deriving (Eq, Show)
 
 
@@ -109,8 +130,23 @@ data Typ =  TUnit                  -- Unit type for empty environment
         |   TAnd Typ Typ           -- Intersection type
         |   TArrow Typ Typ         -- Arrow type, e.g. A -> B
         |   TRecord String Typ     -- Single-Field Record Type
-        |   TArray Typ
+        |   TList  Typ             -- Type for built-in list
+        |   TFix   Typ             -- Type for recursive function 
         deriving (Eq, Show)
+
+{-
+        Extension Typing Rules
+
+        v |- e1 <= Bool         v |- e2 => t           v |- e3 <= t
+        ----------------------------------------------------------- (T-IF)
+                        v |- If e1 e2 e3 => t1
+
+
+-}
+
+
+
+
 
 isValue :: Value -> Bool
 isValue VUnit                   = True

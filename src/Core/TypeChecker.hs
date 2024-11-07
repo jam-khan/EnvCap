@@ -1,5 +1,5 @@
 module Core.TypeChecker where
-    
+
 import Core.Syntax (Exp(..), Typ(..), Value(..), BinaryOp(..))
 
 
@@ -44,15 +44,6 @@ infer ctx (Proj e n)        = lookupt tB n
                             where Just tB = infer ctx e
 -- TYP-LIT
 infer ctx (Lit i)           = Just TInt
--- TYP-BOOL
-infer ctx (EBool bool)      = Just TBool
--- TYP-IF
-infer ctx (If cond e1 e2)   =   if check ctx cond TBool && (t1 == t2)
-                                    then Just t1
-                                    else Nothing
-                                where
-                                    Just t1 = infer ctx e1
-                                    Just t2 = infer ctx e2
 -- TYP-TOP
 infer ctx Unit              = Just TUnit
 -- TYP-BOX
@@ -95,11 +86,35 @@ infer ctx (RProj e l)   =
                         Nothing     -> Nothing
         Nothing     -> Nothing
 
+-- Extensions
+
+{-
+                    --------------------------- (TYP-Bool)
+                        v |- Bool => TBool
+
+        v |- e1 <= Bool         v |- e2 => t           v |- e3 <= t
+        ----------------------------------------------------------- (TYP-IF)
+                        v |- If e1 e2 e3 => t1
+-}
+-- TYP-BOOL
+infer ctx (EBool bool)      = Just TBool
+-- TYP-IF
+infer ctx (If cond e1 e2)   =   if check ctx cond TBool && (t1 == t2)
+                                    then Just t1
+                                    else Nothing
+                                where
+                                    Just t1 = infer ctx e1
+                                    Just t2 = infer ctx e2
+
+
+
+
 check :: Typ -> Exp -> Typ -> Bool
 -- TYP-EQ
 check ctx e tA      = case infer ctx e of
                         Just tB -> tA == tB
                         _       -> False
+
 
 -- First finish above
 -- Write unit testing (IMPORTANT)

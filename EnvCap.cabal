@@ -21,7 +21,7 @@ maintainer:         jamkhan@connect.hku.hk
 -- category:
 extra-source-files: CHANGELOG.md
 library
-    exposed-modules: Core.Semantics Core.Syntax Core.TypeChecker PBT.Arbitrary PBT.Generators PBT.Properties
+    exposed-modules: Core.Semantics Core.Syntax Core.TypeChecker PBT.Generators PBT.Properties
     -- Modules included in this library but not exported.
     -- other-modules:
 

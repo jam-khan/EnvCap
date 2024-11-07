@@ -30,11 +30,11 @@ rlookupv _ _ = Nothing
 
 compareWith :: (Ord a) => CompOp -> a -> a -> Bool
 compareWith Eql  x y =   x == y
-compareWith Neq x y =   x /= y
-compareWith Lt  x y =   x < y
-compareWith Le  x y =   x <= y
-compareWith Gt  x y =   x > y
-compareWith Ge  x y =   x >= y
+compareWith Neq x y  =   x /= y
+compareWith Lt  x y  =   x < y
+compareWith Le  x y  =   x <= y
+compareWith Gt  x y  =   x > y
+compareWith Ge  x y  =   x >= y
 
 compareOp :: CompOp -> Value -> Value -> Bool
 compareOp op  (VInt v1) (VInt v2)     = compareWith op v1 v2
