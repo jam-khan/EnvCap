@@ -56,10 +56,23 @@ recExample1 =   Lam     (TArrow TInt TInt)
                                                 (Lit 1))
                                         (Lit 0)
                                         (BinOp  App 
-                                                (Proj Ctx 1) 
+                                                (BinOp App (Proj Ctx 1) (Proj Ctx 1)) 
                                                 (BinOp  (Arith Sub)
                                                         (Proj Ctx 0)
                                                         (Lit 1)))))
+
+{--
+        \f (
+                \x (
+                        if x < 1 then 0 else f (x - 1)
+                )
+        )
+        λ INT -> INT . 
+                λ INT . 
+                IF (?.0 < 1)
+                        THEN 0
+                        ELSE ((?.1 App ?.1) App (?.0 - 1))
+--}
 
 lookupv :: Value -> Int -> Maybe Value
 lookupv (VMrg v1 v2) 0 = Just v2
