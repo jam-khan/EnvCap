@@ -1,15 +1,70 @@
 module Core.Semantics where
 
-import Core.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), LogicOp(..), Typ (TBool))
+import Core.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), LogicOp(..), Typ (..))
 import Data.Maybe (fromMaybe)
 import GHC.GHCi.Helpers (evalWrapper)
 import Foreign.C.Error (ePROGUNAVAIL)
 
 
+apply :: Exp -> Exp -> Exp
+apply = BinOp App
+
+box :: Exp -> Exp -> Exp
+box = BinOp Box
+
+merge :: Exp -> Exp -> Exp
+merge = BinOp Mrg
+
+fixPoint :: Exp -> Exp -> Exp
+-- fixPoint f      =       apply (apply 
+--                                 (Lam TUnit (
+--                                         (Box 
+--                                         (Lam    TUnit
+--                                                 (BinOp App (Proj Ctx 1) (BinOp App (Proj Ctx 0) (Proj Ctx 0))))
+--                                         (Lam    TUnit
+--                                                 (BinOp App (Proj Ctx 1) (BinOp App (Proj Ctx 0) (Proj Ctx 0)))))))
+--                                 f)
+
+fixPoint f =  apply
+                (apply  
+                        (Lam    TUnit
+                                (box
+                                        (Lam    TUnit
+                                                (apply  (Proj Ctx 1) 
+                                                        (apply  (Proj Ctx 0)
+                                                                (Proj Ctx 0))))
+                                        (Lam    TUnit
+                                                (apply  (Proj Ctx 1)
+                                                        (apply  (Proj Ctx 0)
+                                                                (Proj Ctx 0))))))
+                        f)
+
+-- I am trying to add recursion!!!!!!
+-- It is fudging me up!!!
+-- Because this recursion does not have any names
+-- It has De Bruijn indices, if you know?
+-- Now, I have this inside recursion! no function names! so It gets hard to manage these numbers!
+-- There are boxes and shit!
+-- Core Calculus has de-buijn I need to use it
+-- 
+
+recExample1 :: Exp
+recExample1 =   Lam     (TArrow TInt TInt)
+                        (Lam TInt
+                                (If     (BinOp  (Comp Lt) 
+                                                (Proj Ctx 0)
+                                                (Lit 1))
+                                        (Lit 0)
+                                        (BinOp  App 
+                                                (Proj Ctx 1) 
+                                                (BinOp  (Arith Sub)
+                                                        (Proj Ctx 0)
+                                                        (Lit 1)))))
+
 lookupv :: Value -> Int -> Maybe Value
 lookupv (VMrg v1 v2) 0 = Just v2
 lookupv (VMrg v1 v2) n = lookupv v1 (n - 1)
-lookupv _ _                 = Nothing
+lookupv _ _                 = Nothing   
 
 
 -- record lookup
@@ -47,6 +102,11 @@ evalB e exp = case evalBig VUnit e of
 
 -- Big Step Evaluation
 -- We assume that eval is gonna get environment as a value
+-- evalBP :: Value -> Exp -> IO (Maybe Value)
+-- evalBP env e =  do
+--                         print env
+--                         evalBig env e
+
 evalBig :: Value -> Exp -> Maybe Value
 -- BSTEP-CTX
 evalBig env Ctx                   = Just env

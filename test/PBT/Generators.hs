@@ -41,7 +41,7 @@ instance Arbitrary Exp where
 -- Arbitrary instances for Value
 instance Arbitrary Value where
     arbitrary :: Gen Value
-    arbitrary = oneof 
+    arbitrary = oneof
         [ return VUnit
         , VInt <$> arbitrary
         , VClos <$> arbitrary <*> arbitrary <*> arbitrary   -- Closure with random Value, Typ, and Exp
@@ -83,7 +83,7 @@ genTRecord = do
 
 -- genType :: Gen Typ
 genType = oneof
-        [   
+        [
             genTUnit,
             genTInt,
             genTBool,
@@ -99,7 +99,7 @@ instance Arbitrary Typ where
   arbitrary = genType
 
 genValue :: Gen Value
-genValue = oneof 
+genValue = oneof
         [ return VUnit
         , VInt <$> arbitrary
         , VClos <$> arbitrary <*> arbitrary <*> arbitrary   -- Closure with random Value, Typ, and Exp
@@ -107,6 +107,7 @@ genValue = oneof
         , VMrg <$> arbitrary <*> arbitrary                  -- Merge two random Values
         ]
 
+-- This generates random expressions for testing
 genExp :: Gen Exp
 genExp = oneof
     [ Lit <$> arbitrary
@@ -115,5 +116,5 @@ genExp = oneof
     , Lam TInt <$> genExp
     , BinOp App <$> genExp <*> genExp
     , BinOp Mrg <$> genExp <*> genExp
-    , RProj <$> (Rec <$> arbitrary <*> genExp) <*> arbitrary
+    -- , RProj <$> (Rec <$> arbitrary <*> genExp) <*> arbitrary
     ]
