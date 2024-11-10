@@ -18,8 +18,8 @@ main = hspec $ do
   describe "Op" $ do
     it "should show correct string representation" $ do
       show App    `shouldBe`  "App"
-      show Box    `shouldBe`  "Box"
-      show Mrg    `shouldBe`  "Mrg"
+      show Box    `shouldBe`  "▸"
+      show Mrg    `shouldBe`  " ,, "
 
   describe "Exp" $ do
     it "should construct and compare Expessions" $ do
@@ -57,8 +57,8 @@ main = hspec $ do
   
   describe "Typ" $ do
     it "should represent types correctly" $ do
-      show TInt     `shouldBe`  "TInt"
-      show TUnit    `shouldBe`  "TUnit"
+      show TInt     `shouldBe`  "INT"
+      show TUnit    `shouldBe`  "ε"
     
     it "should compare equivalent types correctly" $ do
       TArrow TInt TInt    `shouldBe`  TArrow TInt TInt

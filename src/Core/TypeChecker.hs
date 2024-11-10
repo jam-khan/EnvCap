@@ -89,10 +89,19 @@ infer ctx (RProj e l)   =
 -- Extensions
 
 {-
-                    --------------------------- (TYP-Bool)
-                        v |- Bool => TBool
+                    ----------------------------- (TYP-Bool)
+                        Gamma |- Bool => TBool
 
-        v |- e1 <= Bool         v |- e2 => t           v |- e3 <= t
+        Gamma |- e1 <= Bool    Gamma |- e2 => t      Gamma |- e3 <= t
+        ------------------------------------------------------------- (TYP-IF)
+                        Gamma |- If e1 e2 e3 => t1
+        
+        Gamma |- e1 <= Bool    Gamma |- e2 => t      Gamma |- e3 <= t
+        ------------------------------------------------------------- (TYP-IF)
+                        Gamma |- e1 () => t1
+        
+
+         |- e1 <= Bool         v |- e2 => t           v |- e3 <= t
         ----------------------------------------------------------- (TYP-IF)
                         v |- If e1 e2 e3 => t1
 -}
@@ -105,9 +114,35 @@ infer ctx (If cond e1 e2)   =   if check ctx cond TBool && (t1 == t2)
                                 where
                                     Just t1 = infer ctx e1
                                     Just t2 = infer ctx e2
-
-
-
+-- TYP-ARITH
+infer ctx (BinOp (Arith _) e1 e2) =
+    case infer ctx e1 of
+        Just TInt   ->  if      check ctx e2 TInt
+                        then    Just TInt
+                        else    Nothing
+        _           ->  Nothing
+-- TYP-COMP
+infer ctx (BinOp (Comp _) e1 e2)    =
+    case infer ctx e1 of
+        Just TInt       ->  if      check ctx e2 TInt
+                            then    Just TInt
+                            else    Nothing
+        Just TBool      ->  if      check ctx e2 TBool
+                            then    Just TBool
+                            else    Nothing
+        _               ->  Nothing
+-- TYP-LOGIC
+infer ctx (BinOp (Logic _) e1 e2)    =
+    case infer ctx e1 of
+        Just TBool      ->  if      check ctx e2 TBool
+                            then    Just TBool
+                            else    Nothing
+        _               ->  Nothing
+-- TYP-LET
+infer ctx (Let e1 e2)   = 
+    case infer ctx e1 of
+        Just tA     -> infer (TAnd ctx tA) e2
+        _           -> Nothing
 
 check :: Typ -> Exp -> Typ -> Bool
 -- TYP-EQ

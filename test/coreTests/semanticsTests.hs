@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE InstanceSigs #-}
+
 import Test.Hspec ( hspec, describe, it, shouldBe, shouldSatisfy )
 import Core.Syntax
     ( Exp(Lit, Proj, RProj, Rec, Lam, Unit, Ctx, BinOp, Clos),

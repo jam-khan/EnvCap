@@ -1,14 +1,96 @@
 {-# LANGUAGE InstanceSigs #-}
 module Core.Syntax where
 
+-- Extensions
+    -- Booleans         
+        -- Semantics    : Done 
+        -- Type System  : To be done
+    -- Conditionals     
+        -- Semantics    : Done
+        -- Type System  : Done
+    -- Arithmetic
+        -- Semantics    : Done
+        -- Type System  : To be done 
+    -- Let bindings
+        -- Semantics    : Done
+        -- Type System  : To be done    
+    -- Recursion
+        -- Semantics    : Done
+        -- Type System  : To be done
+
+    -- Built-in List
+        -- Semantics    : To be done
+        -- Type System  : To be done
+    -- Pairs
+        -- Semantics    : To be done
+        -- Type System (Product Types)  : To be done
+    -- Sums
+        -- Semantics     : To be done
+        -- Type Systems  : To be done
+
+
 -- Operations Definitions
 data BinaryOp   =       App             -- Application
                 |       Box             -- Box
                 |       Mrg             -- Merge
+                --      Extensions
                 |       Arith ArithOp   -- Arithmetic
                 |       Comp  CompOp    -- CompOp
                 |       Logic LogicOp   -- Boolean Logic
 
+data Exp =  Ctx                     -- Context
+        |   Unit                    -- Unit
+        |   Lit    Int               -- Integer literal
+        |   BinOp  BinaryOp Exp Exp  -- Binary operations: Application, Box and Merge
+        |   Lam    Typ Exp           -- Lambda Abstraction
+        |   Proj   Exp Int           -- Projection
+        |   Clos   Exp Typ Exp       -- Closure
+        |   Rec    String Exp        -- Single-Field Record
+        |   RProj  Exp String        -- Record Projection by Label
+        -- Extensions
+        |   UnOp   UnaryOp Exp       -- Unary operations:  Not
+        |   EBool  Bool              -- Boolean Term
+        |   If     Exp Exp Exp       -- Conditionals
+        |   Let    Exp Exp           -- Let Bindings
+        |   Fix    Exp               -- Recursion
+        -- Pairs
+        |   Pair   Exp Exp           -- Pair
+        |   Fst    Exp               -- Left projection
+        |   Snd    Exp               -- Right projection
+        -- Sums
+        |   Inl    Exp                 -- tagging left
+        |   Inr    Exp                 -- tagging right
+        -- Built-in Lists
+        |   Nil    Typ                -- Nil for list
+        |   Cons   Exp Exp            -- List
+        -- Case match for Sums and Lists
+        |   Case   Exp Exp
+        deriving Eq
+
+
+-- Types
+data Typ =  TUnit                  -- Unit type for empty environment
+        |   TInt                   -- Integer type
+        |   TAnd Typ Typ           -- Intersection type
+        |   TArrow Typ Typ         -- Arrow type, e.g. A -> B
+        |   TRecord String Typ     -- Single-Field Record Type
+        -- Extensions
+        |   TBool                  -- Boolean type
+        |   TFix   Typ             -- Type for recursive function 
+        |   TList  Typ             -- Type for built-in list
+        deriving Eq
+
+-- Values
+data Value =    VUnit                   -- Unit value
+        |       VInt Int                -- Integer value
+        |       VClos Value Typ Exp     -- Closure
+        |       VRcd String Value       -- Single-field record value
+        |       VMrg Value Value        -- Merge of two values
+        -- Extensions
+        |       VBool Bool              -- Boolean Value
+        |       VNil Typ                -- Nil for list
+        |       VCons Value Value        -- List
+        deriving Eq
 
 
 recFunction :: Exp
@@ -23,21 +105,12 @@ recExample = BinOp App
                 (Lit 101)
 
 
-
-                -- BinOp App
-                -- (Lam    (TArrow TInt TInt)
-                --         (BinOp App recFunction (Proj Ctx 0))) (BinOp (Arith Sub) arg (Lit 1))
-
--- yCombinator :: Exp -> Exp
--- yCombinator = Lam TUnit 
-
-
-
 identity :: Exp
 identity = Lam  TInt 
                 (Proj Ctx 0)
 
 data UnaryOp    =       Not
+                |       Index Int
         deriving Eq
 
 data ArithOp = Add | Sub | Mul | Div | Mod 
@@ -92,85 +165,6 @@ instance Eq BinaryOp where
         Mrg         == Mrg         = True
         _           == _           = False
 
--- Extensions
-    -- Booleans         
-        -- Semantics    : Done 
-        -- Type System  : To be done
-    -- Conditionals     
-        -- Semantics    : Done
-        -- Type System  : To be done
-    -- Arithmetic
-        -- Semantics    : Done
-        -- Type System  : To be done 
-    -- Let bindings
-        -- Semantics    : Done
-        -- Type System  : To be done
-    -- Built-in List
-
-    -- Arithmetic       -- Done -- Type Checker
-    -- Let bindings     -- Sortof (Just sugar)
-    -- Pairs            -- Done
-    -- Builtin lists
-    -- Pairs
-    -- Sums
-    -- Recursion
-
-    -- Algebraic Datatypes (Without Polymorphism)
--- Product Types
--- Simply add the pairs by sugar
-
-data Exp =  Ctx                     -- Context
-        |   Unit                    -- Unit
-        |   Lit   Int               -- Integer literal
-        |   BinOp BinaryOp Exp Exp  -- Binary operations: Application, Box and Merge
-        |   UnOp  UnaryOp Exp       -- Unary operations:  Not
-        |   Lam   Typ Exp           -- Lambda Abstraction
-        |   Proj  Exp Int           -- Projection
-        |   Clos  Exp Typ Exp       -- Closure
-        |   Rec   String Exp        -- Single-Field Record
-        |   RProj Exp String        -- Record Projection by Label
-        -- Extensions
-        |   If    Exp Exp Exp       -- Conditionals
-        |   Let   Exp Exp           -- Let Bindings
-        |   EBool Bool              -- Boolean Term
-        |   Fix   Exp               -- Recursion
-        |   Pair  Exp Exp           -- Pair
-        |   Nil  Typ                -- Nil for list
-        |   Cons Exp Exp            -- List
-        -- |      Sums
-        deriving Eq
-
--- Types
-data Typ =  TUnit                  -- Unit type for empty environment
-        |   TInt                   -- Integer type
-        |   TBool                  -- Boolean type
-        |   TAnd Typ Typ           -- Intersection type
-        |   TArrow Typ Typ         -- Arrow type, e.g. A -> B
-        |   TRecord String Typ     -- Single-Field Record Type
-        |   TList  Typ             -- Type for built-in list
-        |   TFix   Typ             -- Type for recursive function 
-        deriving Eq
-
--- Values
-data Value =    VUnit                   -- Unit value
-        |       VInt Int                -- Integer value
-        |       VBool Bool 
-        |       VClos Value Typ Exp     -- Closure
-        |       VRcd String Value       -- Single-field record value
-        |       VMrg Value Value        -- Merge of two values
-        |       VNil Typ                -- Nil for list
-        |       VCons Value Value        -- List
-        deriving Eq
-
-{-
-        Extension Typing Rules
-
-        v |- e1 <= Bool         v |- e2 => t           v |- e3 <= t
-        ----------------------------------------------------------- (T-IF)
-                        v |- If e1 e2 e3 => t1
-
-
--}
 
 isValue :: Value -> Bool
 isValue VUnit                   = True

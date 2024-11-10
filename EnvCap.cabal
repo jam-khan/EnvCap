@@ -52,7 +52,7 @@ test-suite tests-Syntax
     main-is: SyntaxTests.hs
     hs-source-dirs: Test/CoreTests, Test/PBT
     build-depends:  base >= 4.7 && <5,
-                    hspec >= 2.7 && <3,
+                    hspec,
                     EnvCap,
                     QuickCheck
     default-language: Haskell2010
@@ -62,7 +62,7 @@ test-suite tests-Eval
     main-is: SemanticsTests.hs
     hs-source-dirs: Test/CoreTests, Test/PBT
     build-depends:  base >= 4.7 && <5,
-                    hspec >= 2.7 && <3,
+                    hspec,
                     EnvCap,
                     QuickCheck
     default-language: Haskell2010
@@ -72,7 +72,7 @@ test-suite tests-TypeChecker
     main-is: TypeCheckerTests.hs
     hs-source-dirs: Test/CoreTests, Test/PBT
     build-depends:  base >= 4.7 && <5,
-                    hspec >= 2.7 && <3,
+                    hspec,
                     EnvCap,
                     QuickCheck
     default-language: Haskell2010

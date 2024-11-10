@@ -6,9 +6,6 @@ import GHC.GHCi.Helpers (evalWrapper)
 import Foreign.C.Error (ePROGUNAVAIL)
 
 
-apply :: Exp -> Exp -> Exp
-apply = BinOp App
-
 box :: Exp -> Exp -> Exp
 box = BinOp Box
 
@@ -47,7 +44,7 @@ fixPoint f =  apply
 -- There are boxes and shit!
 -- Core Calculus has de-buijn I need to use it
 -- 
-
+-- Without Fix
 recExample1 :: Exp
 recExample1 =   Lam     (TArrow TInt TInt)
                         (Lam TInt
@@ -60,7 +57,54 @@ recExample1 =   Lam     (TArrow TInt TInt)
                                                 (BinOp  (Arith Sub)
                                                         (Proj Ctx 0)
                                                         (Lit 1)))))
+-- Let's see if we can code Fibonacci
+proj :: Int -> Exp
+proj = Proj Ctx
 
+add :: Exp -> Exp -> Exp
+add = BinOp (Arith Add)
+
+sub :: Exp -> Exp -> Exp
+sub = BinOp (Arith Sub)
+
+apply :: Exp -> Exp -> Exp
+apply = BinOp App
+
+fib :: Exp
+fib =   Fix
+        (Lam (TArrow TInt TInt)
+                (Lam TInt
+                        (If     (BinOp (Comp Le)
+                                        (proj 0)
+                                        (Lit 1))
+                                (proj 0)
+                                (add    (apply (Fix (proj 1)) (sub (proj 0) (Lit 1)))
+                                        (apply (Fix (proj 1)) (sub (proj 0) (Lit 2)))))))
+result :: Maybe Value
+result = evalBig VUnit (apply fib (Lit 9))
+
+
+-- With Fix
+recExample2 :: Exp
+recExample2 =   Fix 
+                (Lam    (TArrow TInt TInt)
+                        (Lam TInt
+                                (If     (BinOp  (Comp Lt) 
+                                                (Proj Ctx 0)
+                                                (Lit 1))
+                                        (Lit 5)
+                                        (BinOp  App 
+                                                (Fix (Proj Ctx 1)) 
+                                                (BinOp  (Arith Sub)
+                                                        (Proj Ctx 0)
+                                                        (Lit 1))))))
+{--
+        v |- (f f) => <v1, lam A. e>    v |- e => v1    v, v1 |- Fix f e => val
+        --------------------------------------------------------------- (BStep-FIX)
+                        v |- ((Fix f) e)        =>  val
+--}
+x :: Maybe Value
+x = evalBig VUnit (BinOp App (BinOp App recExample1 recExample1) (Lit 5))
 {--
         \f (
                 \x (
@@ -182,6 +226,8 @@ evalBig env (Let e1 e2)   = evalBig (VMrg env v1) e2
                                 where Just v1 = evalBig env e1
 -- BSTEP-LAM
 evalBig env (Lam t e)             = Just (VClos env t e)
+-- BSTEP-FIX
+evalBig env (Fix e)               = evalBig env (BinOp App e e)
 -- BSTEP-REC
 evalBig env (Rec s e)             = Just (VRcd s v)
                                     where Just v = evalBig env e
