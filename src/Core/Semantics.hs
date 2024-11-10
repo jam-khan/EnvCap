@@ -1,15 +1,127 @@
 module Core.Semantics where
 
-import Core.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), LogicOp(..), Typ (TBool))
+import Core.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), LogicOp(..), Typ (..))
 import Data.Maybe (fromMaybe)
 import GHC.GHCi.Helpers (evalWrapper)
 import Foreign.C.Error (ePROGUNAVAIL)
 
 
+box :: Exp -> Exp -> Exp
+box = BinOp Box
+
+merge :: Exp -> Exp -> Exp
+merge = BinOp Mrg
+
+fixPoint :: Exp -> Exp -> Exp
+-- fixPoint f      =       apply (apply 
+--                                 (Lam TUnit (
+--                                         (Box 
+--                                         (Lam    TUnit
+--                                                 (BinOp App (Proj Ctx 1) (BinOp App (Proj Ctx 0) (Proj Ctx 0))))
+--                                         (Lam    TUnit
+--                                                 (BinOp App (Proj Ctx 1) (BinOp App (Proj Ctx 0) (Proj Ctx 0)))))))
+--                                 f)
+
+fixPoint f =  apply
+                (apply  
+                        (Lam    TUnit
+                                (box
+                                        (Lam    TUnit
+                                                (apply  (Proj Ctx 1) 
+                                                        (apply  (Proj Ctx 0)
+                                                                (Proj Ctx 0))))
+                                        (Lam    TUnit
+                                                (apply  (Proj Ctx 1)
+                                                        (apply  (Proj Ctx 0)
+                                                                (Proj Ctx 0))))))
+                        f)
+
+-- I am trying to add recursion!!!!!!
+-- It is fudging me up!!!
+-- Because this recursion does not have any names
+-- It has De Bruijn indices, if you know?
+-- Now, I have this inside recursion! no function names! so It gets hard to manage these numbers!
+-- There are boxes and shit!
+-- Core Calculus has de-buijn I need to use it
+-- 
+-- Without Fix
+recExample1 :: Exp
+recExample1 =   Lam     (TArrow TInt TInt)
+                        (Lam TInt
+                                (If     (BinOp  (Comp Lt) 
+                                                (Proj Ctx 0)
+                                                (Lit 1))
+                                        (Lit 0)
+                                        (BinOp  App 
+                                                (BinOp App (Proj Ctx 1) (Proj Ctx 1)) 
+                                                (BinOp  (Arith Sub)
+                                                        (Proj Ctx 0)
+                                                        (Lit 1)))))
+-- Let's see if we can code Fibonacci
+proj :: Int -> Exp
+proj = Proj Ctx
+
+add :: Exp -> Exp -> Exp
+add = BinOp (Arith Add)
+
+sub :: Exp -> Exp -> Exp
+sub = BinOp (Arith Sub)
+
+apply :: Exp -> Exp -> Exp
+apply = BinOp App
+
+fib :: Exp
+fib =   Fix
+        (Lam (TArrow TInt TInt)
+                (Lam TInt
+                        (If     (BinOp (Comp Le)
+                                        (proj 0)
+                                        (Lit 1))
+                                (proj 0)
+                                (add    (apply (Fix (proj 1)) (sub (proj 0) (Lit 1)))
+                                        (apply (Fix (proj 1)) (sub (proj 0) (Lit 2)))))))
+result :: Maybe Value
+result = evalBig VUnit (apply fib (Lit 9))
+
+
+-- With Fix
+recExample2 :: Exp
+recExample2 =   Fix 
+                (Lam    (TArrow TInt TInt)
+                        (Lam TInt
+                                (If     (BinOp  (Comp Lt) 
+                                                (Proj Ctx 0)
+                                                (Lit 1))
+                                        (Lit 5)
+                                        (BinOp  App 
+                                                (Fix (Proj Ctx 1)) 
+                                                (BinOp  (Arith Sub)
+                                                        (Proj Ctx 0)
+                                                        (Lit 1))))))
+{--
+        v |- (f f) => <v1, lam A. e>    v |- e => v1    v, v1 |- Fix f e => val
+        --------------------------------------------------------------- (BStep-FIX)
+                        v |- ((Fix f) e)        =>  val
+--}
+x :: Maybe Value
+x = evalBig VUnit (BinOp App (BinOp App recExample1 recExample1) (Lit 5))
+{--
+        \f (
+                \x (
+                        if x < 1 then 0 else f (x - 1)
+                )
+        )
+        λ INT -> INT . 
+                λ INT . 
+                IF (?.0 < 1)
+                        THEN 0
+                        ELSE ((?.1 App ?.1) App (?.0 - 1))
+--}
+
 lookupv :: Value -> Int -> Maybe Value
 lookupv (VMrg v1 v2) 0 = Just v2
 lookupv (VMrg v1 v2) n = lookupv v1 (n - 1)
-lookupv _ _                 = Nothing
+lookupv _ _                 = Nothing   
 
 
 -- record lookup
@@ -47,6 +159,11 @@ evalB e exp = case evalBig VUnit e of
 
 -- Big Step Evaluation
 -- We assume that eval is gonna get environment as a value
+-- evalBP :: Value -> Exp -> IO (Maybe Value)
+-- evalBP env e =  do
+--                         print env
+--                         evalBig env e
+
 evalBig :: Value -> Exp -> Maybe Value
 -- BSTEP-CTX
 evalBig env Ctx                   = Just env
@@ -109,6 +226,8 @@ evalBig env (Let e1 e2)   = evalBig (VMrg env v1) e2
                                 where Just v1 = evalBig env e1
 -- BSTEP-LAM
 evalBig env (Lam t e)             = Just (VClos env t e)
+-- BSTEP-FIX
+evalBig env (Fix e)               = evalBig env (BinOp App e e)
 -- BSTEP-REC
 evalBig env (Rec s e)             = Just (VRcd s v)
                                     where Just v = evalBig env e
