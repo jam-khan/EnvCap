@@ -4,23 +4,26 @@ module Core.Syntax where
 -- Extensions
     -- Booleans         
         -- Semantics    : Done 
-        -- Type System  : To be done
+        -- Type System  : Done
     -- Conditionals     
         -- Semantics    : Done
         -- Type System  : Done
     -- Arithmetic
         -- Semantics    : Done
-        -- Type System  : To be done 
+        -- Type System  : Done
     -- Let bindings
         -- Semantics    : Done
-        -- Type System  : To be done    
+        -- Type System  : Done 
     -- Recursion
         -- Semantics    : Done
-        -- Type System  : To be done
+        -- Type System  : Done
+
+
 
     -- Built-in List
         -- Semantics    : To be done
         -- Type System  : To be done
+
     -- Pairs
         -- Semantics    : To be done
         -- Type System (Product Types)  : To be done
@@ -67,19 +70,6 @@ data Exp =  Ctx                     -- Context
         |   Case   Exp Exp
         deriving Eq
 
-
--- Types
-data Typ =  TUnit                  -- Unit type for empty environment
-        |   TInt                   -- Integer type
-        |   TAnd Typ Typ           -- Intersection type
-        |   TArrow Typ Typ         -- Arrow type, e.g. A -> B
-        |   TRecord String Typ     -- Single-Field Record Type
-        -- Extensions
-        |   TBool                  -- Boolean type
-        |   TFix   Typ             -- Type for recursive function 
-        |   TList  Typ             -- Type for built-in list
-        deriving Eq
-
 -- Values
 data Value =    VUnit                   -- Unit value
         |       VInt Int                -- Integer value
@@ -90,6 +80,17 @@ data Value =    VUnit                   -- Unit value
         |       VBool Bool              -- Boolean Value
         |       VNil Typ                -- Nil for list
         |       VCons Value Value        -- List
+        deriving Eq
+
+-- Types
+data Typ =  TUnit                  -- Unit type for empty environment
+        |   TInt                   -- Integer type
+        |   TAnd Typ Typ           -- Intersection type
+        |   TArrow Typ Typ         -- Arrow type, e.g. A -> B
+        |   TRecord String Typ     -- Single-Field Record Type
+        -- Extensions
+        |   TBool                  -- Boolean type
+        |   TList  Typ             -- Type for built-in list
         deriving Eq
 
 
@@ -221,8 +222,7 @@ instance Show Typ where
         show (TArrow t1 t2)     = show t1 ++ " -> " ++ show t2
         show (TRecord s t)      = "{ " ++ show s ++ " :: " ++ show t ++ " }"
         show (TList typ)        = "[" ++ show typ ++ "]"
-        show (TFix typ)         = "fix " ++ show typ
-
+        
 instance Show Value where
         show :: Value -> String
         show VUnit                      = "\x03B5"

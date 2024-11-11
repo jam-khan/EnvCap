@@ -67,9 +67,13 @@ add = BinOp (Arith Add)
 sub :: Exp -> Exp -> Exp
 sub = BinOp (Arith Sub)
 
+mult :: Exp -> Exp -> Exp
+mult = BinOp (Arith Mul)
+
 apply :: Exp -> Exp -> Exp
 apply = BinOp App
 
+-- Example 1: Fibonacci
 fib :: Exp
 fib =   Fix
         (Lam (TArrow TInt TInt)
@@ -80,8 +84,23 @@ fib =   Fix
                                 (proj 0)
                                 (add    (apply (Fix (proj 1)) (sub (proj 0) (Lit 1)))
                                         (apply (Fix (proj 1)) (sub (proj 0) (Lit 2)))))))
-result :: Maybe Value
-result = evalBig VUnit (apply fib (Lit 9))
+
+factorial :: Exp
+factorial =     Fix
+                (Lam    (TArrow TInt TInt)
+                        (Lam TInt
+                                (If     (BinOp (Comp Le)
+                                                (proj 0)
+                                                (Lit 0))
+                                        (Lit 1)
+                                        (mult   (proj 0)
+                                                (apply (Fix (proj 1)) (sub (proj 0) (Lit 1)))))))
+
+result1 :: Maybe Value
+result1 = evalBig VUnit (apply fib (Lit 9))
+
+result2 :: Int -> Maybe Value
+result2 n = evalBig VUnit (apply factorial (Lit n))
 
 
 -- With Fix
@@ -228,9 +247,27 @@ evalBig env (Let e1 e2)   = evalBig (VMrg env v1) e2
 evalBig env (Lam t e)             = Just (VClos env t e)
 -- BSTEP-FIX
 evalBig env (Fix e)               = evalBig env (BinOp App e e)
+{--
+Built-in Lists
+        
+                v |- t1 => v1       v ,, v1 |- t2 => v2 
+        --------------------------------------------------- BSTEP-Cons
+                v |- cons t1 t2 => cons v1 v2
+        
+        --------------------------------------------------- BSTEP-Nil
+                v |- Nil A      =>      Nil A
+--}
+-- BSTEP-CONS
+evalBig env (Cons e1 e2)        = case evalBig env e1 of
+                                        Just v1         -> case evalBig (VMrg env v1) e2 of
+                                                                Just v2         -> Just (VCons v1 v2)
+                                                                _               -> Nothing
+                                        _               -> Nothing
+-- BSTEP-NIL
+evalBig env (Nil tA)            = Just (VNil tA)
 -- BSTEP-REC
-evalBig env (Rec s e)             = Just (VRcd s v)
-                                    where Just v = evalBig env e
+evalBig env (Rec s e)           = Just (VRcd s v)
+                                where Just v = evalBig env e
 -- BSTEP-SEL
-evalBig env (RProj e s)           = rlookupv v1 s
-                                    where   Just v1 = evalBig env e
+evalBig env (RProj e s)         = rlookupv v1 s
+                                where   Just v1 = evalBig env e

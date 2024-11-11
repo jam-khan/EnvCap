@@ -143,8 +143,29 @@ infer ctx (Let e1 e2)   =
     case infer ctx e1 of
         Just tA     -> infer (TAnd ctx tA) e2
         _           -> Nothing
+-- TYP-FIX
+infer ctx (Fix (Lam tA e))       =  if      check (TAnd ctx tA) e tA
+                                    then    Just tA
+                                    else    Nothing
+{--
+        Gamma |- t1 <= A        Gamma & A |- t2 => TList A
+        -------------------------------------------- TYP-Cons
+                Gamma |- cons t1 t2 => List A
+
+        -------------------------------------------- TYP-Nil
+                Gamma |- Nil A  => A
+--}
+-- TYP-CONS
+infer ctx (Cons t1 t2)      = case infer ctx t2 of
+                                    Just (TList tA)     ->  if check (TAnd ctx tA) t1 tA
+                                                        then Just (TList tA)
+                                                        else Nothing
+                                    _                   -> Nothing
+-- TYP-NIL
+infer ctx (Nil tA)          = Just tA
 
 check :: Typ -> Exp -> Typ -> Bool
+check ctx (Nil t1) t2 = t1 == t2
 -- TYP-EQ
 check ctx e tA      = case infer ctx e of
                         Just tB -> tA == tB
