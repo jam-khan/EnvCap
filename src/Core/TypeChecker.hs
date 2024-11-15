@@ -125,7 +125,7 @@ infer ctx (BinOp (Arith _) e1 e2) =
 infer ctx (BinOp (Comp _) e1 e2)    =
     case infer ctx e1 of
         Just TInt       ->  if      check ctx e2 TInt
-                            then    Just TInt
+                            then    Just TBool
                             else    Nothing
         Just TBool      ->  if      check ctx e2 TBool
                             then    Just TBool
@@ -148,7 +148,7 @@ infer ctx (Fix (Lam tA e))       =  if      check (TAnd ctx tA) e tA
                                     then    Just tA
                                     else    Nothing
 {--
-        Gamma |- t1 <= A        Gamma & A |- t2 => TList A
+        Gamma |- t1 <= A        Gamma |- t2 => TList A
         -------------------------------------------- TYP-Cons
                 Gamma |- cons t1 t2 => List A
 

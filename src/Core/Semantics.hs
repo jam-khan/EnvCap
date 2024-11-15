@@ -12,52 +12,6 @@ box = BinOp Box
 merge :: Exp -> Exp -> Exp
 merge = BinOp Mrg
 
-fixPoint :: Exp -> Exp -> Exp
--- fixPoint f      =       apply (apply 
---                                 (Lam TUnit (
---                                         (Box 
---                                         (Lam    TUnit
---                                                 (BinOp App (Proj Ctx 1) (BinOp App (Proj Ctx 0) (Proj Ctx 0))))
---                                         (Lam    TUnit
---                                                 (BinOp App (Proj Ctx 1) (BinOp App (Proj Ctx 0) (Proj Ctx 0)))))))
---                                 f)
-
-fixPoint f =  apply
-                (apply  
-                        (Lam    TUnit
-                                (box
-                                        (Lam    TUnit
-                                                (apply  (Proj Ctx 1) 
-                                                        (apply  (Proj Ctx 0)
-                                                                (Proj Ctx 0))))
-                                        (Lam    TUnit
-                                                (apply  (Proj Ctx 1)
-                                                        (apply  (Proj Ctx 0)
-                                                                (Proj Ctx 0))))))
-                        f)
-
--- I am trying to add recursion!!!!!!
--- It is fudging me up!!!
--- Because this recursion does not have any names
--- It has De Bruijn indices, if you know?
--- Now, I have this inside recursion! no function names! so It gets hard to manage these numbers!
--- There are boxes and shit!
--- Core Calculus has de-buijn I need to use it
--- 
--- Without Fix
-recExample1 :: Exp
-recExample1 =   Lam     (TArrow TInt TInt)
-                        (Lam TInt
-                                (If     (BinOp  (Comp Lt) 
-                                                (Proj Ctx 0)
-                                                (Lit 1))
-                                        (Lit 0)
-                                        (BinOp  App 
-                                                (BinOp App (Proj Ctx 1) (Proj Ctx 1)) 
-                                                (BinOp  (Arith Sub)
-                                                        (Proj Ctx 0)
-                                                        (Lit 1)))))
--- Let's see if we can code Fibonacci
 proj :: Int -> Exp
 proj = Proj Ctx
 
@@ -104,43 +58,18 @@ result2 n = evalBig VUnit (apply factorial (Lit n))
 
 
 -- With Fix
-recExample2 :: Exp
-recExample2 =   Fix 
-                (Lam    (TArrow TInt TInt)
-                        (Lam TInt
-                                (If     (BinOp  (Comp Lt) 
-                                                (Proj Ctx 0)
-                                                (Lit 1))
-                                        (Lit 5)
-                                        (BinOp  App 
-                                                (Fix (Proj Ctx 1)) 
-                                                (BinOp  (Arith Sub)
-                                                        (Proj Ctx 0)
-                                                        (Lit 1))))))
 {--
+
         v |- (f f) => <v1, lam A. e>    v |- e => v1    v, v1 |- Fix f e => val
         --------------------------------------------------------------- (BStep-FIX)
                         v |- ((Fix f) e)        =>  val
 --}
-x :: Maybe Value
-x = evalBig VUnit (BinOp App (BinOp App recExample1 recExample1) (Lit 5))
-{--
-        \f (
-                \x (
-                        if x < 1 then 0 else f (x - 1)
-                )
-        )
-        λ INT -> INT . 
-                λ INT . 
-                IF (?.0 < 1)
-                        THEN 0
-                        ELSE ((?.1 App ?.1) App (?.0 - 1))
---}
+
 
 lookupv :: Value -> Int -> Maybe Value
 lookupv (VMrg v1 v2) 0 = Just v2
 lookupv (VMrg v1 v2) n = lookupv v1 (n - 1)
-lookupv _ _                 = Nothing   
+lookupv _ _                 = Nothing
 
 
 -- record lookup
@@ -216,8 +145,8 @@ evalBig env (BinOp Mrg e1 e2)     = Just (VMrg v1 v2)
                                     where   Just v1 = evalBig env e1
                                             Just v2 = evalBig (VMrg env v1) e2
 -- BSTEP-ARITH
-evalBig env 
-        (BinOp (Arith op) e1 e2) = case op of 
+evalBig env
+        (BinOp (Arith op) e1 e2) = case op of
                                         Add     ->  Just (VInt (v1 + v2))
                                         Sub     ->  Just (VInt (v1 - v2))
                                         Mul     ->  Just (VInt (v1 * v2))

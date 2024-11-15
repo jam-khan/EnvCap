@@ -1,33 +1,41 @@
 {-# LANGUAGE InstanceSigs #-}
 module Core.Syntax where
 
+-- Next Targets:
+--      Finish Sums and Pairs
+--      Design of the module system
+--      Basic work on Parser
+
 -- Extensions
-    -- Booleans         
+-- Booleans         
         -- Semantics    : Done 
         -- Type System  : Done
-    -- Conditionals     
-        -- Semantics    : Done
-        -- Type System  : Done
-    -- Arithmetic
-        -- Semantics    : Done
-        -- Type System  : Done
-    -- Let bindings
-        -- Semantics    : Done
-        -- Type System  : Done 
-    -- Recursion
+
+-- Conditionals     
         -- Semantics    : Done
         -- Type System  : Done
 
+-- Arithmetic
+        -- Semantics    : Done
+        -- Type System  : Done
+
+-- Let bindings
+        -- Semantics    : Done
+        -- Type System  : Done
+
+-- Recursion
+        -- Semantics    : Done
+        -- Type System  : Done
+
+-- Built-in List
+        -- Semantics    : Done
+        -- Type System  : Done
 
 
-    -- Built-in List
-        -- Semantics    : To be done
-        -- Type System  : To be done
-
-    -- Pairs
+-- Pairs
         -- Semantics    : To be done
         -- Type System (Product Types)  : To be done
-    -- Sums
+-- Sums
         -- Semantics     : To be done
         -- Type Systems  : To be done
 
@@ -61,11 +69,13 @@ data Exp =  Ctx                     -- Context
         |   Fst    Exp               -- Left projection
         |   Snd    Exp               -- Right projection
         -- Sums
-        |   Inl    Exp                 -- tagging left
-        |   Inr    Exp                 -- tagging right
+        |   Inl    Typ Exp                 -- tagging left
+        |   Inr    Typ Exp                 -- tagging right
         -- Built-in Lists
         |   Nil    Typ                -- Nil for list
         |   Cons   Exp Exp            -- List
+        |   Head   Exp                -- Head of List
+        |   Tail   Exp                -- Tail of List
         -- Case match for Sums and Lists
         |   Case   Exp Exp
         deriving Eq
@@ -79,7 +89,8 @@ data Value =    VUnit                   -- Unit value
         -- Extensions
         |       VBool Bool              -- Boolean Value
         |       VNil Typ                -- Nil for list
-        |       VCons Value Value        -- List
+        |       VCons Value Value       -- List
+        --      
         deriving Eq
 
 -- Types
@@ -91,6 +102,7 @@ data Typ =  TUnit                  -- Unit type for empty environment
         -- Extensions
         |   TBool                  -- Boolean type
         |   TList  Typ             -- Type for built-in list
+        |   TSum   Typ Typ
         deriving Eq
 
 
