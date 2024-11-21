@@ -35,22 +35,6 @@ fib =   Fix (Lam TInt
                         (add    (apply (proj 1) (sub (proj 0) (Lit 1)))
                                 (apply (proj 1) (sub (proj 0) (Lit 2))))))
 
-{--
-Surface Language Constructs:
-
-fib (n: Int) : Int = if n <= 1 then n else fib (n - 1) * fib (n - 2);
-fib 14
-
-===>
-fib :: Exp
-fib =   Fix (Lam TInt
-                (If     (BinOp  (Comp Le)
-                                (proj 0)
-                                (Lit 1))
-                        (proj 0)
-                        (add    (apply (proj 1) (sub (proj 0) (Lit 1)))
-                                (apply (proj 1) (sub (proj 0) (Lit 2))))))
---}
 
 factorial :: Exp
 factorial =     Fix (Lam TInt
@@ -68,35 +52,22 @@ result2 :: Int -> Maybe Value
 result2 n = evalBig VUnit (apply factorial (Lit n))
 
 
--- With Fix
-{--
-
-        v |- (f f) => <v1, lam A. e>    v |- e => v1    v, v1 |- Fix f e => val
-        --------------------------------------------------------------- (BStep-FIX)
-                        v |- ((Fix f) e)        =>  val
---}
-
 lookupv :: Value -> Int -> Maybe Value
 lookupv (VMrg v1 v2) 0 = Just v2
 lookupv (VMrg v1 v2) n = lookupv v1 (n - 1)
 lookupv _ _                 = Nothing
 
 
--- record lookup
 rlookupv :: Value -> String -> Maybe Value
 rlookupv (VRcd l v) label
     | l == label = Just v
-
--- Avoiding ambigous lookups
--- If lookup label present in both or none
--- then, result is Nothing
--- So, must be present only once
 rlookupv (VMrg v1 v2) label =
     case (rlookupv v1 label, rlookupv v2 label) of
         (Just vL, Nothing)      -> Just vL
         (Nothing, Just vR)      -> Just vR
         (_, _)                  -> Nothing
 rlookupv _ _ = Nothing
+
 
 compareWith :: (Ord a) => CompOp -> a -> a -> Bool
 compareWith Eql  x y =   x == y
@@ -114,13 +85,6 @@ evalB :: Exp -> Exp -> Maybe Value
 evalB e exp = case evalBig VUnit e of
                     Just v -> evalBig v exp
                     _      -> Nothing
-
--- Big Step Evaluation
--- We assume that eval is gonna get environment as a value
--- evalBP :: Value -> Exp -> IO (Maybe Value)
--- evalBP env e =  do
---                         print env
---                         evalBig env e
 
 evalBig :: Value -> Exp -> Maybe Value
 -- BSTEP-CTX
@@ -182,43 +146,17 @@ evalBig env
                                                                 And -> VBool (b1 && b2)
                                                                 Or  -> VBool (b1 || b2)
 -- BSTEP-NOT
-evalBig env (UnOp Not e1) = evalBig env (BinOp (Logic And) e1 (EBool False))
+evalBig env (UnOp Not e1)       = evalBig env (BinOp (Logic And) e1 (EBool False))
 -- BSTEP-LET
-evalBig env (Let e1 e2)   = evalBig (VMrg env v1) e2
-                                where Just v1 = evalBig env e1
+evalBig env (Let e1 e2)         = evalBig (VMrg env v1) e2
+                                        where Just v1 = evalBig env e1
 -- BSTEP-LAM
-evalBig env (Lam t e)             = Just (VClos env (Lam t e))
+evalBig env (Lam t e)           = Just (VClos env (Lam t e))
 -- BSTEP-FIX
--- With Fix
-{--
-
-                        Γ ⊢ t1  <======= T1 -> T1
-        ------------------------------------------------- (T-FIX)
-                        Γ ⊢ (Fix t1) ===> T1
---}
-
--- BSTEP-FIX
-{--                     v ⊢ e => <v1, λ A. e1>
-        ---------------------------------------------------------------- BSTEP-FIX
-                v ⊢ (Fix e) => < (v1,, <v1, Fix (λ A. e1)>, λ A. e1>
---}
-
-
 evalBig env (Fix e)  
         = case evalBig env e of
                 Just (VClos v1 (Lam tA e1)) -> Just (VClos v1 (Fix (Lam tA e1)))
                 _                          -> Nothing
-
-{--
-Built-in Lists
-        
-                v |- t1 => v1       v ,, v1 |- t2 => v2
-        --------------------------------------------------- BSTEP-Cons
-                v |- cons t1 t2 => cons v1 v2
-        
-        --------------------------------------------------- BSTEP-Nil
-                v |- Nil A      =>      Nil A
---}
 -- BSTEP-CONS
 evalBig env (Cons e1 e2)        = case evalBig env e1 of
                                         Just v1         -> case evalBig (VMrg env v1) e2 of
