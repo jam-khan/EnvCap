@@ -33,7 +33,7 @@ instance Arbitrary Exp where
                       BinOp   <$> arbitrary <*> arbitrary <*> arbitrary,
                       Lam     <$> arbitrary <*> arbitrary,
                       Proj    <$> arbitrary <*> arbitrary,
-                      Clos    <$> arbitrary <*> arbitrary <*> arbitrary,
+                      Clos    <$> arbitrary <*> arbitrary,
                       Rec     <$> arbitrary <*> arbitrary,
                       RProj   <$> arbitrary <*> arbitrary]
 
@@ -44,7 +44,7 @@ instance Arbitrary Value where
     arbitrary = oneof
         [ return VUnit
         , VInt <$> arbitrary
-        , VClos <$> arbitrary <*> arbitrary <*> arbitrary   -- Closure with random Value, Typ, and Exp
+        , VClos <$> arbitrary <*> arbitrary   -- Closure with random Value, Typ, and Exp
         , VRcd <$> arbitrary <*> arbitrary                  -- Record with random String and Value
         , VMrg <$> arbitrary <*> arbitrary                  -- Merge two random Values
         ]
@@ -108,7 +108,7 @@ genValue :: Gen Value
 genValue = oneof
         [ return VUnit
         , VInt <$> arbitrary
-        , VClos <$> arbitrary <*> arbitrary <*> arbitrary   -- Closure with random Value, Typ, and Exp
+        , VClos <$> arbitrary <*> arbitrary   -- Closure with random Value, Typ, and Exp
         , VRcd <$> arbitrary <*> arbitrary                  -- Record with random String and Value
         , VMrg <$> arbitrary <*> arbitrary                  -- Merge two random Values
         ]

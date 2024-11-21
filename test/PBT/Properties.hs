@@ -19,6 +19,6 @@ prop_isValue :: Value -> Bool
 prop_isValue v = isValue v == case v of
     VUnit         -> True
     VInt _        -> True
-    VClos v' _ _  -> isValue v'
+    VClos v' _  -> isValue v'
     VRcd _ v'     -> isValue v'
     VMrg v1 v2    -> isValue v1 && isValue v2

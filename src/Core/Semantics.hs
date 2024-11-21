@@ -2,8 +2,6 @@ module Core.Semantics where
 
 import Core.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), LogicOp(..), Typ (..))
 import Data.Maybe (fromMaybe)
-import GHC.GHCi.Helpers (evalWrapper)
-import Foreign.C.Error (ePROGUNAVAIL)
 
 
 box :: Exp -> Exp -> Exp
@@ -29,26 +27,39 @@ apply = BinOp App
 
 -- Example 1: Fibonacci
 fib :: Exp
-fib =   Fix
-        (Lam (TArrow TInt TInt)
-                (Lam TInt
-                        (If     (BinOp (Comp Le)
-                                        (proj 0)
-                                        (Lit 1))
+fib =   Fix (Lam TInt
+                (If     (BinOp  (Comp Le)
                                 (proj 0)
-                                (add    (apply (Fix (proj 1)) (sub (proj 0) (Lit 1)))
-                                        (apply (Fix (proj 1)) (sub (proj 0) (Lit 2)))))))
+                                (Lit 1))
+                        (proj 0)
+                        (add    (apply (proj 1) (sub (proj 0) (Lit 1)))
+                                (apply (proj 1) (sub (proj 0) (Lit 2))))))
+
+{--
+Surface Language Constructs:
+
+fib (n: Int) : Int = if n <= 1 then n else fib (n - 1) * fib (n - 2);
+fib 14
+
+===>
+fib :: Exp
+fib =   Fix (Lam TInt
+                (If     (BinOp  (Comp Le)
+                                (proj 0)
+                                (Lit 1))
+                        (proj 0)
+                        (add    (apply (proj 1) (sub (proj 0) (Lit 1)))
+                                (apply (proj 1) (sub (proj 0) (Lit 2))))))
+--}
 
 factorial :: Exp
-factorial =     Fix
-                (Lam    (TArrow TInt TInt)
-                        (Lam TInt
+factorial =     Fix (Lam TInt
                                 (If     (BinOp (Comp Le)
                                                 (proj 0)
                                                 (Lit 0))
                                         (Lit 1)
                                         (mult   (proj 0)
-                                                (apply (Fix (proj 1)) (sub (proj 0) (Lit 1)))))))
+                                                (apply (proj 1) (sub (proj 0) (Lit 1))))))
 
 result1 :: Maybe Value
 result1 = evalBig VUnit (apply fib (Lit 9))
@@ -64,7 +75,6 @@ result2 n = evalBig VUnit (apply factorial (Lit n))
         --------------------------------------------------------------- (BStep-FIX)
                         v |- ((Fix f) e)        =>  val
 --}
-
 
 lookupv :: Value -> Int -> Maybe Value
 lookupv (VMrg v1 v2) 0 = Just v2
@@ -127,8 +137,8 @@ evalBig env (If cond e1 e2)       = case evalBig env cond of
                                     Just (VBool True)   -> evalBig env e1
                                     _                   -> evalBig env e2
 -- BSTEP-CLOS
-evalBig env (Clos e1 t e)         = Just (VClos v t e)
-                                    where Just v = evalBig env e1
+evalBig env (Clos e1 e2)         = Just (VClos v1 e2)
+                                    where Just v1 = evalBig env e1
 -- BSTEP-UNIT
 evalBig env Unit                  = Just VUnit
 -- BSTEP-BOX
@@ -136,9 +146,13 @@ evalBig env (BinOp Box e1 e2)     = evalBig v1 e2
                                     where Just v1 = evalBig env e1
 -- BSTEP-APP
 evalBig env (BinOp App e1 e2)     = case evalBig env e1 of
-                                    Just (VClos v1 t e) -> case evalBig env e2 of
+                                    Just (VClos v1 (Lam t e)) -> case evalBig env e2 of
                                                             Just v2     -> evalBig (VMrg v1 v2) e
                                                             _           -> Nothing
+                                    Just (VClos v1 (Fix (Lam tA e)))
+                                                        -> case evalBig env e2 of
+                                                                Just v2 -> evalBig (VMrg (VMrg env (VClos v1 (Fix (Lam tA e)))) v2) e
+                                                                _       -> Nothing
                                     _                   -> Nothing
 -- BSTEP-MRG
 evalBig env (BinOp Mrg e1 e2)     = Just (VMrg v1 v2)
@@ -173,13 +187,32 @@ evalBig env (UnOp Not e1) = evalBig env (BinOp (Logic And) e1 (EBool False))
 evalBig env (Let e1 e2)   = evalBig (VMrg env v1) e2
                                 where Just v1 = evalBig env e1
 -- BSTEP-LAM
-evalBig env (Lam t e)             = Just (VClos env t e)
+evalBig env (Lam t e)             = Just (VClos env (Lam t e))
 -- BSTEP-FIX
-evalBig env (Fix e)               = evalBig env (BinOp App e e)
+-- With Fix
+{--
+
+                        Γ ⊢ t1  <======= T1 -> T1
+        ------------------------------------------------- (T-FIX)
+                        Γ ⊢ (Fix t1) ===> T1
+--}
+
+-- BSTEP-FIX
+{--                     v ⊢ e => <v1, λ A. e1>
+        ---------------------------------------------------------------- BSTEP-FIX
+                v ⊢ (Fix e) => < (v1,, <v1, Fix (λ A. e1)>, λ A. e1>
+--}
+
+
+evalBig env (Fix e)  
+        = case evalBig env e of
+                Just (VClos v1 (Lam tA e1)) -> Just (VClos v1 (Fix (Lam tA e1)))
+                _                          -> Nothing
+
 {--
 Built-in Lists
         
-                v |- t1 => v1       v ,, v1 |- t2 => v2 
+                v |- t1 => v1       v ,, v1 |- t2 => v2
         --------------------------------------------------- BSTEP-Cons
                 v |- cons t1 t2 => cons v1 v2
         

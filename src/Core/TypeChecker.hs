@@ -67,7 +67,7 @@ infer ctx (Lam tA e) =
         _       -> Nothing
 
 -- TYP-CLOS
-infer ctx (Clos e1 tA e2) =
+infer ctx (Clos e1 (Lam tA e2)) =
     case infer ctx e1 of
         Just ctx1   -> 
             case infer (TAnd ctx1 tA) e2 of
