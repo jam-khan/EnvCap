@@ -33,7 +33,7 @@ instance Arbitrary Exp where
                       BinOp   <$> arbitrary <*> arbitrary <*> arbitrary,
                       Lam     <$> arbitrary <*> arbitrary,
                       Proj    <$> arbitrary <*> arbitrary,
-                      Clos    <$> arbitrary <*> arbitrary <*> arbitrary,
+                      Clos    <$> arbitrary <*> arbitrary,
                       Rec     <$> arbitrary <*> arbitrary,
                       RProj   <$> arbitrary <*> arbitrary]
 
@@ -44,7 +44,7 @@ instance Arbitrary Value where
     arbitrary = oneof
         [ return VUnit
         , VInt <$> arbitrary
-        , VClos <$> arbitrary <*> arbitrary <*> arbitrary   -- Closure with random Value, Typ, and Exp
+        , VClos <$> arbitrary <*> arbitrary   -- Closure with random Value, Typ, and Exp
         , VRcd <$> arbitrary <*> arbitrary                  -- Record with random String and Value
         , VMrg <$> arbitrary <*> arbitrary                  -- Merge two random Values
         ]
@@ -55,27 +55,33 @@ instance Arbitrary Value where
 --     ]
 
 -- genTUnit :: Gen Typ
+genTUnit :: Gen Typ
 genTUnit = return TUnit
 
 -- genTInt :: Gen Typ
+genTInt :: Gen Typ
 genTInt = return TInt
 
 -- genTBool :: Gen Typ
+genTBool :: Gen Typ
 genTBool = return TBool
 
 -- genTArrow :: Gen Typ
+genTArrow :: Gen Typ
 genTArrow = do
     t1 <- arbitrary  -- Generate the first type
     t2 <- arbitrary  -- Generate the second type
     return (TArrow t1 t2)
 
 -- genTAnd :: Gen Typ
+genTAnd :: Gen Typ
 genTAnd = do
     t1 <- arbitrary  -- Generate the first type
     t2 <- arbitrary  -- Generate the second type
     return (TAnd t1 t2)
 
 -- genTRecord :: Gen Typ
+genTRecord :: Gen Typ
 genTRecord = do
     t1 <- arbitrary  -- Generate the first type
     t2 <- arbitrary  -- Generate the second type
@@ -102,7 +108,7 @@ genValue :: Gen Value
 genValue = oneof
         [ return VUnit
         , VInt <$> arbitrary
-        , VClos <$> arbitrary <*> arbitrary <*> arbitrary   -- Closure with random Value, Typ, and Exp
+        , VClos <$> arbitrary <*> arbitrary   -- Closure with random Value, Typ, and Exp
         , VRcd <$> arbitrary <*> arbitrary                  -- Record with random String and Value
         , VMrg <$> arbitrary <*> arbitrary                  -- Merge two random Values
         ]
