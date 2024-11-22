@@ -49,9 +49,14 @@ data BinaryOp   =       App             -- Application
                 |       Comp  CompOp    -- CompOp
                 |       Logic LogicOp   -- Boolean Logic
 
+data Case1 = Temp [Exp]
+        deriving (Eq, Show)
+
 data Exp =  Ctx                     -- Context
         |   Unit                    -- Unit
         |   Lit    Int               -- Integer literal
+        |   EBool  Bool              -- Boolean Term
+        |   EString String           -- String Term
         |   BinOp  BinaryOp Exp Exp  -- Binary operations: Application, Box and Merge
         |   Lam    Typ Exp           -- Lambda Abstraction
         |   Proj   Exp Int           -- Projection
@@ -60,24 +65,13 @@ data Exp =  Ctx                     -- Context
         |   RProj  Exp String        -- Record Projection by Label
         -- Extensions
         |   UnOp   UnaryOp Exp       -- Unary operations:  Not
-        |   EBool  Bool              -- Boolean Term
         |   If     Exp Exp Exp       -- Conditionals
         |   Let    Exp Exp           -- Let Bindings
         |   Fix    Exp           -- Recursion
-        -- Pairs
-        |   Pair   Exp Exp           -- Pair
-        |   Fst    Exp               -- Left projection
-        |   Snd    Exp               -- Right projection
-        -- Sums
-        |   Inl    Typ Exp                 -- tagging left
-        |   Inr    Typ Exp                 -- tagging right
         -- Built-in Lists
+        |   Pair Exp Exp
         |   Nil    Typ                -- Nil for list
         |   Cons   Exp Exp            -- List
-        |   Head   Exp                -- Head of List
-        |   Tail   Exp                -- Tail of List
-        -- Case match for Sums and Lists
-        |   Case   Exp Exp
         deriving Eq
 
 -- Values
@@ -97,6 +91,7 @@ data Value =    VUnit                   -- Unit value
 -- Types
 data Typ =  TUnit                  -- Unit type for empty environment
         |   TInt                   -- Integer type
+        |   TString
         |   TAnd Typ Typ           -- Intersection type
         |   TArrow Typ Typ         -- Arrow type, e.g. A -> B
         |   TRecord String Typ     -- Single-Field Record Type
@@ -106,22 +101,6 @@ data Typ =  TUnit                  -- Unit type for empty environment
         |   TSum   Typ Typ
         deriving Eq
 
-
-recFunction :: Exp
-recFunction = Lam       TInt
-                        (If     (BinOp (Comp Le) (Proj Ctx 0) (Lit 100))
-                        (Lit 1) 
-                        (Lit 2))
-
-recExample :: Exp
-recExample = BinOp App 
-                recFunction
-                (Lit 101)
-
-
-identity :: Exp
-identity = Lam  TInt 
-                (Proj Ctx 0)
 
 data UnaryOp    =       Not
                 |       Index Int

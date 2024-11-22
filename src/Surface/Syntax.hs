@@ -2,11 +2,15 @@
 module Surface.Syntax where
 
 
-data Term   =   TmCtx                   -- Context
-            |   TmUnit                  -- Unit
-            |   TmInt Int               -- Integer Literal
-            |   TmBool Bool             -- Boolean Literal
-            |   TmString S
+data Tm =   TmCtx                              -- Context
+        |   TmUnit                             -- Unit
+        |   TmInt       Int                    -- Integer Literal
+        |   TmBool      Bool                   -- Boolean Literal
+        |   TmString    String                 -- String  Literal
+        |   TmBinary    BinOp Tm Tm            -- Binary Operation
+        |   TmUnary     UnaryOp Tm Tm          -- Unary Operation
+        |   TmIf        Tm Tm Tm               -- Conditional
+        -- |   Tm
 -- data Term =  TCtx                     -- Context
 --         |   Unit                    -- Unit
 --         |   Lit    Int               -- Integer literal
