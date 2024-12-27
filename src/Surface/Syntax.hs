@@ -1,14 +1,13 @@
-
+{-# LANGUAGE InstanceSigs #-}
 module Surface.Syntax where
-
 
 data Tm =   TmCtx                              -- Context
         |   TmUnit                             -- Unit
         |   TmInt       Int                    -- Integer Literal
         |   TmBool      Bool                   -- Boolean Literal
         |   TmString    String                 -- String  Literal
-        |   TmBinary    BinOp Tm Tm            -- Binary Operation
-        |   TmUnary     UnaryOp Tm Tm          -- Unary Operation
+        |   TmBinary    TmBinaryOp Tm Tm       -- Binary Operation
+        |   TmUnary     TmUnaryOp Tm           -- Unary Operation
         |   TmIf        Tm Tm Tm               -- Conditional
         -- |   Tm
 -- data Term =  TCtx                     -- Context
@@ -40,23 +39,23 @@ data Tm =   TmCtx                              -- Context
 --         |   Tail   Exp                -- Tail of List
 --         -- Case match for Sums and Lists
 --         |   Case   Exp Exp
---         deriving Eq
+        deriving (Eq, Show)
 
 -- Operations Definitions
-data BinaryOp   =       App             -- Application
-                |       Box             -- Box
-                |       Mrg             -- Merge
+data TmBinaryOp   =     TmApp             -- Application
+                |       TmBox             -- Box
+                |       TmMrg             -- Merge
                 --      Extensions
-                |       Arith ArithOp   -- Arithmetic
-                |       Comp  CompOp    -- CompOp
-                |       Logic LogicOp   -- Boolean Logic
+                |       TmArith TmArithOp   -- Arithmetic
+                |       TmComp  TmCompOp    -- CompOp
+                |       TmLogic TmLogicOp   -- Boolean Logic
 
 
 
 -- Values
 data Value =    VUnit                   -- Unit value
         |       VInt Int                -- Integer value
-        |       VClos Value Typ Exp     -- Closure
+        |       VClos Value Typ Tm      -- Closure
         |       VRcd String Value       -- Single-field record value
         |       VMrg Value Value        -- Merge of two values
         -- Extensions
@@ -79,76 +78,60 @@ data Typ =  TUnit                  -- Unit type for empty environment
         deriving Eq
 
 
-recFunction :: Exp
-recFunction = Lam       TInt
-                        (If     (BinOp (Comp Le) (Proj Ctx 0) (Lit 100))
-                        (Lit 1) 
-                        (Lit 2))
-
-recExample :: Exp
-recExample = BinOp App 
-                recFunction
-                (Lit 101)
-
-
-identity :: Exp
-identity = Lam  TInt 
-                (Proj Ctx 0)
-
-data UnaryOp    =       Not
-                |       Index Int
+data TmUnaryOp  =       TmNot
+                |       TmIndex Int
         deriving Eq
 
-data ArithOp = Add | Sub | Mul | Div | Mod 
+data TmArithOp   = TmAdd | TmSub | TmMul | TmDiv | TmMod 
         deriving Eq
-data CompOp  = Eql | Neq | Lt | Le | Gt | Ge
+data TmCompOp    = TmEql | TmNeq | TmLt | TmLe | TmGt | TmGe
         deriving Eq
-data LogicOp = And | Or
+data TmLogicOp   = TmAnd | TmOr
         deriving Eq
 
-instance Show BinaryOp where
-        show :: BinaryOp -> String
-        show (Arith op) = show op
-        show (Comp op)  = show op
-        show (Logic op) = show op
-        show App        = "App"
-        show Box        = "\x25B8"
-        show Mrg        = " ,, "
+instance Show TmBinaryOp where
+        show :: TmBinaryOp -> String
+        show (TmArith op) = show op
+        show (TmComp op)  = show op
+        show (TmLogic op) = show op
+        show TmApp        = "App"
+        show TmBox        = "\x25B8"
+        show TmMrg        = " ,, "
 
-instance Show ArithOp where
-        show :: ArithOp -> String
-        show Add = "+"
-        show Sub = "-"
-        show Mul = "*"
-        show Div = "/"
-        show Mod = "%"
+instance Show TmArithOp where
+        show :: TmArithOp -> String
+        show TmAdd = "+"
+        show TmSub = "-"
+        show TmMul = "*"
+        show TmDiv = "/"
+        show TmMod = "%"
 
-instance Show CompOp where
-        show :: CompOp -> String
-        show Eql = "=="
-        show Neq = "!="
-        show Lt  = "<"
-        show Le  = "<="
-        show Gt  = ">"
-        show Ge  = ">="
+instance Show TmCompOp where
+        show :: TmCompOp -> String
+        show TmEql = "=="
+        show TmNeq = "!="
+        show TmLt  = "<"
+        show TmLe  = "<="
+        show TmGt  = ">"
+        show TmGe  = ">="
 
-instance Show LogicOp where
-        show :: LogicOp -> String
-        show And = "&&"
-        show Or  = "||"
+instance Show TmLogicOp where
+        show :: TmLogicOp -> String
+        show TmAnd = "&&"
+        show TmOr  = "||"
 
-instance Show UnaryOp where
-        show :: UnaryOp -> String
-        show Not = "!"
+instance Show TmUnaryOp where
+        show :: TmUnaryOp -> String
+        show TmNot = "!"
 
-instance Eq BinaryOp where 
-        (==) :: BinaryOp -> BinaryOp -> Bool
-        (Arith op1) == (Arith op2) = op1 == op2
-        (Comp op1)  == (Comp op2)  = op1 == op2
-        (Logic op1) == (Logic op2) = op1 == op2
-        App         == App         = True
-        Box         == Box         = True
-        Mrg         == Mrg         = True
+instance Eq TmBinaryOp where 
+        (==) :: TmBinaryOp -> TmBinaryOp -> Bool
+        (TmArith op1) == (TmArith op2) = op1 == op2
+        (TmComp op1)  == (TmComp op2)  = op1 == op2
+        (TmLogic op1) == (TmLogic op2) = op1 == op2
+        TmApp         == TmApp         = True
+        TmBox         == TmBox         = True
+        TmMrg         == TmMrg         = True
         _           == _           = False
 
 
@@ -159,62 +142,3 @@ isValue (VBool _)               = True
 isValue (VClos v t e)           = isValue v
 isValue (VRcd label val)        = isValue val
 isValue (VMrg v1 v2)            = isValue v1 && isValue v2
-
-
-instance Show Exp where
-        show :: Exp -> String
-        show                = showIndented 0
-
-showIndented :: Int -> Exp -> String
-showIndented n exp = indent 0 ++ show' n exp
-        where
-                indent :: Int -> String
-                indent n1 = replicate n1 ' '
-
-                show' :: Int -> Exp -> String
-                show' _ Ctx                = "?"
-                show' _ Unit               = "\x03B5"
-                show' _ (Lit i)            = show i
-                show' n (BinOp op e1 e2)   = "(" ++ show' n e1 ++ " " ++ show op ++ " " ++ show' n e2 ++ ")"
-                show' n (UnOp op e)        = show op ++ "(" ++ show' n e ++ ")"
-                show' n (Lam typ e)        =  "\n"
-                                                ++ indent n ++ "\x03BB" ++ " " ++ show typ ++ " . \n" 
-                                                        ++ indent (n + 2) ++ show' (n + 2) e
-                show' n (Proj e n')        = show' n e ++ "." ++ show n'
-                show' n (Clos e1 t e2)     = "< " ++ show' n e1 ++ ", " ++ show' (n + 2) (Lam t e2) ++ " >"
-                show' n (Rec s e)          = "{ " ++ show s  ++ " = " ++ show' (n + 2) e ++ " }"
-                show' n (RProj e s)        = show' n e ++ "." ++ show s
-                show' n (If c e1 e2)       = "IF " ++ show' (n + 2) c ++ "\n" 
-                                                ++ indent (n + 4) ++ "THEN \n" ++ indent (n + 6) ++ show' (n + 4) e1 ++ "\n" 
-                                                ++ indent (n + 4) ++ "ELSE \n" ++ indent (n + 6) ++ show' (n + 4) e2 ++ "\n"
-                show' n (Let e1 e2)        =    "LET \n" 
-                                                        ++ indent n ++ show' n e1 ++
-                                                "\n IN " 
-                                                        ++ indent n ++ show' (n + 2) e2
-                show' _ (EBool b)          = show b
-                show' n (Fix e)            = indent n ++ "fix " ++ show' (n + 2) e
-                show' n (Pair e1 e2)       = "(" ++ show' n e1 ++ ", " ++ show' n e2 ++ ")"
-                show' _ (Nil typ)          = indent n ++ "NIL of " ++ show typ
-                show' n (Cons e1 e2)       = indent n ++ show' n e1 ++ " :: " ++ show' n e2
-
-
-instance Show Typ where 
-        show :: Typ -> String
-        show TUnit              = "\x03B5"
-        show TInt               = "INT"
-        show TBool              = "BOOL"
-        show (TAnd t1 t2)       = show t1 ++ " & " ++ show t2
-        show (TArrow t1 t2)     = show t1 ++ " -> " ++ show t2
-        show (TRecord s t)      = "{ " ++ show s ++ " :: " ++ show t ++ " }"
-        show (TList typ)        = "[" ++ show typ ++ "]"
-        
-instance Show Value where
-        show :: Value -> String
-        show VUnit                      = "\x03B5"
-        show (VInt i)                   = show i
-        show (VBool b)                  = show b
-        show (VClos val typ exp)        = "< { " ++ show val ++ " }, \n(" ++ showIndented 6 exp ++ ") :: " ++ show typ
-        show (VRcd label val)           = "{ " ++ show label ++ " = "  ++ show val ++ " }"             
-        show (VMrg v1 v2)               = show v1 ++ " ,, " ++ show v2
-        show (VNil typ)                 = "nil of " ++ show typ
-        show (VCons head rest)          = show head ++ " :: " ++ show rest
