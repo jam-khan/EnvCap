@@ -7,6 +7,7 @@ module Core.Syntax where
 --      Basic work on Parser
 
 -- Extensions
+
 -- Booleans         
         -- Semantics    : Done 
         -- Type System  : Done
@@ -31,7 +32,6 @@ module Core.Syntax where
         -- Semantics    : Done
         -- Type System  : Done
 
-
 -- Pairs
         -- Semantics    : To be done
         -- Type System (Product Types)  : To be done
@@ -39,18 +39,6 @@ module Core.Syntax where
         -- Semantics     : To be done
         -- Type Systems  : To be done
 
-
--- Operations Definitions
-data BinaryOp   =       App             -- Application
-                |       Box             -- Box
-                |       Mrg             -- Merge
-                --      Extensions
-                |       Arith ArithOp   -- Arithmetic
-                |       Comp  CompOp    -- CompOp
-                |       Logic LogicOp   -- Boolean Logic
-
-data Case1 = Temp [Exp]
-        deriving (Eq, Show)
 
 data Exp =  Ctx                     -- Context
         |   Unit                    -- Unit
@@ -105,6 +93,15 @@ data Typ =  TUnit                  -- Unit type for empty environment
 data UnaryOp    =       Not
                 |       Index Int
         deriving Eq
+
+-- Operations Definitions
+data BinaryOp   =       App             -- Application
+                |       Box             -- Box
+                |       Mrg             -- Merge
+                --      Extensions
+                |       Arith ArithOp   -- Arithmetic
+                |       Comp  CompOp    -- CompOp
+                |       Logic LogicOp   -- Boolean Logic
 
 data ArithOp = Add | Sub | Mul | Div | Mod 
         deriving Eq
