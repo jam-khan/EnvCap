@@ -3,7 +3,8 @@ module Surface.Syntax where
 
 data Tm =   TmCtx                              -- Context
         |   TmUnit                             -- Unit
-        |   TmInt       Int                    -- Integer Literal
+        |   TmVar       String              -- Variable
+        |   TmInt       Integer                -- Integer Literal
         |   TmBool      Bool                   -- Boolean Literal
         |   TmString    String                 -- String  Literal
         |   TmBinary    TmBinaryOp Tm Tm       -- Binary Operation
@@ -51,7 +52,7 @@ data TmBinaryOp   =     TmApp             -- Application
                 |       TmLogic TmLogicOp   -- Boolean Logic
 
 
-
+{--
 -- Values
 data Value =    VUnit                   -- Unit value
         |       VInt Int                -- Integer value
@@ -64,6 +65,7 @@ data Value =    VUnit                   -- Unit value
         |       VCons Value Value       -- List
         --      
         deriving Eq
+--}
 
 -- Types
 data Typ =  TUnit                  -- Unit type for empty environment
@@ -134,7 +136,7 @@ instance Eq TmBinaryOp where
         TmMrg         == TmMrg         = True
         _           == _           = False
 
-
+{--
 isValue :: Value -> Bool
 isValue VUnit                   = True
 isValue (VInt _)                = True
@@ -142,3 +144,4 @@ isValue (VBool _)               = True
 isValue (VClos v t e)           = isValue v
 isValue (VRcd label val)        = isValue val
 isValue (VMrg v1 v2)            = isValue v1 && isValue v2
+--}

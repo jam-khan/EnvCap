@@ -38,7 +38,8 @@ import Text.Parsec.String (Parser)
 import Text.Parsec.Prim (parse)
 import Text.Parsec.Char (satisfy, char, oneOf, digit)
 import Text.Parsec.Combinator (eof, manyTill, anyToken)
-import Control.Applicative ((<$>), (<*>), (<*), (*>), many)
+import Data.Char (isLetter, isDigit)
+import Control.Applicative ((<$>), (<*>), (<*), (*>), (<|>), many)
 import Control.Monad (void)
 
 -- | Consumes whitespace characters.

@@ -42,29 +42,29 @@ module Core.Syntax where
 
 data Exp =  Ctx                     -- Context
         |   Unit                    -- Unit
-        |   Lit    Int               -- Integer literal
-        |   EBool  Bool              -- Boolean Term
-        |   EString String           -- String Term
-        |   BinOp  BinaryOp Exp Exp  -- Binary operations: Application, Box and Merge
-        |   Lam    Typ Exp           -- Lambda Abstraction
-        |   Proj   Exp Int           -- Projection
-        |   Clos   Exp Exp       -- Closure
-        |   Rec    String Exp        -- Single-Field Record
-        |   RProj  Exp String        -- Record Projection by Label
+        |   Lit    Integer          -- Integer literal
+        |   EBool  Bool             -- Boolean Term
+        |   EString String          -- String Term
+        |   BinOp  BinaryOp Exp Exp -- Binary operations: Application, Box and Merge
+        |   Lam    Typ Exp          -- Lambda Abstraction
+        |   Proj   Exp Int          -- Projection
+        |   Clos   Exp Exp          -- Closure
+        |   Rec    String Exp       -- Single-Field Record
+        |   RProj  Exp String       -- Record Projection by Label
         -- Extensions
         |   UnOp   UnaryOp Exp       -- Unary operations:  Not
         |   If     Exp Exp Exp       -- Conditionals
         |   Let    Exp Exp           -- Let Bindings
-        |   Fix    Exp           -- Recursion
+        |   Fix    Exp               -- Recursion
         -- Built-in Lists
         |   Pair Exp Exp
-        |   Nil    Typ                -- Nil for list
-        |   Cons   Exp Exp            -- List
+        |   Nil    Typ               -- Nil for list
+        |   Cons   Exp Exp           -- List
         deriving Eq
 
 -- Values
 data Value =    VUnit                   -- Unit value
-        |       VInt Int                -- Integer value
+        |       VInt Integer            -- Integer value
         |       VClos Value Exp         -- Closure
         |       VRcd String Value       -- Single-field record value
         |       VMrg Value Value        -- Merge of two values
