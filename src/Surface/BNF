@@ -1,0 +1,43 @@
+{--
+<program> ::= <statement>*
+
+
+<statement> ::= <let-declaration> | <assignment> | <comment> | <declare> | <module>
+
+<let-declaration> ::= 
+    "let" <identifier> ":" <type> "=" <expression> ";"
+
+<assignment> ::= 
+    <identifier> "=" <expression> ";"
+
+<declare> ::= 
+    "declare" <identifier> ":" <type> ";"
+
+<comment> ::= 
+    "--" <text> | "{--" <text>* "--}"
+
+<module> ::= 
+    "module" <identifier> "import" <import-list> "export" <export-list> "begin" <statement>* "end"
+
+<import-list> ::= "nothing" | <import-item> ("," <import-item>)*
+
+<export-list> ::= <export-item> ("," <export-item>)*
+
+<import-item> ::= <identifier> "(" <type-list> ")"
+<export-item> ::= <identifier> ":" <type>
+
+<type-list> ::= <type> ("," <type>)*
+
+<expression> ::= <term> (("+" | "-" | "*" | "/" | "%") <term>)*
+
+<term> ::= <identifier> | <number>
+
+<identifier> ::= [a-zA-Z_][a-zA-Z0-9_]*
+
+<number> ::= [0-9]+
+
+<type> ::= "Int" | "String" | "Void"
+
+<text> ::= any sequence of characters not including line breaks
+
+--}
