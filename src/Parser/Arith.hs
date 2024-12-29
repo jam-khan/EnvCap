@@ -1,6 +1,6 @@
 module Parser.Arith where
 import Surface.Syntax (Tm(..), Typ(..), TmBinaryOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
-
+import Parser.Tokens (identifierToken, trueToken, falseToken, contextToken)
 import Text.Parsec (ParseError, many1, string, try)
 import Text.Parsec.String (Parser)
 import Text.Parsec.Prim (parse)
@@ -45,6 +45,11 @@ data TmLogicOp   = TmAnd | TmOr
         deriving Eq
 --}
 
+-- It is a bit tricky tho
+data ParseBinaryOp = ParseBinaryOp Tm Tm String
+
+-- Parse 
+
 examples :: [(String, Tm)]
 examples = [("context()", TmCtx),
             ("1", TmInt 1),
@@ -63,64 +68,33 @@ examples = [("context()", TmCtx),
 
 -- Parser for context
 
-contextToken :: Parser ()
-contextToken = void $ string "context()"
-
 parseCtx :: Parser Tm
 parseCtx = lexeme $ contextToken >> return TmCtx
 
 -- Parser for boolean literals
 
--- Parser for True
-trueToken :: Parser ()
-trueToken = void $ string "true"
-
 parseTrue :: Parser Tm
 parseTrue = lexeme $ trueToken >> return (TmBool True)
-
--- Parser for False
-falseToken :: Parser ()
-falseToken = void $ string "false"
 
 parseFalse :: Parser Tm
 parseFalse = lexeme $ falseToken >> return (TmBool False)
 
--- Parser for boolean
 parseBoolean :: Parser Tm
 parseBoolean  = try parseTrue <|> parseFalse
 
+
 -- Parser for integer literals
+
 parseInt :: Parser Tm
 parseInt = TmInt . read <$> lexeme (many1 digit)
 
 -- Parser for unit
+
 parseUnit :: Parser Tm
 parseUnit = lexeme $ void (string "()") >> return TmUnit
 
--- Parser for arithmetic operations
-addToken :: Parser ()
-addToken = void $ string "+"
-
-subToken :: Parser ()
-subToken = void $ string "-"
-
-divToken :: Parser ()
-divToken = void $ string "/"
-
-multToken :: Parser ()
-multToken = void $ string "*"
-
-modToken :: Parser ()
-modToken = void $ string "%"
-
 -- Parser for variable
-identifierToken :: Parser String
-identifierToken = lexeme ((:) <$> firstChar <*> many nonFirstChar)
-    where
-        firstChar       = letter <|> char '_'
-        nonFirstChar    = digit  <|> firstChar
 
 parseVar :: Parser Tm
 parseVar = TmVar <$> identifierToken
 
--- 

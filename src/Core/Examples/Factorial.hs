@@ -12,5 +12,5 @@ factorial =     Fix (Lam TInt
                                         (mult   (proj 0)
                                                 (apply (proj 1) (sub (proj 0) (Lit 1))))))
 
-result :: Int -> Maybe Value
+result :: Integer -> Maybe Value
 result n = evalB Unit (apply factorial (Lit n))
