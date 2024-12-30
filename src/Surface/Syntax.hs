@@ -1,6 +1,19 @@
 {-# LANGUAGE InstanceSigs #-}
 module Surface.Syntax where
 
+{--
+program
+        : expression+
+        ;
+
+expresssion
+        : context
+        | unit
+        | 
+
+--}
+-- EnvCap features
+-- 
 data Tm =   TmCtx                              -- Context
         |   TmUnit                             -- Unit
         |   TmVar       String              -- Variable

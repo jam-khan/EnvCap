@@ -13,5 +13,5 @@ fib =   Fix (Lam TInt
                                 (apply (proj 1) (sub (proj 0) (Lit 2))))))
 
 
-result :: Int -> Maybe Value
+result :: Integer -> Maybe Value
 result n = evalB Unit (apply fib (Lit n))
