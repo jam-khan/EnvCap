@@ -1,0 +1,57 @@
+program
+    : statement+
+    ;
+
+statement
+    : 'if' paren_expr 'then' statement 'else' statement
+    | '{' statement* '}'
+    | expr ';'
+    | ';'
+    ;
+
+paren_expr
+    : '(' expr ')'
+    ;
+
+expr
+    : test
+    | id '=' expr
+    ;
+
+test
+    : arith
+    | arith '<' arith
+    | arith
+    ;
+
+sum
+    : term
+    | sum '+' term
+    | sum '-' term
+    ;
+
+term
+    : id
+    | integer
+    | paren_expr
+    ;
+
+id
+    : STRING
+    ;
+
+integer
+    : INT
+    ;
+
+STRING
+    : [a-z]+
+    ;
+
+INT
+    : [0-9]+
+    ;
+
+WS
+    : [rnt] -> skip
+    ;

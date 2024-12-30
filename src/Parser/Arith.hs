@@ -1,6 +1,6 @@
 module Parser.Arith where
 import Surface.Syntax (Tm(..), Typ(..), TmBinaryOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
-import Parser.Tokens (identifierToken, trueToken, falseToken, contextToken)
+import Parser.Tokens (identifierToken, trueToken, falseToken, contextToken, unitToken, addToken, subToken, multToken, divToken, modToken, andToken, orToken)
 import Text.Parsec (ParseError, many1, string, try)
 import Text.Parsec.String (Parser)
 import Text.Parsec.Prim (parse)
@@ -10,6 +10,10 @@ import Data.Char (isLetter, isDigit)
 import Control.Applicative ((<$>), (<*>), (<*), (*>), (<|>), many)
 import Control.Monad (void)
 import Parser.Util (lexeme)
+import Core.Syntax (Exp(BinOp))
+
+-- 
+
 
 {--
 data Tm =   TmCtx                              -- Context
@@ -85,16 +89,55 @@ parseBoolean  = try parseTrue <|> parseFalse
 
 -- Parser for integer literals
 
-parseInt :: Parser Tm
-parseInt = TmInt . read <$> lexeme (many1 digit)
+parseInteger :: Parser Tm
+parseInteger = TmInt . read <$> lexeme (many1 digit)
 
 -- Parser for unit
 
 parseUnit :: Parser Tm
-parseUnit = lexeme $ void (string "()") >> return TmUnit
+parseUnit = lexeme $ void unitToken >> return TmUnit
 
 -- Parser for variable
 
 parseVar :: Parser Tm
 parseVar = TmVar <$> identifierToken
+
+-- Parser for arithmetic operations
+
+parseArith :: Parser Tm
+parseArith = chainl1 parseInteger op
+  where
+    op = lexeme $ addOp <|> subOp <|> multOp <|> divOp <|> modOp
+
+    addOp       = do    void addToken
+                        return (TmBinary (TmArith TmAdd))
+    subOp       = do    void subToken
+                        return (TmBinary (TmArith TmSub))
+    multOp      = do    void multToken
+                        return (TmBinary (TmArith TmMul))
+    divOp       = do    void divToken
+                        return (TmBinary (TmArith TmDiv))
+    modOp       = do    void modToken
+                        return (TmBinary (TmArith TmMod))
+
+-- Parser for logical operations
+
+parseLogic :: Parser Tm
+parseLogic = chainl1 parseBoolean logicOp
+        where
+                logicOp = lexeme $ andOp <|> orOp
+
+                andOp = do
+                        void andToken
+                        return (TmBinary (TmLogic TmAnd))
+                
+                orOp = do
+                        void orToken
+                        return (TmBinary (TmLogic TmOr))
+-- parseAdd :: Parser Tm
+-- parseAdd = do
+--         left <- parseInt
+--         lexeme $ void addToken
+--         TmBinary (TmArith TmAdd) left <$> parseInt
+
 
