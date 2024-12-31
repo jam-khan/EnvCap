@@ -1,7 +1,7 @@
 module Parser.Arith where
 import Surface.Syntax (Tm(..), Typ(..), TmBinaryOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
-import Parser.Tokens (identifierToken, trueToken, falseToken, contextToken, unitToken, addToken, subToken, multToken, divToken, modToken, andToken, orToken, ifToken, thenToken, elseToken)
-import Text.Parsec (ParseError, many1, string, try)
+import Parser.Tokens (identifierToken, trueToken, falseToken, contextToken, unitToken, addToken, subToken, multToken, divToken, modToken, andToken, orToken, ifToken, thenToken, elseToken, stringToken)
+import Text.Parsec (ParseError, many1, string, try, between, anyChar, Parsec)
 import Text.Parsec.String (Parser)
 import Text.Parsec.Prim (parse)
 import Text.Parsec.Char (satisfy, char, oneOf, digit, letter)
@@ -11,8 +11,8 @@ import Control.Applicative ((<$>), (<*>), (<*), (*>), (<|>), many)
 import Control.Monad (void)
 import Parser.Util (lexeme)
 import Core.Syntax (Exp(BinOp))
-
--- 
+import Text.Parsec.Expr as E (buildExpressionParser, Assoc(AssocLeft), Operator(Infix) )
+import Data.Functor.Identity (Identity)
 
 
 {--
@@ -107,7 +107,7 @@ parseVar = TmVar <$> identifierToken
 parseArith :: Parser Tm
 parseArith = chainl1 parseInteger op
   where
-    op = lexeme $ addOp <|> subOp <|> multOp <|> divOp <|> modOp
+    op = lexeme $ addOp <|> subOp <|> modOp <|> divOp <|> multOp
 
     addOp       = do    void addToken
                         return (TmBinary (TmArith TmAdd))
@@ -121,6 +121,20 @@ parseArith = chainl1 parseInteger op
                         return (TmBinary (TmArith TmMod))
 
 -- Parser for logical operations
+arithExpr :: Parsec String () Tm
+arithExpr = buildExpressionParser pteTable parseInteger
+
+pteTable :: [[Operator String () Identity Tm]]
+pteTable =
+    [ [E.Infix (TmBinary (TmArith TmMod) <$ symbol "%") E.AssocLeft,
+       E.Infix (TmBinary (TmArith TmMul) <$ symbol "*") E.AssocLeft,
+       E.Infix (TmBinary (TmArith TmDiv) <$ symbol "/") E.AssocLeft]
+    , [E.Infix (TmBinary (TmArith TmAdd) <$ symbol "+") E.AssocLeft,
+       E.Infix (TmBinary (TmArith TmSub) <$ symbol "-") E.AssocLeft]
+    ]
+
+symbol :: String -> Parser String
+symbol s = lexeme $ string s
 
 parseLogic :: Parser Tm
 parseLogic = chainl1 parseBoolean logicOp
@@ -134,11 +148,6 @@ parseLogic = chainl1 parseBoolean logicOp
                 orOp = do
                         void orToken
                         return (TmBinary (TmLogic TmOr))
--- parseAdd :: Parser Tm
--- parseAdd = do
---         left <- parseInt
---         lexeme $ void addToken
---         TmBinary (TmArith TmAdd) left <$> parseInt
 
 
 parseConditional :: Parser Tm
@@ -149,3 +158,8 @@ parseConditional = do
                    then' <- parseInteger
                    void elseToken
                    TmIf cond then' <$> parseInteger
+
+-- parser for string
+parseString :: Parser Tm
+parseString = TmString <$> lexeme stringToken
+

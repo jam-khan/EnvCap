@@ -1,6 +1,6 @@
 module Parser.Tokens where
 
-import Text.Parsec (ParseError, many1, string, try)
+import Text.Parsec (ParseError, many1, string, try, anyChar)
 import Text.Parsec.String (Parser)
 import Text.Parsec.Prim (parse)
 import Text.Parsec.Char (satisfy, char, oneOf, digit, letter)
@@ -95,3 +95,9 @@ thenToken = void $ string "then"
 
 elseToken :: Parser ()
 elseToken = void $ string "then"
+
+-- string token
+
+stringToken :: Parser String
+stringToken = char '\'' *> manyTill anyChar (char '\'')
+
