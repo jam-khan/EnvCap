@@ -15,44 +15,6 @@ import Core.Syntax (Exp(BinOp))
 import Text.Parsec.Expr as E (buildExpressionParser, Assoc(AssocLeft), Operator(Infix, Prefix) )
 import Data.Functor.Identity (Identity)
 
-
-{--
-data Tm =   TmCtx                              -- Context
-        |   TmUnit                             -- Unit
-        |   TmVar       String                 -- Variable
-        |   TmInt       Int                    -- Integer Literal
-        |   TmBool      Bool                   -- Boolean Literal
-        |   TmString    String                 -- String  Literal
-        |   TmBinary    TmBinaryOp Tm Tm       -- Binary Operation
-        |   TmUnary     TmUnaryOp Tm           -- Unary Operation
-        |   TmIf        Tm Tm Tm               -- Conditional
---}
-
-{--
--- Operations Definitions
-data TmBinaryOp   =     TmApp             -- Application
-                |       TmBox             -- Box
-                |       TmMrg             -- Merge
-                --      Extensions
-                |       TmArith TmArithOp   -- Arithmetic
-                |       TmComp  TmCompOp    -- CompOp
-                |       TmLogic TmLogicOp   -- Boolean Logic
-
-data TmUnaryOp  =       TmNot
-                |       TmIndex Int
-        deriving Eq
-
-data TmArithOp   = TmAdd | TmSub | TmMul | TmDiv | TmMod 
-        deriving Eq
-data TmCompOp    = TmEql | TmNeq | TmLt | TmLe | TmGt | TmGe
-        deriving Eq
-data TmLogicOp   = TmAnd | TmOr
-        deriving Eq
---}
-
--- It is a bit tricky tho
-data ParseBinaryOp = ParseBinaryOp Tm Tm String
-
 -- Parse 
 
 examples :: [(String, Tm)]
@@ -69,6 +31,13 @@ examples = [("context()", TmCtx),
             ("if true then 1 + 2 else 1 - 2", TmIf  (TmBool True)
                                                     (TmBinary (TmArith TmAdd) (TmInt 1) (TmInt 2))
                                                     (TmBinary (TmArith TmSub) (TmInt 1) (TmInt 2)))]
+
+tester :: [(String, Tm)] -> Bool
+tester [] = True
+tester (x:xs) = case parseMain (fst x) of
+                Right res -> res == (snd x) && tester xs
+                _         -> False
+
 
 
 -- Parser for context
@@ -120,10 +89,10 @@ operators = [   [E.Prefix ((TmUnary TmNot) <$ char '!')],
                 E.Infix (TmBinary (TmArith TmSub) <$ symbol "-") E.AssocLeft]]
 
 parseTerm :: Parser Tm
-parseTerm = parseInteger <|> parseBoolean <|> parseVar
+parseTerm = parseInteger <|> parseString <|> parseCtx <|> parseUnit <|> parseBoolean <|> parseVar
 
 parseExp :: Parser Tm
-parseExp = try parseConditional <|> operationParser <|> parseVar <|> parseBoolean <|> parseInteger
+parseExp = try parseConditional <|> operationParser <|> parseCtx <|> parseUnit <|> parseVar <|> parseBoolean <|> parseInteger <|> parseString 
 
 symbol :: String -> Parser String
 symbol s = lexeme $ string s
