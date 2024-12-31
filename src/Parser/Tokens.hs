@@ -85,4 +85,13 @@ orToken  = void $ string "||"
 notToken :: Parser ()
 notToken = void $ string "!"
 
--- 
+-- if-conditional tokens
+
+ifToken :: Parser ()
+ifToken = void $ string "if"
+
+thenToken :: Parser ()
+thenToken = void $ string "then"
+
+elseToken :: Parser ()
+elseToken = void $ string "then"

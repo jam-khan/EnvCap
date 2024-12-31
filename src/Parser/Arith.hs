@@ -1,6 +1,6 @@
 module Parser.Arith where
 import Surface.Syntax (Tm(..), Typ(..), TmBinaryOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
-import Parser.Tokens (identifierToken, trueToken, falseToken, contextToken, unitToken, addToken, subToken, multToken, divToken, modToken, andToken, orToken)
+import Parser.Tokens (identifierToken, trueToken, falseToken, contextToken, unitToken, addToken, subToken, multToken, divToken, modToken, andToken, orToken, ifToken, thenToken, elseToken)
 import Text.Parsec (ParseError, many1, string, try)
 import Text.Parsec.String (Parser)
 import Text.Parsec.Prim (parse)
@@ -130,7 +130,7 @@ parseLogic = chainl1 parseBoolean logicOp
                 andOp = do
                         void andToken
                         return (TmBinary (TmLogic TmAnd))
-                
+
                 orOp = do
                         void orToken
                         return (TmBinary (TmLogic TmOr))
@@ -141,3 +141,11 @@ parseLogic = chainl1 parseBoolean logicOp
 --         TmBinary (TmArith TmAdd) left <$> parseInt
 
 
+parseConditional :: Parser Tm
+parseConditional = do
+                   void ifToken
+                   cond <- parseBoolean
+                   void thenToken
+                   then' <- parseInteger
+                   void elseToken
+                   TmIf cond then' <$> parseInteger
