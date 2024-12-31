@@ -93,7 +93,8 @@ data Typ =  TUnit                  -- Unit type for empty environment
         deriving Eq
 
 
-data TmUnaryOp  =       TmNot
+data TmUnaryOp  =       TmNeg
+                |       TmNot
                 |       TmIndex Int
         deriving Eq
 
@@ -138,6 +139,8 @@ instance Show TmLogicOp where
 instance Show TmUnaryOp where
         show :: TmUnaryOp -> String
         show TmNot = "!"
+        show TmNeg = "-"
+        show (TmIndex i) = "!!" ++ (show i)
 
 instance Eq TmBinaryOp where 
         (==) :: TmBinaryOp -> TmBinaryOp -> Bool

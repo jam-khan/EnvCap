@@ -1,17 +1,18 @@
-module Parser.Arith where
+module Parser.Parser where
+
 import Surface.Syntax (Tm(..), Typ(..), TmBinaryOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
-import Parser.Tokens (identifierToken, trueToken, falseToken, contextToken, unitToken, addToken, subToken, multToken, divToken, modToken, andToken, orToken, ifToken, thenToken, elseToken, stringToken)
+import Parser.Lexer (identifierToken, trueToken, falseToken, contextToken, unitToken, addToken, subToken, multToken, divToken, modToken, andToken, orToken, ifToken, thenToken, elseToken, stringToken)
 import Text.Parsec (ParseError, many1, string, try, between, anyChar, Parsec)
 import Text.Parsec.String (Parser)
 import Text.Parsec.Prim (parse)
 import Text.Parsec.Char (satisfy, char, oneOf, digit, letter)
-import Text.Parsec.Combinator (eof, manyTill, anyToken, chainl1)
+import Text.Parsec.Combinator (eof, manyTill, option, anyToken, chainl1)
 import Data.Char (isLetter, isDigit)
 import Control.Applicative ((<$>), (<*>), (<*), (*>), (<|>), many)
 import Control.Monad (void)
-import Parser.Util (lexeme)
+import Parser.Util (lexeme, parseWithWhitespace)
 import Core.Syntax (Exp(BinOp))
-import Text.Parsec.Expr as E (buildExpressionParser, Assoc(AssocLeft), Operator(Infix) )
+import Text.Parsec.Expr as E (buildExpressionParser, Assoc(AssocLeft), Operator(Infix, Prefix) )
 import Data.Functor.Identity (Identity)
 
 
@@ -90,8 +91,10 @@ parseBoolean  = try parseTrue <|> parseFalse
 -- Parser for integer literals
 
 parseInteger :: Parser Tm
-parseInteger = TmInt . read <$> lexeme (many1 digit)
-
+parseInteger = lexeme $ do
+                        sign <- option "" (string "-")
+                        num  <- read <$> (many1 digit)
+                        return $ TmInt (if null sign then num else -num)
 -- Parser for unit
 
 parseUnit :: Parser Tm
@@ -102,36 +105,25 @@ parseUnit = lexeme $ void unitToken >> return TmUnit
 parseVar :: Parser Tm
 parseVar = TmVar <$> identifierToken
 
--- Parser for arithmetic operations
-
-parseArith :: Parser Tm
-parseArith = chainl1 parseInteger op
-  where
-    op = lexeme $ addOp <|> subOp <|> modOp <|> divOp <|> multOp
-
-    addOp       = do    void addToken
-                        return (TmBinary (TmArith TmAdd))
-    subOp       = do    void subToken
-                        return (TmBinary (TmArith TmSub))
-    multOp      = do    void multToken
-                        return (TmBinary (TmArith TmMul))
-    divOp       = do    void divToken
-                        return (TmBinary (TmArith TmDiv))
-    modOp       = do    void modToken
-                        return (TmBinary (TmArith TmMod))
 
 -- Parser for logical operations
-arithExpr :: Parsec String () Tm
-arithExpr = buildExpressionParser pteTable parseInteger
+operationParser :: Parsec String () Tm
+operationParser = lexeme $ buildExpressionParser operators parseTerm
 
-pteTable :: [[Operator String () Identity Tm]]
-pteTable =
-    [ [E.Infix (TmBinary (TmArith TmMod) <$ symbol "%") E.AssocLeft,
-       E.Infix (TmBinary (TmArith TmMul) <$ symbol "*") E.AssocLeft,
-       E.Infix (TmBinary (TmArith TmDiv) <$ symbol "/") E.AssocLeft]
-    , [E.Infix (TmBinary (TmArith TmAdd) <$ symbol "+") E.AssocLeft,
-       E.Infix (TmBinary (TmArith TmSub) <$ symbol "-") E.AssocLeft]
-    ]
+operators :: [[Operator String () Identity Tm]]
+operators = [   [E.Prefix ((TmUnary TmNot) <$ char '!')],
+                [E.Infix (TmBinary (TmArith TmMod) <$ symbol "%") E.AssocLeft,
+                E.Infix (TmBinary (TmArith TmMul) <$ symbol "*") E.AssocLeft,
+                E.Infix (TmBinary (TmArith TmDiv) <$ symbol "/") E.AssocLeft],
+                
+                [E.Infix (TmBinary (TmArith TmAdd) <$ symbol "+") E.AssocLeft,
+                E.Infix (TmBinary (TmArith TmSub) <$ symbol "-") E.AssocLeft]]
+
+parseTerm :: Parser Tm
+parseTerm = parseInteger <|> parseBoolean <|> parseVar
+
+parseExp :: Parser Tm
+parseExp = try parseConditional <|> operationParser <|> parseVar <|> parseBoolean <|> parseInteger
 
 symbol :: String -> Parser String
 symbol s = lexeme $ string s
@@ -152,14 +144,18 @@ parseLogic = chainl1 parseBoolean logicOp
 
 parseConditional :: Parser Tm
 parseConditional = do
-                   void ifToken
-                   cond <- parseBoolean
-                   void thenToken
-                   then' <- parseInteger
-                   void elseToken
-                   TmIf cond then' <$> parseInteger
+                   void   $ ifToken
+                   cond   <- parseBoolean
+                   void   $ thenToken
+                   then'  <- parseExp
+                   void   $ elseToken
+                   else'  <- parseExp
+                   return $ TmIf cond then' else'
 
 -- parser for string
 parseString :: Parser Tm
 parseString = TmString <$> lexeme stringToken
 
+-- main parser
+parseMain :: String -> Either ParseError Tm
+parseMain s = parseWithWhitespace parseExp s
