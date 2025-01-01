@@ -1,7 +1,7 @@
 module Parser.Parser where
 
 import Surface.Syntax (Tm(..), Typ(..), TmBinaryOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
-import Parser.Lexer (identifierToken, trueToken, falseToken, contextToken, unitToken, addToken, subToken, multToken, divToken, modToken, andToken, orToken, ifToken, thenToken, elseToken, stringToken)
+import Parser.Lexer (identifierToken, trueToken, falseToken, contextToken, unitToken, addToken, subToken, multToken, divToken, modToken, andToken, orToken, ifToken, thenToken, elseToken, stringToken, notToken)
 import Text.Parsec (ParseError, many1, string, try, between, anyChar, Parsec)
 import Text.Parsec.String (Parser)
 import Text.Parsec.Prim (parse)
@@ -89,32 +89,37 @@ operators = [   [E.Prefix ((TmUnary TmNot) <$ char '!')],
                 E.Infix (TmBinary (TmArith TmSub) <$ symbol "-") E.AssocLeft]]
 
 parseTerm :: Parser Tm
-parseTerm = parseInteger <|> parseString <|> parseCtx <|> parseUnit <|> parseBoolean <|> parseVar
+parseTerm = parseInteger <|> parseString <|> parseCtx <|> parseUnit <|> parseLogic <|> parseBoolean <|> parseVar
 
 parseExp :: Parser Tm
-parseExp = try parseConditional <|> operationParser <|> parseCtx <|> parseUnit <|> parseVar <|> parseBoolean <|> parseInteger <|> parseString 
+parseExp = try      parseConditional    <|> parseLogic  <|> operationParser
+                <|> parseCtx            <|> parseUnit   <|> parseVar    <|> parseBoolean
+                <|> parseInteger        <|> parseString 
 
 symbol :: String -> Parser String
 symbol s = lexeme $ string s
 
+parseNot :: Parser Tm
+parseNot = notToken >> TmUnary TmNot <$> parseBoolean
+
 parseLogic :: Parser Tm
-parseLogic = chainl1 parseBoolean logicOp
-        where
-                logicOp = lexeme $ andOp <|> orOp
+parseLogic = try parseNot <|> chainl1 parseBoolean logicOp
+                                where
+                                        logicOp = lexeme $ andOp <|> orOp
 
-                andOp = do
-                        void andToken
-                        return (TmBinary (TmLogic TmAnd))
+                                        andOp = do
+                                                void andToken
+                                                return (TmBinary (TmLogic TmAnd))
 
-                orOp = do
-                        void orToken
-                        return (TmBinary (TmLogic TmOr))
+                                        orOp = do
+                                                void orToken
+                                                return (TmBinary (TmLogic TmOr))
 
 
 parseConditional :: Parser Tm
 parseConditional = do
                    void   $ ifToken
-                   cond   <- parseBoolean
+                   cond   <- parseExp
                    void   $ thenToken
                    then'  <- parseExp
                    void   $ elseToken
