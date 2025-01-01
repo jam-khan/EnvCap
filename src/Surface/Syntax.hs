@@ -17,9 +17,9 @@ expresssion
 data Tm =   TmCtx                              -- Context
         |   TmUnit                             -- Unit
         |   TmVar       String              -- Variable
+        |   TmString    String                 -- String  Literal
         |   TmInt       Integer                -- Integer Literal
         |   TmBool      Bool                   -- Boolean Literal
-        |   TmString    String                 -- String  Literal
         |   TmBinary    TmBinaryOp Tm Tm       -- Binary Operation
         |   TmUnary     TmUnaryOp Tm           -- Unary Operation
         |   TmIf        Tm Tm Tm               -- Conditional
@@ -93,16 +93,13 @@ data Typ =  TUnit                  -- Unit type for empty environment
         deriving Eq
 
 
-data TmUnaryOp  =       TmNot
-                |       TmIndex Int
-        deriving Eq
-
-data TmArithOp   = TmAdd | TmSub | TmMul | TmDiv | TmMod 
-        deriving Eq
+data TmUnaryOp  = TmNeg | TmNot | TmIndex Int
+                                                deriving Eq
+data TmArithOp   = TmAdd | TmSub | TmMul | TmDiv | TmMod | TmExp
+                                                deriving Eq
 data TmCompOp    = TmEql | TmNeq | TmLt | TmLe | TmGt | TmGe
-        deriving Eq
-data TmLogicOp   = TmAnd | TmOr
-        deriving Eq
+                                                deriving Eq
+data TmLogicOp   = TmAnd | TmOr         deriving Eq
 
 instance Show TmBinaryOp where
         show :: TmBinaryOp -> String
@@ -120,6 +117,7 @@ instance Show TmArithOp where
         show TmMul = "*"
         show TmDiv = "/"
         show TmMod = "%"
+        show TmExp = "^"
 
 instance Show TmCompOp where
         show :: TmCompOp -> String
@@ -138,6 +136,8 @@ instance Show TmLogicOp where
 instance Show TmUnaryOp where
         show :: TmUnaryOp -> String
         show TmNot = "!"
+        show TmNeg = "-"
+        show (TmIndex i) = "!!" ++ (show i)
 
 instance Eq TmBinaryOp where 
         (==) :: TmBinaryOp -> TmBinaryOp -> Bool

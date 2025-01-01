@@ -21,7 +21,7 @@ maintainer:         jamkhan@connect.hku.hk
 -- category:
 extra-source-files: CHANGELOG.md
 library
-    exposed-modules:    Parser.Tokens Parser.Util Parser.Arith Core.Semantics Core.Syntax Core.TypeChecker PBT.Generators PBT.Properties
+    exposed-modules:    Parser.Lexer Parser.Util Parser.Parser Core.Semantics Core.Syntax Core.TypeChecker PBT.Generators PBT.Properties
                         Core.Util Core.Examples.Factorial Core.Examples.Fibonacci Core.Examples.Arithmetic Surface.Syntax
     -- Modules included in this library but not exported.
     -- other-modules:
