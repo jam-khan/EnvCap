@@ -2,10 +2,10 @@ module Parser.Parser where
 
 import Surface.Syntax (Tm(..), Typ(..), TmBinaryOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
 import Parser.Lexer (identifierToken, trueToken, falseToken, contextToken, unitToken, addToken, subToken, multToken, divToken, modToken, andToken, orToken, ifToken, thenToken, elseToken, stringToken, notToken)
-import Text.Parsec (ParseError, many1, string, try, between, anyChar, notFollowedBy, Parsec)
+import Text.Parsec (ParseError, many1, string, try, between, anyChar, notFollowedBy, lookAhead, Parsec)
 import Text.Parsec.String (Parser)
 import Text.Parsec.Prim (parse)
-import Text.Parsec.Char (satisfy, char, oneOf, digit, letter)
+import Text.Parsec.Char (satisfy, char, oneOf, digit, letter, noneOf)
 import Text.Parsec.Combinator (eof, manyTill, option, anyToken, chainl1)
 import Data.Char (isLetter, isDigit)
 import Control.Applicative ((<$>), (<*>), (<*), (*>), (<|>), many)
@@ -18,19 +18,33 @@ import Data.Functor.Identity (Identity)
 -- Parse 
 
 examples :: [(String, Tm)]
-examples = [("context()", TmCtx),
-            ("1", TmInt 1),
-            ("false", TmBool False),
-            ("true", TmBool True),
-            (" \'hello\' ", TmString "hello"),
-            ("1 + 2", TmBinary (TmArith TmAdd) (TmInt 1) (TmInt 2)),
-            ("1 - 2", TmBinary (TmArith TmSub) (TmInt 1) (TmInt 2)),
-            ("1 * 2", TmBinary (TmArith TmMul) (TmInt 1) (TmInt 2)),
-            ("1 / 2", TmBinary (TmArith TmDiv) (TmInt 1) (TmInt 2)),
-            ("1 % 2", TmBinary (TmArith TmMod) (TmInt 1) (TmInt 2)),
-            ("if true then 1 + 2 else 1 - 2", TmIf  (TmBool True)
-                                                    (TmBinary (TmArith TmAdd) (TmInt 1) (TmInt 2))
-                                                    (TmBinary (TmArith TmSub) (TmInt 1) (TmInt 2)))]
+examples = 
+    [ ("context()", TmCtx)
+    , ("1", TmInt 1)
+    , ("false", TmBool False)
+    , ("true", TmBool True)
+    , ("'hello'", TmString "hello")
+    , ("1 + 2", TmBinary (TmArith TmAdd) (TmInt 1) (TmInt 2))
+    , ("1 - 2", TmBinary (TmArith TmSub) (TmInt 1) (TmInt 2))
+    , ("3 * 4", TmBinary (TmArith TmMul) (TmInt 3) (TmInt 4))
+    , ("10 / 2", TmBinary (TmArith TmDiv) (TmInt 10) (TmInt 2))
+    , ("5 % 2", TmBinary (TmArith TmMod) (TmInt 5) (TmInt 2))
+    , ("1 < 2", TmBinary (TmComp TmLt) (TmInt 1) (TmInt 2))
+    , ("2 <= 3", TmBinary (TmComp TmLe) (TmInt 2) (TmInt 3))
+    , ("3 > 2", TmBinary (TmComp TmGt) (TmInt 3) (TmInt 2))
+    , ("4 >= 1", TmBinary (TmComp TmGe) (TmInt 4) (TmInt 1))
+    , ("1 == 1", TmBinary (TmComp TmEql) (TmInt 1) (TmInt 1))
+    , ("2 != 3", TmBinary (TmComp TmNeq) (TmInt 2) (TmInt 3))
+    , ("if true then 1 else 0", TmIf (TmBool True) (TmInt 1) (TmInt 0))
+    , ("if false then 1 + 2 else 2 - 1", TmIf 
+        (TmBool False) 
+        (TmBinary (TmArith TmAdd) (TmInt 1) (TmInt 2)) 
+        (TmBinary (TmArith TmSub) (TmInt 2) (TmInt 1)))
+    , ("a + b * c", TmBinary (TmArith TmAdd) (TmVar "a") (TmBinary (TmArith TmMul) (TmVar "b") (TmVar "c")))
+    , ("if x < y then z else w", TmIf 
+        (TmBinary (TmComp TmLt) (TmVar "x") (TmVar "y")) 
+        (TmVar "z") 
+        (TmVar "w"))]
 
 tester :: [(String, Tm)] -> Bool
 tester [] = True
@@ -41,7 +55,7 @@ tester (x:xs) = case parseMain (fst x) of
 -- Parser for context
 
 parseCtx :: Parser Tm
-parseCtx = lexeme $ contextToken >> return TmCtx
+parseCtx = lexeme $ (keyword "context()") >> return TmCtx
 
 -- Parser for boolean literals
 
@@ -105,16 +119,17 @@ operators =
                 [E.Infix (TmBinary (TmLogic TmOr) <$ symbol "||")   E.AssocRight]
         ]
 
--- parseGTE :: Parser Tm
--- parseGTE = do
---                 sym <- option "" (string ">")
---                 if not (null sym) then
---                         return $ TmBinary (TmComp TmLt)
+nonWhitespace :: Parser String
+nonWhitespace = many (noneOf " \t\n\r")
+
+keyword :: String -> Parser String
+keyword k = try $ lexeme (string k <* notFollowedBy nonWhitespace)
+
 parseTerm :: Parser Tm
-parseTerm = parseInteger <|> parseString <|> parseCtx <|> parseUnit <|> parseBoolean <|> parseVar
+parseTerm = try parseCtx <|> parseInteger <|> parseString <|> parseUnit <|> parseBoolean <|> parseVar
 
 parseExp :: Parser Tm
-parseExp = try      parseConditional    <|> operationParser     
+parseExp =          parseConditional    <|> operationParser     
                 <|> parseCtx            <|> parseUnit           <|> parseVar 
                 <|> parseBoolean        <|> parseInteger        <|> parseString 
 
@@ -125,9 +140,9 @@ symbol s = try $ lexeme $ do
                 return s
 
 parseConditional :: Parser Tm
-parseConditional = TmIf <$> (void ifToken       *> parseExp)
-                        <*> (void thenToken     *> parseExp)
-                        <*> (void elseToken     *> parseExp)
+parseConditional = TmIf <$> (void (keyword "if")       *> parseExp)
+                        <*> (void (keyword "then")     *> parseExp)
+                        <*> (void (keyword "else")     *> parseExp)
 
 -- parser for string
 parseString :: Parser Tm
