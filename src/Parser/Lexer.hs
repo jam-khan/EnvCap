@@ -45,6 +45,9 @@ multToken = lexeme (string "*")
 modToken :: Parser String
 modToken = lexeme (string "%")
 
+expToken :: Parser String
+expToken = lexeme (string "^")
+
 -- boolean values
 
 falseToken :: Parser String
@@ -53,7 +56,7 @@ falseToken = lexeme (string "false")
 trueToken :: Parser String
 trueToken = lexeme (string "true")
 
--- logical operator tokens
+-- comparsion operator tokens
 
 eqlToken :: Parser String
 eqlToken = lexeme (string "==")

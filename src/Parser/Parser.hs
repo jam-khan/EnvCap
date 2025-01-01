@@ -61,7 +61,8 @@ parseBoolean  = try parseTrue <|> parseFalse
 
 parseInteger :: Parser Tm
 parseInteger = lexeme $ do
-                        sign <- option "" (string "-")
+                        sign <- option "" (string "-")  -- Handling Prefix -
+                        void $ option "" (string "+")   -- Handling Prefix +
                         num  <- read <$> (many1 digit)
                         return $ TmInt (if null sign then num else -num)
 -- Parser for unit
@@ -80,21 +81,28 @@ operationParser :: Parsec String () Tm
 operationParser = lexeme $ buildExpressionParser operators parseTerm
 
 operators :: [[Operator String () Identity Tm]]
-operators = [   [E.Prefix ((TmUnary TmNot) <$ char '!')],
+operators = 
+        [
+                [E.Prefix ((TmUnary TmNot) <$ char '!')],
+                
                 [E.Infix (TmBinary (TmArith TmMod) <$ symbol "%") E.AssocLeft,
-                E.Infix (TmBinary (TmArith TmMul) <$ symbol "*") E.AssocLeft,
-                E.Infix (TmBinary (TmArith TmDiv) <$ symbol "/") E.AssocLeft],
+                 E.Infix (TmBinary (TmArith TmMul) <$ symbol "*") E.AssocLeft,
+                 E.Infix (TmBinary (TmArith TmDiv) <$ symbol "/") E.AssocLeft],
                 
                 [E.Infix (TmBinary (TmArith TmAdd) <$ symbol "+") E.AssocLeft,
-                E.Infix (TmBinary (TmArith TmSub) <$ symbol "-") E.AssocLeft]]
+                 E.Infix (TmBinary (TmArith TmSub) <$ symbol "-") E.AssocLeft],
+                
+                [E.Infix (TmBinary (TmLogic TmAnd) <$ andToken) E.AssocLeft],
+                [E.Infix (TmBinary (TmLogic TmOr) <$ orToken) E.AssocLeft]
+        ]
 
 parseTerm :: Parser Tm
-parseTerm = parseInteger <|> parseString <|> parseCtx <|> parseUnit <|> parseLogic <|> parseBoolean <|> parseVar
+parseTerm = parseInteger <|> parseString <|> parseCtx <|> parseUnit <|> parseBoolean <|> parseVar
 
 parseExp :: Parser Tm
-parseExp = try      parseConditional    <|> parseLogic  <|> operationParser
-                <|> parseCtx            <|> parseUnit   <|> parseVar    <|> parseBoolean
-                <|> parseInteger        <|> parseString 
+parseExp = try      parseConditional    <|> operationParser     
+                <|> parseCtx            <|> parseUnit           <|> parseVar 
+                <|> parseBoolean        <|> parseInteger        <|> parseString 
 
 symbol :: String -> Parser String
 symbol s = lexeme $ string s
