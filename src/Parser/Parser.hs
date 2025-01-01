@@ -2,17 +2,17 @@ module Parser.Parser where
 
 import Surface.Syntax (Tm(..), Typ(..), TmBinaryOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
 import Parser.Lexer (identifierToken, trueToken, falseToken, contextToken, unitToken, addToken, subToken, multToken, divToken, modToken, andToken, orToken, ifToken, thenToken, elseToken, stringToken, notToken)
-import Text.Parsec (ParseError, many1, string, try, between, anyChar, Parsec)
+import Text.Parsec (ParseError, many1, string, try, between, anyChar, notFollowedBy, Parsec)
 import Text.Parsec.String (Parser)
 import Text.Parsec.Prim (parse)
 import Text.Parsec.Char (satisfy, char, oneOf, digit, letter)
 import Text.Parsec.Combinator (eof, manyTill, option, anyToken, chainl1)
 import Data.Char (isLetter, isDigit)
 import Control.Applicative ((<$>), (<*>), (<*), (*>), (<|>), many)
-import Control.Monad (void)
+import Control.Monad (void, guard)
 import Parser.Util (lexeme, parseWithWhitespace)
 import Core.Syntax (Exp(BinOp))
-import Text.Parsec.Expr as E (buildExpressionParser, Assoc(AssocLeft), Operator(Infix, Prefix) )
+import Text.Parsec.Expr as E (buildExpressionParser, Assoc(AssocNone), Assoc(AssocLeft), Assoc(AssocRight), Operator(Infix, Prefix) )
 import Data.Functor.Identity (Identity)
 
 -- Parse 
@@ -37,8 +37,6 @@ tester [] = True
 tester (x:xs) = case parseMain (fst x) of
                 Right res -> res == (snd x) && tester xs
                 _         -> False
-
-
 
 -- Parser for context
 
@@ -84,18 +82,34 @@ operators :: [[Operator String () Identity Tm]]
 operators = 
         [
                 [E.Prefix ((TmUnary TmNot) <$ char '!')],
-                
+
+                [E.Infix (TmBinary (TmArith TmExp) <$ symbol "^") E.AssocLeft],
+
                 [E.Infix (TmBinary (TmArith TmMod) <$ symbol "%") E.AssocLeft,
                  E.Infix (TmBinary (TmArith TmMul) <$ symbol "*") E.AssocLeft,
                  E.Infix (TmBinary (TmArith TmDiv) <$ symbol "/") E.AssocLeft],
-                
+
                 [E.Infix (TmBinary (TmArith TmAdd) <$ symbol "+") E.AssocLeft,
                  E.Infix (TmBinary (TmArith TmSub) <$ symbol "-") E.AssocLeft],
                 
-                [E.Infix (TmBinary (TmLogic TmAnd) <$ andToken) E.AssocLeft],
-                [E.Infix (TmBinary (TmLogic TmOr) <$ orToken) E.AssocLeft]
+                [E.Infix (TmBinary (TmComp TmLt)  <$ symbol "<")  E.AssocNone,
+                 E.Infix (TmBinary (TmComp TmGt)  <$ symbol ">")  E.AssocNone],
+
+                [E.Infix (TmBinary (TmComp TmGe)  <$ symbol ">=") E.AssocRight,
+                 E.Infix (TmBinary (TmComp TmLe)  <$ symbol "<=") E.AssocRight,
+                 E.Infix (TmBinary (TmComp TmEql) <$ symbol "==") E.AssocRight,
+                 E.Infix (TmBinary (TmComp TmNeq) <$ symbol "!=") E.AssocRight],
+
+                [E.Infix (TmBinary (TmLogic TmAnd) <$ symbol "&&") E.AssocRight],
+
+                [E.Infix (TmBinary (TmLogic TmOr) <$ symbol "||")   E.AssocRight]
         ]
 
+-- parseGTE :: Parser Tm
+-- parseGTE = do
+--                 sym <- option "" (string ">")
+--                 if not (null sym) then
+--                         return $ TmBinary (TmComp TmLt)
 parseTerm :: Parser Tm
 parseTerm = parseInteger <|> parseString <|> parseCtx <|> parseUnit <|> parseBoolean <|> parseVar
 
@@ -105,34 +119,15 @@ parseExp = try      parseConditional    <|> operationParser
                 <|> parseBoolean        <|> parseInteger        <|> parseString 
 
 symbol :: String -> Parser String
-symbol s = lexeme $ string s
-
-parseNot :: Parser Tm
-parseNot = notToken >> TmUnary TmNot <$> parseBoolean
-
-parseLogic :: Parser Tm
-parseLogic = try parseNot <|> chainl1 parseBoolean logicOp
-                                where
-                                        logicOp = lexeme $ andOp <|> orOp
-
-                                        andOp = do
-                                                void andToken
-                                                return (TmBinary (TmLogic TmAnd))
-
-                                        orOp = do
-                                                void orToken
-                                                return (TmBinary (TmLogic TmOr))
-
+symbol s = try $ lexeme $ do
+                u <- many1 (oneOf "<>=+-^%/*!|")
+                guard (s == u)
+                return s
 
 parseConditional :: Parser Tm
-parseConditional = do
-                   void   $ ifToken
-                   cond   <- parseExp
-                   void   $ thenToken
-                   then'  <- parseExp
-                   void   $ elseToken
-                   else'  <- parseExp
-                   return $ TmIf cond then' else'
+parseConditional = TmIf <$> (void ifToken       *> parseExp)
+                        <*> (void thenToken     *> parseExp)
+                        <*> (void elseToken     *> parseExp)
 
 -- parser for string
 parseString :: Parser Tm

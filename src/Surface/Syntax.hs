@@ -117,6 +117,7 @@ instance Show TmArithOp where
         show TmMul = "*"
         show TmDiv = "/"
         show TmMod = "%"
+        show TmExp = "^"
 
 instance Show TmCompOp where
         show :: TmCompOp -> String
