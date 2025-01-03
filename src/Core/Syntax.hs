@@ -71,6 +71,11 @@ data Exp =  Ctx                     -- Context
         |   LCase  Exp Exp String String Exp 
         deriving Eq
 
+
+{--
+        Maintaining a different AST for Value for Big Step operational semantics.
+        Potentially, utilize small step for step-wise debugging later!
+--}
 -- Values
 data Value =    VUnit                   -- Unit value
         |       VInt Integer            -- Integer value
@@ -84,8 +89,8 @@ data Value =    VUnit                   -- Unit value
         -- Pair extension
         |       VPair Value Value       -- Pair value
         -- Sums extension
-        |       VInl Typ Value          -- tagged value (left)
-        |       VInr Typ Value          -- tagged value (right)
+        |       VInL Typ Value          -- tagged value (left)
+        |       VInR Typ Value          -- tagged value (right)
         -- Lists extension
         |       VNil Typ                -- Nil for list
         |       VCons Value Value       -- List
