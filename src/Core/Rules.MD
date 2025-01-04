@@ -1,13 +1,12 @@
-markdown
-# Lambda Calculus: Typing Rules and Big-Step Semantics
+# λ<sub>E</sub> Calculus and Extensions: Typing Rules and Big-Step Semantics
 
 ## Introduction
 This document provides an overview of the Typing Rules and Big-Step Semantics in λ<sub>E</sub> Calculus. It serves as a reference for understanding the formal rules and evaluation strategies used.
 
 ## Big-Step Operational Semantics
 
-                ----------- BSTEP-CTX        ----------- BSTEP-LIT       ----------- BSTEP-UNIT  
-                v |- ? => v                  v |- i => i                 v |- ε => ε 
+                    ----------- BSTEP-CTX        ----------- BSTEP-LIT       ----------- BSTEP-UNIT  
+                    v |- ? => v                  v |- i => i                 v |- ε => ε 
 
                         v |- e => v1
                 -------------------------- BSTEP-PROJ       ------------------------------- BSTEP-CLOS
@@ -24,7 +23,11 @@ This document provides an overview of the Typing Rules and Big-Step Semantics in
             v |- e1 => v1       v ,, v1 |- e2 => v2                   v |- e1 => v1     v1 |- e2 => v2  
             --------------------------------------- BSTEP-MERGE       -------------------------------- BSTEP-BOX
                 v |- e1 ,, e2 => v1 ,, v2                                 v |- e1 ▷ e2 => v2
+            
+                                            ------------------------- BSTEP-VAR
+                                            v |- _n_ => lookupv(v, n)
 
+Where `_n_` is the sugar for de-bruijn index 
 ## Typying Rules
 <!--     
 ### Variables
