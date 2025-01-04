@@ -35,6 +35,7 @@ rlookupt (TAnd tA tB) label =
         Nothing   -> rlookupt tA label
 rlookupt _ _                = Nothing
 
+
 -- ==> direction
 infer :: Typ -> Exp -> Maybe Typ
 -- TYP-CTX
