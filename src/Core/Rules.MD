@@ -6,13 +6,26 @@ This document provides an overview of the Typing Rules and Big-Step Semantics in
 
 ## Big-Step Operational Semantics
 
-    ------------------ BSTEP-CTX            --------------------- BSTEP-LIT
-        v |- ? => v                               v |- i => i
+                ----------- BSTEP-CTX        ----------- BSTEP-LIT       ----------- BSTEP-UNIT  
+                v |- ? => v                  v |- i => i                 v |- ε => ε 
 
-                v |- e => v1
-    ------------------------------------ BSTEP-PROJ
-            v |- e.n => lookupv(v1, n)
+                        v |- e => v1
+                -------------------------- BSTEP-PROJ       ------------------------------- BSTEP-CLOS
+                v |- e.n => lookupv(v1, n)                  v |- <v1, λA. e> => <v1, λA. e> 
 
+                    v |- e1 => <v1, λA. e>      v |- e2 => v2       v1 ,, v2 |- e => v'
+                    ------------------------------------------------------------------- BSTEP-APP
+                                            v |- e1 e2 => v
+
+                                                      v |- e => v1                      v |- e => v1    v1.l ⇝ v2
+        ------------------------ BSTEP-LAM      ------------------------ BSTEP-REC      ------------------------- BSTEP-SEL
+        v |- λA. e => <v, λA. e>                v |- {l = e} => {l = v1}                      v |- e.l => v2  
+        
+            v |- e1 => v1       v ,, v1 |- e2 => v2                   v |- e1 => v1     v1 |- e2 => v2  
+            --------------------------------------- BSTEP-MERGE       -------------------------------- BSTEP-BOX
+                v |- e1 ,, e2 => v1 ,, v2                                 v |- e1 ▷ e2 => v2
+
+## Typying Rules
 <!--     
 ### Variables
 (T-Var) Γ(x) = T ------------ Γ ⊢ x : T
