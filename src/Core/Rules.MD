@@ -18,8 +18,8 @@ This document provides an overview of the Typing Rules and Big-Step Semantics in
      -----------
     | v ⊢ e ⇒ e'|                                                                           (Big-step Operational Semantics)
      -----------
-                        ----------- BSTEP-CTX        ----------- BSTEP-LIT       ----------- BSTEP-UNIT  
-                        v |- ? => v                  v |- i => i                 v |- ε => ε 
+                    ----------- BSTEP-CTX        ----------- BSTEP-LIT       ----------- BSTEP-UNIT  
+                    v |- ? => v                  v |- i => i                 v |- ε => ε 
 
                             v |- e => v1
                     -------------------------- BSTEP-PROJ       ------------------------------- BSTEP-CLOS
@@ -73,8 +73,8 @@ Where `_n_` is the sugar for de-bruijn index
             Γ ⊢ ⟨v, λA. e⟩ : A → B                  Γ ⊢ {l = e} : {l : A}                    Γ ⊢ e.l : A     
 
                                         
-                                            lookup(A & B, 0) = B
-                                        lookup(A & B, n + 1) = lookup(A, n)
+                                                lookup(A & B, 0) = B
+                                            lookup(A & B, n + 1) = lookup(A, n)
 
 
 ## Extensions
@@ -103,44 +103,79 @@ The λ<sub>E</sub> has been extended with arithmetic, logic, comparison operatio
 ## Big-Step Operational Semantics: λ<sub>E</sub> extensions
 
 
-                        -------------- BSTEP-True            --------------- BSTEP-False             ----------- BSTEP-STR          
-                        v |- b => True                       v |- b => False                         v |- s => s                   
+            -------------- BSTEP-True               --------------- BSTEP-False                 ----------- BSTEP-STR          
+            v |- b => True                          v |- b => False                             v |- s => s                   
 
-                                v |- e => ⟨v1, λA e1⟩                          v |- e1 => v1       v ,, v1 |- e2 => v1
-                            ------------------------------- BSTEP-FIX           -------------------------------------- BSTEP-LET
-                            v |- Fix e  => ⟨v1, Fix λA. e1⟩                              v |- let e1 e2 => v1
+                    v |- e => ⟨v1, λA e1⟩                               v |- e1 => v1      v ,, v1 |- e2 => v1
+                ------------------------------- BSTEP-FIX               -------------------------------------- BSTEP-LET
+                v |- Fix e  => ⟨v1, Fix λA. e1⟩                                  v |- let e1 e2 => v1
 
-                    v |- e1 => True     v |- e2 => v2                         v |- e1 => False     v |- e3 => v3
-                    --------------------------------- BSTEP-IF_True           ---------------------------------- BSTEP-IF_False
-                        v |- if e1 e2 e3 => v2                                      v |- if e1 e2 e3 => v3
+                v |- e1 => True     v |- e2 => v2                         v |- e1 => False     v |- e3 => v3
+                --------------------------------- BSTEP-IF_True           ---------------------------------- BSTEP-IF_False
+                    v |- if e1 e2 e3 => v2                                      v |- if e1 e2 e3 => v3
                     
-                    v |- e1 => v1   v |- e2 => v2               v |- e => (v1, v2)              v |- e => (v1, v2)
-                    ----------------------------- BSTEP-PAIR    ------------------ BSTEP-Fst    ------------------ BSTEP-Snd
-                        v |- (e1, e2) => (v1, v2)                v |- Fst e => v1                v |- Snd e => v2
+            v |- e1 => v1   v |- e2 => v2                   v |- e => (v1, v2)                  v |- e => (v1, v2)
+            ----------------------------- BSTEP-PAIR        ------------------ BSTEP-Fst        ------------------ BSTEP-Snd
+                v |- (e1, e2) => (v1, v2)                   v |- Fst e => v1                    v |- Snd e => v2
 
-                                        v |- e => v1                            v |- e => v1
-                                    ------------------------ BSTEP-Inl      ---------------------- BSTEP-Inr
-                                    v |- inl T e => inl T v1                v |- inr T => inl T v1
+                                v |- e => v1                                    v |- e => v1
+                            ------------------------ BSTEP-Inl              ---------------------- BSTEP-Inr
+                            v |- inl T e => inl T v1                        v |- inr T => inl T v1
 
-                    v |- e1 => inl T v1     v ,, v1 |- e2 => v2                      v |- e1 => inl T v1     v ,, v1 |- e3 => v3
-                    ------------------------------------------- BSTEP-CASEInl        ------------------------------------------- BSTEP-CASEInr
-                              v |- case e1 e2 e3 => v3                                          v |- case e1 e2 e3 => v3
+            v |- e1 => inl T v1     v ,, v1 |- e2 => v2                      v |- e1 => inl T v1     v ,, v1 |- e3 => v3
+            ------------------------------------------- BSTEP-CASEInl        ------------------------------------------- BSTEP-CASEInr
+                        v |- case e1 e2 e3 => v3                                          v |- case e1 e2 e3 => v3
 
-                                                                                v |- e1 => v1   v |- e2 => v2
-                                        ------------------- BSTEP-Nil           ----------------------------- BSTEP-Cons
-                                        v |- nil T => nil T                     v |- cons e1 e2 => cons v1 v2
-                    
-                v |- e1 => nil T    v |- e2 => v2                        v |- e1 => vcons v1 v2     v ,, v1 ,, v2 |- e3 => v3
-                --------------------------------- BSTEP-LCASE_Nil        ---------------------------------------------------- BSTEP-LCASE_Cons
-                    v |- lcase e1 e2 e3 => v2                                         v |- lcase e1 e2 e3 => v3              
+                                                                        v |- e1 => v1   v |- e2 => v2
+                            ------------------- BSTEP-Nil               ----------------------------- BSTEP-Cons
+                            v |- nil T => nil T                         v |- cons e1 e2 => cons v1 v2
+                
+            v |- e1 => nil T    v |- e2 => v2                           v |- e1 => vcons v1 v2     v ,, v1 ,, v2 |- e3 => v3
+            --------------------------------- BSTEP-LCASE_Nil           ---------------------------------------------------- BSTEP-LCASE_Cons
+                v |- lcase e1 e2 e3 => v2                                             v |- lcase e1 e2 e3 => v3              
 
 
-            v |- e1 => v1   v |- e2 => v2   v |- v1 binop v2 => v'                          v |- e => v1    v |- unaryop v1 => v'
-            ------------------------------------------------------ BSTEP-BinaryOp           ------------------------------------- BSTEP-Unaryop
-                            v |- e1 binop e2 => v'                                                     v |- unaryop e => v'
+            v |- e => v1    v |- unaryop v1 => v'                       v |- e1 => v1       v |- e2 => v2   v |- v1 binop v2 => v'                          
+            ------------------------------------- BSTEP-Unaryop         --------------------------------------------------------- BSTEP-BinaryOp           
+            v |- unaryop e => v'                                                            v |- e1 binop e2 v'
+
 
 Arithmetic, Binary and Logical operations are the standard manipulations.
 
 
 ## Typing Rules:  λ<sub>E</sub> extensions
+
+
+                                                                                    Γ |- e : T1 -> T1    
+                        ------------ TYP-BOOL       --------------- TYP-STRING      ----------------- TYP-FIX    
+                        Γ |- b : Bool               Γ |- s : String                  Γ |- Fix e : T1
+
+        Γ |- e1 : A      Γ &  A |- e2 : B                       Γ |- e1 : Bool      Γ |- e2 : A     Γ |- e2 : B     A = B
+        --------------------------------- TYP-LET               --------------------------------------------------------- TYP-IF
+                Γ |- let e1 e2 : B                                              Γ |- if e1 e2 e3 : B
+        
+                Γ |- e1 : A     Γ |- e2 : B                     Γ |- e : A * B                  Γ |- e : A * B
+                ---------------------------- TYP-PAIR           ---------------- TYP-Fst        -------------- TYP-Snd
+                    Γ |- (e1, e2) : A * B                       Γ |- Fst e : A                  Γ |- Snd e : N
+
+                                Γ |- e1 : T1                                  Γ |- e2 : T2
+                        ------------------------ TYP-InL                ------------------------ TYP-InR
+                        Γ |- inl T2 e1 : T1 + T2                        Γ |- inr T1 e2 : T1 + T2
+
+                                Γ |- e0 : T1 + T2   Γ & T1 |- e1 : T3   Γ & T2 |- e2 : T3
+                                --------------------------------------------------------- TYP-CASE
+                                                Γ |- case e0 e1 e2 : T3
+
+                            Γ |- e0 : List T1       Γ |- e1 : T2    (Γ & T1) & List T1 |- e2 : T2
+                            --------------------------------------------------------------------- TYP-LCASE
+                                                    Γ |- lcase e0 e1 e2 : T3
+                            
+                                                                    Γ |- e2 : List T    Γ |- e1 : T
+                        ------------------- TYP-Nil                 ------------------------------- TYP-Cons
+                        Γ |- nil T : List T                             Γ |- cons e1 e2 : List T
+            
+
+            Γ |- e1 : T1   Γ |- e2 : T1   Γ |- v1 binop v2 : T1                              Γ |- e : T
+            ------------------------------------------------------ BSTEP-BinaryOp         -------------------- BSTEP-Unaryop
+                             Γ |- e1 binop e2 : T1                                        Γ |- unaryop e : T
 
