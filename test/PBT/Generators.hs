@@ -58,36 +58,22 @@ instance Arbitrary Value where
 genTUnit :: Gen Typ
 genTUnit = return TUnit
 
--- genTInt :: Gen Typ
 genTInt :: Gen Typ
 genTInt = return TInt
 
--- genTBool :: Gen Typ
 genTBool :: Gen Typ
 genTBool = return TBool
 
--- genTArrow :: Gen Typ
 genTArrow :: Gen Typ
-genTArrow = do
-    t1 <- arbitrary  -- Generate the first type
-    t2 <- arbitrary  -- Generate the second type
-    return (TArrow t1 t2)
+genTArrow = TArrow <$> arbitrary <*> arbitrary
 
--- genTAnd :: Gen Typ
 genTAnd :: Gen Typ
-genTAnd = do
-    t1 <- arbitrary  -- Generate the first type
-    t2 <- arbitrary  -- Generate the second type
-    return (TAnd t1 t2)
+genTAnd = TAnd <$> arbitrary <*> arbitrary
 
--- genTRecord :: Gen Typ
 genTRecord :: Gen Typ
-genTRecord = do
-    t1 <- arbitrary  -- Generate the first type
-    t2 <- arbitrary  -- Generate the second type
-    return (TRecord t1 t2)
+genTRecord = TRecord <$> arbitrary <*> arbitrary
 
--- genType :: Gen Typ
+genType :: Gen Typ
 genType = oneof
         [
             genTUnit,

@@ -105,18 +105,40 @@ evalBig env (Let e1 e2)         = evalBig (VMrg env v1) e2
 -- BSTEP-LAM
 evalBig env (Lam t e)           = Just (VClos env (Lam t e))
 -- BSTEP-FIX
-evalBig env (Fix e)  
-        = case evalBig env e of
-                Just (VClos v1 (Lam tA e1)) -> Just (VClos v1 (Fix (Lam tA e1)))
-                _                          -> Nothing
+evalBig env (Fix e)  = case evalBig env e of
+                                Just (VClos v1 (Lam tA e1)) -> Just (VClos v1 (Fix (Lam tA e1)))
+                                _                           -> Nothing
+-- BSTEP-NIL
+evalBig env (Nil tA)            = Just (VNil tA)
 -- BSTEP-CONS
 evalBig env (Cons e1 e2)        = case evalBig env e1 of
                                         Just v1         -> case evalBig (VMrg env v1) e2 of
                                                                 Just v2         -> Just (VCons v1 v2)
                                                                 _               -> Nothing
                                         _               -> Nothing
--- BSTEP-NIL
-evalBig env (Nil tA)            = Just (VNil tA)
+-- BSTEP-PAIR
+evalBig env (Pair e1 e2)        = case evalBig env e1 of
+                                        Just v1         -> case evalBig env e2 of
+                                                                Just v2         -> Just (VPair v1 v2)
+                                                                _               -> Nothing
+                                        _               -> Nothing
+-- BSTEP-FST_PAIR
+evalBig env (Fst e)             = case evalBig env e of
+                                        Just (VPair v1 v2) -> Just v1
+                                        _                  -> Nothing
+-- BSTEP-SND_PAIR
+evalBig env (Snd e)             = case evalBig env e of
+                                        Just (VPair v1 v2) -> Just v2
+                                        _                  -> Nothing
+-- BSTEP_INL
+evalBig env (InL t e)           = case evalBig env e of
+                                        Just v          -> Just (VInL t v)
+                                        Nothing         -> Nothing
+-- BSTEP_INL
+evalBig env (InR t e)           = case evalBig env e of
+                                        Just v          -> Just (VInR t v)
+                                        Nothing         -> Nothing
+
 -- BSTEP-REC
 evalBig env (Rec s e)           = Just (VRcd s v)
                                 where Just v = evalBig env e

@@ -56,12 +56,26 @@ data Exp =  Ctx                     -- Context
         |   If     Exp Exp Exp       -- Conditionals
         |   Let    Exp Exp           -- Let Bindings
         |   Fix    Exp               -- Recursion
+        -- Above extensions look good
+        -- Pairs
+        |   Pair   Exp Exp           -- Pair
+        |   Fst    Exp               -- First Projection
+        |   Snd    Exp               -- Second Projection
+        -- Sums
+        |   InL    Typ Exp           -- 
+        |   InR    Typ Exp
+        |   Case   Exp String Exp String Exp
         -- Built-in Lists
-        |   Pair Exp Exp
         |   Nil    Typ               -- Nil for list
         |   Cons   Exp Exp           -- List
+        |   LCase  Exp Exp String String Exp 
         deriving Eq
 
+
+{--
+        Maintaining a different AST for Value for Big Step operational semantics.
+        Potentially, utilize small step for step-wise debugging later!
+--}
 -- Values
 data Value =    VUnit                   -- Unit value
         |       VInt Integer            -- Integer value
@@ -71,22 +85,31 @@ data Value =    VUnit                   -- Unit value
         -- Extensions
         |       VFix Exp
         |       VBool Bool              -- Boolean Value
+        |       VString String          -- String Value
+        -- Pair extension
+        |       VPair Value Value       -- Pair value
+        -- Sums extension
+        |       VInL Typ Value          -- tagged value (left)
+        |       VInR Typ Value          -- tagged value (right)
+        -- Lists extension
         |       VNil Typ                -- Nil for list
         |       VCons Value Value       -- List
-        --      
         deriving Eq
 
 -- Types
 data Typ =  TUnit                  -- Unit type for empty environment
         |   TInt                   -- Integer type
-        |   TString
+        -- Can be used for pair
         |   TAnd Typ Typ           -- Intersection type
         |   TArrow Typ Typ         -- Arrow type, e.g. A -> B
         |   TRecord String Typ     -- Single-Field Record Type
         -- Extensions
         |   TBool                  -- Boolean type
+        |   TString                -- String type
+        -- Type for List
         |   TList  Typ             -- Type for built-in list
-        |   TSum   Typ Typ
+        -- Type for sums
+        |   TSum   Typ Typ         -- Type for sums
         deriving Eq
 
 
