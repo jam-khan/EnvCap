@@ -48,14 +48,14 @@ infer ctx (Lit i)           = Just TInt
 -- TYP-TOP
 infer ctx Unit              = Just TUnit
 -- TYP-BOX
-infer ctx (BinOp Box e1 e2) = infer ctx1 e2
+infer ctx (Box e1 e2) = infer ctx1 e2
                             where Just ctx1 = infer ctx e1
 -- TYP-MERGE
-infer ctx (BinOp Mrg e1 e2) = Just (TAnd tA tB)
+infer ctx (Mrg e1 e2) = Just (TAnd tA tB)
                             where   Just tA = infer ctx e1
                                     Just tB = infer (TAnd ctx tA) e2
 -- TYP-APP
-infer ctx (BinOp App e1 e2) = 
+infer ctx (App e1 e2) = 
     case infer ctx e1 of
         Just (TArrow tA tB) ->  if  check ctx e2 tA 
                                 then Just tB

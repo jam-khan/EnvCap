@@ -58,10 +58,10 @@ evalBig env (Clos e1 e2)         = Just (VClos v1 e2)
 -- BSTEP-UNIT
 evalBig env Unit                  = Just VUnit
 -- BSTEP-BOX
-evalBig env (BinOp Box e1 e2)     = evalBig v1 e2
+evalBig env (Box e1 e2)     = evalBig v1 e2
                                     where Just v1 = evalBig env e1
 -- BSTEP-APP
-evalBig env (BinOp App e1 e2)     = case evalBig env e1 of
+evalBig env (App e1 e2)     = case evalBig env e1 of
                                     Just (VClos v1 (Lam t e)) -> case evalBig env e2 of
                                                             Just v2     -> evalBig (VMrg v1 v2) e
                                                             _           -> Nothing
@@ -71,7 +71,7 @@ evalBig env (BinOp App e1 e2)     = case evalBig env e1 of
                                                                 _       -> Nothing
                                     _                   -> Nothing
 -- BSTEP-MRG
-evalBig env (BinOp Mrg e1 e2)     = Just (VMrg v1 v2)
+evalBig env (Mrg e1 e2)     = Just (VMrg v1 v2)
                                     where   Just v1 = evalBig env e1
                                             Just v2 = evalBig (VMrg env v1) e2
 -- BSTEP-ARITH
