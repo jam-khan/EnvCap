@@ -37,9 +37,6 @@ This document provides an overview of the Typing Rules and Big-Step Semantics in
             --------------------------------------- BSTEP-MERGE       -------------------------------- BSTEP-BOX
                 v |- e1 ,, e2 => v1 ,, v2                                 v |- e1 ▷ e2 => v2
             
-                                            ------------------------- BSTEP-VAR
-                                            v |- _n_ => lookupv(v, n)
-
                                             lookupv(v1 ,, v2, 0) = v2
                                         lookupv(v1,,v2, n + 1) = lookupv(v1, n)
 
@@ -106,32 +103,41 @@ The λ<sub>E</sub> has been extended with arithmetic, logic, comparison operatio
 ## Big-Step Operational Semantics: λ<sub>E</sub> extensions
 
 
-            -------------- BSTEP-True            --------------- BSTEP-True              ----------- BSTEP-STR          
-            v |- b => True                       v |- b => False                         v |- s => s                   
+                        -------------- BSTEP-True            --------------- BSTEP-False             ----------- BSTEP-STR          
+                        v |- b => True                       v |- b => False                         v |- s => s                   
 
-                    v |- e => ⟨v1, λA e1⟩                          v |- e1 => v1       v ,, v1 |- e2 => v1
-                ------------------------------- BSTEP-FIX           -------------------------------------- BSTEP-LET
-                v |- Fix e  => ⟨v1, Fix λA. e1⟩                              v |- let e1 e2 => v1
+                                v |- e => ⟨v1, λA e1⟩                          v |- e1 => v1       v ,, v1 |- e2 => v1
+                            ------------------------------- BSTEP-FIX           -------------------------------------- BSTEP-LET
+                            v |- Fix e  => ⟨v1, Fix λA. e1⟩                              v |- let e1 e2 => v1
 
-                v |- e1 => True     v |- e2 => v2                    v |- e1 => False     v |- e3 => v3
-                --------------------------------- BSTEP-IF_True      --------------------------------- BSTEP-IF_False
-                    v |- if e1 e2 e3 => v2                               v |- if e1 e2 e3 => v3
-        
-            v |- e1 => v1   v |- e2 => v2                   v |- e => (v1, v2)               v |- e => (v1, v2)
-            ----------------------------- BSTEP-PAIR        ------------------ BSTEP-Fst     ------------------ BSTEP-Snd
-                v |- (e1, e2) => (v1, v2)                    v |- Fst e => v1                 v |- Snd e => v2
+                    v |- e1 => True     v |- e2 => v2                         v |- e1 => False     v |- e3 => v3
+                    --------------------------------- BSTEP-IF_True           ---------------------------------- BSTEP-IF_False
+                        v |- if e1 e2 e3 => v2                                      v |- if e1 e2 e3 => v3
+                    
+                    v |- e1 => v1   v |- e2 => v2               v |- e => (v1, v2)              v |- e => (v1, v2)
+                    ----------------------------- BSTEP-PAIR    ------------------ BSTEP-Fst    ------------------ BSTEP-Snd
+                        v |- (e1, e2) => (v1, v2)                v |- Fst e => v1                v |- Snd e => v2
 
-                                v |- e => v1                            v |- e => v1
-                            ------------------------ BSTEP-Inl      ---------------------- BSTEP-Inr
-                            v |- inl T e => inl T v1                v |- inr T => inl T v1
+                                        v |- e => v1                            v |- e => v1
+                                    ------------------------ BSTEP-Inl      ---------------------- BSTEP-Inr
+                                    v |- inl T e => inl T v1                v |- inr T => inl T v1
 
-        v |- e1 => inl T v1     v ,, v1 |- e2 => v2                      v |- e1 => inl T v1     v ,, v1 |- e3 => v3
-        ------------------------------------------- BSTEP-CASEInl        ------------------------------------------- BSTEP-CASEInr
-                    v |- case e1 e2 e3 => v3                                          v |- case e1 e2 e3 => v3
+                    v |- e1 => inl T v1     v ,, v1 |- e2 => v2                      v |- e1 => inl T v1     v ,, v1 |- e3 => v3
+                    ------------------------------------------- BSTEP-CASEInl        ------------------------------------------- BSTEP-CASEInr
+                              v |- case e1 e2 e3 => v3                                          v |- case e1 e2 e3 => v3
 
-    v |- e1 => v1   v |- e2 => v2   v |- v1 binop v2 => v'                      v |- e => v1    v |- unaryop v1 => v'
-    ------------------------------------------------------ BSTEP-BinaryOp       ------------------------------------- BSTEP-Unaryop
-                    v |- e1 binop e2 => v'                                               v |- unaryop e => v'
+                                                                                v |- e1 => v1   v |- e2 => v2
+                                        ------------------- BSTEP-Nil           ----------------------------- BSTEP-Cons
+                                        v |- nil T => nil T                     v |- cons e1 e2 => cons v1 v2
+                    
+                v |- e1 => nil T    v |- e2 => v2                        v |- e1 => vcons v1 v2     v ,, v1 ,, v2 |- e3 => v3
+                --------------------------------- BSTEP-LCASE_Nil        ---------------------------------------------------- BSTEP-LCASE_Cons
+                    v |- lcase e1 e2 e3 => v2                                         v |- lcase e1 e2 e3 => v3              
+
+
+            v |- e1 => v1   v |- e2 => v2   v |- v1 binop v2 => v'                          v |- e => v1    v |- unaryop v1 => v'
+            ------------------------------------------------------ BSTEP-BinaryOp           ------------------------------------- BSTEP-Unaryop
+                            v |- e1 binop e2 => v'                                                     v |- unaryop e => v'
 
 Arithmetic, Binary and Logical operations are the standard manipulations.
 
