@@ -3,6 +3,16 @@
 ## Introduction
 This document provides an overview of the Typing Rules and Big-Step Semantics in λ<sub>E</sub> Calculus. It serves as a reference for understanding the formal rules and evaluation strategies used.
 
+## Syntax
+
+    Types               A, B, Γ ::= Int | ε | A & B | A → B | {l : A}
+    Expressions               e ::= ? | e.n | i | ε | λA. e | ⟨v, λA. e⟩ | e1 e2 | e1 ,, e2 | {l = e} | e.l
+    Values                    v ::= i | ε | ⟨v, λA. e⟩ | v1 ,, v2 | {l = v}
+    Frames                    F := [ ].n | [ ] # e | [ ] e | [ ] ▷ e | v [ ] | {l = [ ]} | [ ].l
+    Syntactic Sugar         _n_ ≜ ?.n
+                            _l_ ≜ ?.l
+
+
 ## Big-Step Operational Semantics
 
      -----------
@@ -69,53 +79,32 @@ Where `_n_` is the sugar for de-bruijn index
                                             lookup(A & B, 0) = B
                                         lookup(A & B, n + 1) = lookup(A, n)
 
-<!--    
-### Variables
-(T-Var) Γ(x) = T ------------ Γ ⊢ x : T
+
+## Extensions
+The λ<sub>E</sub> has been extended with arithmetic, logic, comparison operations. Furthermore, conditionals, recursion, sums, pairs, lists, boolean, and strings have been added.
 
 
-### Abstraction
-(T-Abs) Γ, x:T1 ⊢ t2 : T2 ----------------- Γ ⊢ λx:T1.t2 : T1→T2
+## Syntax
+
+    Types                     T ::= ... | Bool | String | List T | T1 + T2 | (T1, T2)
+    Expressions               e ::= ... | Let e1 e2 | if e1 e2 e3 | Fix e 
+                                        | (e1, e2) | fst e | snd e 
+                                        | inl T e | inr T e | case e1 e2 e3 
+                                        | nil T | cons e1 e2 | lcase e1 e2 e3 
+                                        | unaryop e 
+                                        | e1 binop e2
+    
+    Values                    v ::= ... | b | s | (v1, v2) | inl T v | inr T v | nil T | cons v v  
+    
+    Binary operations     binop ::= arithop | compop | logicop
+                        arithop ::= + | - | * | / | %
+                         compop ::= < | <= | == | !== | >= | >
+                        logicop ::= & | |
+    
+    Unary operations    unaryop ::= !
+
+## Big-Step Operational Semantics: λ<sub>E</sub> extensions
 
 
-### Application
+## Typing Rules:  λ<sub>E</sub> extensions
 
-  Γ ⊢ t1 : T1→T2       Γ ⊢ t2 : T1
------------------------------------- (T-App) 
-            Γ ⊢ t1 t2 : T2
-
-
-### Let Binding
-(T-Let) Γ ⊢ t1 : T1 Γ, x:T1 ⊢ t2 : T2 ------------------------------ Γ ⊢ let x = t1 in t2 : T2
-
-
-### Conditional
-(T-If) Γ ⊢ t1 : Bool Γ ⊢ t2 : T Γ ⊢ t3 : T -------------------------------------- Γ ⊢ if t1 then t2 else t3 : T
-
-
-## Big-Step Semantics
-
-### Evaluation of Variables
-(E-Var) ------------- x ⇓ v (x is a variable)
-
-
-### Evaluation of Abstraction
-(E-Abs) ------------- λx.t ⇓ λx.t
-
-
-### Evaluation of Application
-(E-App) t1 ⇓ λx.t12 t2 ⇓ v2 t12[x:=v2] ⇓ v ------------------------------------- t1 t2 ⇓ v
-
-
-### Evaluation of Let Binding
-(E-Let) t1 ⇓ v1 t2[x:=v1] ⇓ v2 ------------------------ let x = t1 in t2 ⇓ v2
-
-
-### Evaluation of Conditional
-(E-If-True) t1 ⇓ true t2 ⇓ v2 ------------------- if t1 then t2 else t3 ⇓ v2
-
-(E-If-False) t1 ⇓ false t3 ⇓ v3 ------------------- if t1 then t2 else t3 ⇓ v3
-
-
-## Conclusion
-This README provides a concise overview of the Typing Rules and Big-Step Semantics in Lambda Calculus. These formal rules and evaluation strategies form the foundation of understanding and reasoning about Lambda Calculus expressions. -->
