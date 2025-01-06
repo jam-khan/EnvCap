@@ -2,6 +2,7 @@
 module PBT.Generators where
 
 import Test.QuickCheck
+    ( Arbitrary(arbitrary), Gen, elements, oneof )
 import Core.Syntax
     ( Exp(..),
       BinaryOp(..),
@@ -19,10 +20,6 @@ instance Arbitrary LogicOp where
     arbitrary :: Gen LogicOp
     arbitrary = elements [And, Or]
 
--- Arbitrary instances for Op
-instance Arbitrary BinaryOp where
-  arbitrary :: Gen BinaryOp
-  arbitrary = elements [App, Box, Mrg]
 
 
 -- Arbitrary instances for Exp

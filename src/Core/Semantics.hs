@@ -52,7 +52,7 @@ evalBig env (App e1 e2)         = case evalBig env e1 of
 evalBig env (Lam t e)           = Just (VClos env (Lam t e))
 -- BSTEP-REC
 evalBig env (Rec s e)           = Just (VRcd s v)
-                                where Just v = evalBig env e
+                                        where Just v = evalBig env e
 -- BSTEP-SEL
 evalBig env (RProj e s)         = rlookupv v1 s
                                 where   Just v1 = evalBig env e
@@ -122,6 +122,8 @@ evalBig env (BinOp (Arith op) e1 e2)
                                         Mul     ->  VInt <$> Just (v1 * v2)
                                         Div     ->  if v2 == 0  then Nothing
                                                                 else VInt <$> Just (v1 `div` v2)
+                                        Mod     ->  if v2 == 0 then Nothing
+                                                                else VInt <$> Just (v1 `mod` v2)
                                     where Just (VInt v1)   = evalBig env e1
                                           Just (VInt v2)   = evalBig env e2
 -- BSTEP-COMP
@@ -138,7 +140,10 @@ evalBig env (BinOp (Logic op) e1 e2)
                                                                 And -> VBool (b1 && b2)
                                                                 Or  -> VBool (b1 || b2)
 -- BSTEP-NOT
-evalBig env (UnOp Not e1)       = evalBig env (BinOp (Logic And) e1 (EBool False))
+evalBig env (UnOp Not e1)       = case evalBig env e1 of
+                                        Just (VBool True)       -> Just (VBool False)
+                                        Just (VBool False)      -> Just (VBool True)
+                                        _                       -> Nothing
 -- BSTEP-LET
 evalBig env (Let e1 e2)         = evalBig (VMrg env v1) e2
                                         where Just v1 = evalBig env e1
@@ -152,5 +157,6 @@ compareWith Gt  x y  =   x > y
 compareWith Ge  x y  =   x >= y
 
 compareOp :: CompOp -> Value -> Value -> Bool
-compareOp op  (VInt v1) (VInt v2)     = compareWith op v1 v2
-compareOp op  (VBool b1) (VBool b2)   = compareWith op b1 b2
+compareOp op  (VInt v1) (VInt v2)       = compareWith op v1 v2
+compareOp op  (VBool b1) (VBool b2)     = compareWith op b1 b2
+compareOp op  (VString s1) (VString s2) = compareWith op s1 s2
