@@ -5,10 +5,10 @@ import Data.Maybe (fromMaybe)
 
 
 box :: Exp -> Exp -> Exp
-box = BinOp Box
+box = Box
 
 merge :: Exp -> Exp -> Exp
-merge = BinOp Mrg
+merge = Mrg
 
 proj :: Int -> Exp
 proj = Proj Ctx
@@ -29,5 +29,5 @@ mod :: Exp -> Exp -> Exp
 mod = BinOp (Arith Mod)
 
 apply :: Exp -> Exp -> Exp
-apply = BinOp App
+apply = App
 
