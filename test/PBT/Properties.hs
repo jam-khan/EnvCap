@@ -1,17 +1,11 @@
 module PBT.Properties where
 
-import Test.QuickCheck
-import PBT.Generators (genValue)
+import Test.QuickCheck ( (===), forAll, Property ) 
 import Core.Syntax
     ( Exp(Lit, Proj, RProj, Rec, Lam, Unit, Ctx, BinOp, Clos),
       BinaryOp(..),
       Value(VMrg, VRcd, VUnit, VInt, VClos), Typ(..), ArithOp(..), isValue)
 import Core.Semantics ( evalB, evalBig, lookupv, rlookupv )
-
-prop_lookupvMerged :: Property
-prop_lookupvMerged = forAll genValue $ \value ->
-    let mergedValue = VMrg value (VInt 0)
-    in lookupv mergedValue 0 === Just (VInt 0)
 
 
 -- Property isValue

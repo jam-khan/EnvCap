@@ -160,3 +160,4 @@ compareOp :: CompOp -> Value -> Value -> Bool
 compareOp op  (VInt v1) (VInt v2)       = compareWith op v1 v2
 compareOp op  (VBool b1) (VBool b2)     = compareWith op b1 b2
 compareOp op  (VString s1) (VString s2) = compareWith op s1 s2
+compareOp _ _ _                         = False
