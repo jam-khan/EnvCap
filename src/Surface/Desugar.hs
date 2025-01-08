@@ -29,7 +29,6 @@ surfaceBinaryToCoreOp (TmLogic logicop)
 
 surfaceUnaryToCoreOp :: TmUnaryOp -> UnaryOp
 surfaceUnaryToCoreOp TmNot              = Not
-surfaceUnaryToCoreOp (TmIndex n)        = Index n
 
 
 surfaceToCore :: Tm -> Exp
