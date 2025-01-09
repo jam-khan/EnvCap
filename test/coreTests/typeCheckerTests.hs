@@ -2,11 +2,12 @@
 
 import Test.Hspec 
 import Core.TypeChecker
+    ( infer )
+import Core.Util
     ( lookupt,
       isLabel,
       containment,
-      rlookupt,
-      infer )
+      rlookupt,)
 import Core.Syntax
     ( Typ(..),
       Exp(..),
@@ -76,7 +77,7 @@ main = hspec $ do
   describe "infer" $ do
     it "should infer types correctly from Expessions with literals and projections" $ do
       let ctx = TAnd (TRecord "x" TInt) (TRecord "y" TUnit)
-          exp1 = Proj (BinOp Mrg Unit (Lit 42)) 0
+          exp1 = Proj (Mrg Unit (Lit 42)) 0
           exp2 = Rec "z" (Lit 42)
 
       infer ctx exp1 `shouldBe` Just TInt
@@ -93,34 +94,34 @@ main = hspec $ do
       infer ctx invalidExp `shouldBe` Nothing
 
     it "should return Nothing for mismatched types" $ do
-        infer ctx (BinOp App (Lam TInt (Lit 42)) (Lam TUnit (Lit 1))) `shouldBe` Nothing
-        infer ctx (BinOp App (Lam TInt (Lit 42)) (Lit 5)) `shouldBe` Just TInt
+        infer ctx (App (Lam TInt (Lit 42)) (Lam TUnit (Lit 1))) `shouldBe` Nothing
+        infer ctx (App (Lam TInt (Lit 42)) (Lit 5)) `shouldBe` Just TInt
       
     it "should handle lambda Expessions correctly" $ do
-        infer ctx (BinOp App 
+        infer ctx (App 
                         (Lam TInt (Lam TInt Ctx)) 
                         (Lit 5)) `shouldBe` Just (TArrow TInt (TAnd (TAnd TUnit TInt) TInt))
     
     it "should handle Unit correctly" $ do
-        infer ctx (BinOp App 
+        infer ctx (App 
                         (Lam TInt (Lam TInt Unit)) 
                         (Lit 5)) `shouldBe` Just (TArrow TInt TUnit)
     
     it "should handle box correctly" $ do
-        let e1 = BinOp Mrg Unit (Lit 1)
+        let e1 = Mrg Unit (Lit 1)
         let e2 = Proj Ctx 0
-        infer ctx (BinOp Box e1 e2) `shouldBe` Just TInt
+        infer ctx (Box e1 e2) `shouldBe` Just TInt
 
     it "should handle closures correctly" $ do
-        let e1 = Clos (Lit 1) TInt Unit
-        let e2 = Clos (Lit 1) TInt (Proj Ctx 2)
-        let e3 = Clos (RProj Ctx "x") TInt (Proj Ctx 2)
+        let e1 = Clos (Lit 1) (Lam TInt Unit)
+        let e2 = Clos (Lit 1) (Lam TInt (Proj Ctx 2))
+        let e3 = Clos (RProj Ctx "x") (Lam TInt (Proj Ctx 2))
         infer ctx e1 `shouldBe` Just (TArrow TInt TUnit)
         infer ctx e2 `shouldBe` Nothing
         infer ctx e3 `shouldBe` Nothing
     
     it "should return Nothing for invalid application" $ do
-        infer ctx (BinOp App 
+        infer ctx (App 
                     (Lam TInt (Lit 42)) 
-                    (BinOp Mrg (Lit 1) (Lit 2))) 
+                    (Mrg (Lit 1) (Lit 2))) 
             `shouldBe` Nothing
