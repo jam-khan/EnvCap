@@ -31,7 +31,7 @@ Right ("123", "abc")
 Right 'a'
 -}
 
-module Parser.Util where
+module Source.Parser.Util where
 
 import Text.Parsec (ParseError, many1)
 import Text.Parsec.String (Parser)

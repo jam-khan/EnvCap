@@ -1,5 +1,5 @@
 {-# LANGUAGE InstanceSigs #-}
-module Surface.Syntax where
+module Source.Syntax where
 
 {--
 program

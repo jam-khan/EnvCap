@@ -3,18 +3,15 @@ import Core.Syntax (Exp(..), Typ(..), Value(..), BinaryOp(..), CompOp(..), Arith
 import Surface.Syntax (Tm(..), Typ(..), TmBinaryOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
 
 
-surfaceBinaryToCoreOp :: TmBinaryOp -> BinaryOp
-surfaceBinaryToCoreOp TmApp = App
-surfaceBinaryToCoreOp TmBox = Box
-surfaceBinaryToCoreOp TmMrg = Mrg
-surfaceBinaryToCoreOp (TmArith arithop)
+desugarBinaryOp :: TmBinaryOp -> BinaryOp
+desugarBinaryOp (TmArith arithop)
         = case arithop of
                 TmAdd   -> Arith Add
                 TmSub   -> Arith Sub
                 TmMul   -> Arith Mul
                 TmDiv   -> Arith Div
                 TmMod   -> Arith Mod
-surfaceBinaryToCoreOp (TmComp compop)
+desugarBinaryOp (TmComp compop)
         = case compop of
                 TmEql   -> Comp Eql
                 TmNeq   -> Comp Neq
@@ -22,7 +19,7 @@ surfaceBinaryToCoreOp (TmComp compop)
                 TmLe    -> Comp Le
                 TmGt    -> Comp Gt
                 TmGe    -> Comp Ge
-surfaceBinaryToCoreOp (TmLogic logicop)
+desugarBinaryOp (TmLogic logicop)
         = case logicop of
                 TmAnd   -> Logic And
                 TmOr    -> Logic Or

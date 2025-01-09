@@ -1,7 +1,7 @@
-module Parser.Parser where
+module Source.Parser.Parser where
 
-import Surface.Syntax (Tm(..), Typ(..), TmBinaryOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
-import Parser.Lexer
+import Source.Syntax (Tm(..), Typ(..), TmBinaryOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
+import Source.Parser.Lexer
 import Text.Parsec (ParseError, many1, string, try, between, anyChar, notFollowedBy, lookAhead, Parsec)
 import Text.Parsec.String (Parser)
 import Text.Parsec.Prim (parse)
@@ -10,7 +10,7 @@ import Text.Parsec.Combinator (eof, manyTill, option, anyToken, chainl1)
 import Data.Char (isLetter, isDigit)
 import Control.Applicative ((<$>), (<*>), (<*), (*>), (<|>), many)
 import Control.Monad (void, guard)
-import Parser.Util (lexeme, parseWithWhitespace)
+import Source.Parser.Util (lexeme, parseWithWhitespace)
 import Core.Syntax (Exp(BinOp))
 import Text.Parsec.Expr as E (buildExpressionParser, Assoc(AssocNone), Assoc(AssocLeft), Assoc(AssocRight), Operator(Infix, Prefix) )
 import Data.Functor.Identity (Identity)
