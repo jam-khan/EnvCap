@@ -138,25 +138,6 @@ instance Arbitrary Exp where
                       , LCase   <$> arbitrary <*> arbitrary <*> arbitrary
                       , BinOp   <$> arbitrary <*> arbitrary <*> arbitrary
                       , UnOp    <$> arbitrary <*> arbitrary]
-{--
-data Value =    VUnit                   -- Unit value
-        |       VInt Integer            -- Integer value
-        |       VClos Value Exp         -- Closure
-        |       VRcd String Value       -- Single-field record value
-        |       VMrg Value Value        -- Merge of two values
-        -- Extensions
-        |       VBool Bool              -- Boolean Value
-        |       VString String          -- String Value
-        -- Pair extension
-        |       VPair Value Value       -- Pair value
-        -- Sums extension
-        |       VInL Typ Value          -- tagged value (left)
-        |       VInR Typ Value          -- tagged value (right)
-        -- Lists extension
-        |       VNil Typ                -- Nil for list
-        |       VCons Value Value       -- List
-        deriving Eq
---}
 
 instance Arbitrary Value where
         arbitrary :: Gen Value
@@ -172,8 +153,7 @@ instance Arbitrary Value where
                         VInL    <$> arbitrary <*> arbitrary,
                         VInR    <$> arbitrary <*> arbitrary,
                         VNil    <$> arbitrary,
-                        VCons   <$> arbitrary <*> arbitrary
-                ]
+                        VCons   <$> arbitrary <*> arbitrary]
 
 instance Arbitrary BinaryOp where
         arbitrary :: Gen BinaryOp

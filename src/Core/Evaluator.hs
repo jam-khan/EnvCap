@@ -118,5 +118,3 @@ eval env (UnOp Not e1)          = case eval env e1 of
 -- BSTEP-LET    
 eval env (Let e1 e2)            = eval (VMrg env v1) e2
                                         where Just v1 = eval env e1
-
-

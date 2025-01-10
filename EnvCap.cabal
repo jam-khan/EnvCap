@@ -22,7 +22,7 @@ maintainer:         jamkhan@connect.hku.hk
 extra-source-files: CHANGELOG.md
 library
     exposed-modules:    Source.Parser.Lexer Source.Parser.Util Source.Parser.Parser Core.Evaluator Core.Syntax Core.TypeChecker PBT.Generators PBT.Properties
-                        Core.Util Source.Syntax
+                        Core.Util Core.Step Source.Syntax
     -- Modules included in this library but not exported.
     -- other-modules:
 

@@ -1,11 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE InstanceSigs #-}
 
-import Test.Hspec ( hspec, describe, it, shouldBe, shouldSatisfy )
 import Core.Syntax
     ( Exp(..),
       BinaryOp(..),
       Value(..), Typ(..), ArithOp(..))
+import Test.Hspec
 import Core.Evaluator (eval)
 import Core.Util(lookupv, rlookupv )
 import Data.Maybe (isJust, isNothing, fromJust)
