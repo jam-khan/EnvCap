@@ -75,7 +75,6 @@ compareWith Gt  x y             =   x > y
 compareWith Ge  x y             =   x >= y
 
 
-
 box :: Exp -> Exp -> Exp
 box = Box
 

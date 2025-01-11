@@ -6,8 +6,8 @@ import ENVCAP.Core.Syntax
       BinaryOp(..),
       Value(..), Typ(..), ArithOp(..))
 import Test.Hspec
-import Core.Evaluator (eval)
-import Core.Util(lookupv, rlookupv )
+import ENVCAP.Core.Evaluator (eval)
+import ENVCAP.Core.Util(lookupv, rlookupv )
 import Data.Maybe (isJust, isNothing, fromJust)
 import Test.QuickCheck
 

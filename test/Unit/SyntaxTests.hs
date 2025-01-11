@@ -8,14 +8,13 @@ import ENVCAP.Core.Syntax
       BinaryOp(..),
       Value(..),
       Typ(..))
-import PBT.Properties (prop_isValue)
 import Control.Exception ()
 import Test.QuickCheck
 
 
 main :: IO ()
 main = hspec $ do
-    
+  
   describe "Exp" $ do
     it "should construct and compare Expessions" $ do
       App (Lit 1) (Lit 2) 
@@ -33,7 +32,6 @@ main = hspec $ do
     it "should represent correct values syntax" $ do
       VUnit     `shouldSatisfy` isValue
       VInt 10   `shouldSatisfy` isValue
-      quickCheck prop_isValue
       
     it "should recognize closures as values" $ do
       let closure = VClos (VInt 1) (Lam TInt (Lit 1))

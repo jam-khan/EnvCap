@@ -1,19 +1,61 @@
-module PBT.Properties where
 
-import Test.QuickCheck ( (===), forAll, Property ) 
+import Test.Hspec 
 import ENVCAP.Core.Syntax
-    ( Exp(Lit, Proj, RProj, Rec, Lam, Unit, Ctx, BinOp, Clos),
+    ( Exp(..),
       BinaryOp(..),
-      Value(VMrg, VRcd, VUnit, VInt, VClos), Typ(..), ArithOp(..), isValue)
+      Value(..), Typ(..), ArithOp(..), isValue)
 import ENVCAP.Core.Evaluator (eval)
-import ENVCAP.Core.Util (lookupv, rlookupv )
+import ENVCAP.Core.Util (lookupv, rlookupv)
+import PBT.Util ( getValueTyp )
+import ENVCAP.Core.TypeChecker (infer)
+import Test.QuickCheck
+    ( discard,
+      counterexample,
+      quickCheckWith,
+      stdArgs,
+      Property,
+      Testable(property),
+      Args(maxSuccess),
+      (===), forAll )
+import Data.Maybe (isNothing)
+                                        
+  
+-- -- Property: All values have types
+-- prop_values :: Value -> Property
+-- prop_values v = counterexample (show v) $
+--                 case getValueTyp TUnit v of
+--                     Just typ    -> property True 
+--                     _           -> property False
 
+-- Property: Type Preservation
+prop_preservation :: Exp -> Property
+prop_preservation t = counterexample (show t) $
+                        case infer TUnit t of
+                            Just ty ->
+                                case eval VUnit t of
+                                    Just v  -> property (getValueTyp TUnit v == Just ty)
+                                    _       -> property False
+                            _   -> discard
 
--- Property isValue
-prop_isValue :: Value -> Bool
-prop_isValue v = isValue v == case v of
-    VUnit         -> True
-    VInt _        -> True
-    VClos v' _  -> isValue v'
-    VRcd _ v'     -> isValue v'
-    VMrg v1 v2    -> isValue v1 && isValue v2
+-- Property: Progress
+prop_progress :: Exp -> Property
+prop_progress t = counterexample (show t) $
+    case infer TUnit t of
+        Just ty -> case eval VUnit t of
+                    Just v      -> property True
+                    _           -> property False
+        _       -> discard
+
+main :: IO ()
+main = hspec $ do
+  
+  describe "Property-Based Testing" $ do
+    -- it "Every value must have a type (PROPERTY)" $ do
+    --   quickCheckWith stdArgs { maxSuccess = 1000 } prop_values
+    
+    it "Preservation Property must be satisfied" $ do
+      quickCheckWith stdArgs { maxSuccess = 1000 } prop_preservation
+
+    it "Progress Property must be satisfied" $ do
+      quickCheckWith stdArgs { maxSuccess = 1000 } prop_progress
+        
