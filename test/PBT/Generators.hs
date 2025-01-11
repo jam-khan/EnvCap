@@ -3,7 +3,7 @@ module PBT.Generators where
 
 import Test.QuickCheck
     ( Arbitrary(arbitrary), Gen, elements, oneof )
-import Core.Syntax
+import ENVCAP.Core.Syntax
     ( Exp(..),
       BinaryOp(..),
       Value(..), Typ(..), ArithOp(..), CompOp(..), LogicOp(..), BinaryOp(..))

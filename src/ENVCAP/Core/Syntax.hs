@@ -1,5 +1,5 @@
 {-# LANGUAGE InstanceSigs #-}
-module Core.Syntax where
+module ENVCAP.Core.Syntax where
 
 import Test.QuickCheck (Property, property, quickCheck, Arbitrary(arbitrary), Gen, elements, oneof )
 

@@ -1,6 +1,6 @@
-module Surface.Desugar where
-import Core.Syntax (Exp(..), Typ(..), Value(..), BinaryOp(..), CompOp(..), ArithOp(..), LogicOp(..), UnaryOp(..))
-import Surface.Syntax (Tm(..), Typ(..), TmBinaryOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
+module ENVCAP.Surface.Desugar where
+import ENVCAP.Core.Syntax (Exp(..), Typ(..), Value(..), BinaryOp(..), CompOp(..), ArithOp(..), LogicOp(..), UnaryOp(..))
+import ENVCAP.Surface.Syntax (Tm(..), Typ(..), TmBinaryOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
 
 
 desugarBinaryOp :: TmBinaryOp -> BinaryOp

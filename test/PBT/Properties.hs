@@ -1,12 +1,12 @@
 module PBT.Properties where
 
 import Test.QuickCheck ( (===), forAll, Property ) 
-import Core.Syntax
+import ENVCAP.Core.Syntax
     ( Exp(Lit, Proj, RProj, Rec, Lam, Unit, Ctx, BinOp, Clos),
       BinaryOp(..),
       Value(VMrg, VRcd, VUnit, VInt, VClos), Typ(..), ArithOp(..), isValue)
-import Core.Evaluator (eval)
-import Core.Util (lookupv, rlookupv )
+import ENVCAP.Core.Evaluator (eval)
+import ENVCAP.Core.Util (lookupv, rlookupv )
 
 
 -- Property isValue

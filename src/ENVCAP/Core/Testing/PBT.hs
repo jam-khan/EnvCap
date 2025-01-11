@@ -1,8 +1,8 @@
-module Core.Testing.PBT where
+module ENVCAP.Core.Testing.PBT where
 
-import Core.TypeChecker (infer)
-import Core.Syntax (Exp(..), Typ(..), Value(..), BinaryOp(..), UnaryOp(..))
-import Core.Evaluator (eval)
+import ENVCAP.Core.TypeChecker (infer)
+import ENVCAP.Core.Syntax (Exp(..), Typ(..), Value(..), BinaryOp(..), UnaryOp(..))
+import ENVCAP.Core.Evaluator (eval)
 import Test.QuickCheck
     ( discard,
       counterexample,

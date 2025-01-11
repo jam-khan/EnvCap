@@ -1,6 +1,6 @@
-module Core.Util where
+module ENVCAP.Core.Util where
 
-import Core.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), LogicOp(..), Typ (..))
+import ENVCAP.Core.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), LogicOp(..), Typ (..))
 import Data.Maybe (fromMaybe)
 
 

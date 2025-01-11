@@ -2,7 +2,7 @@
 {-# LANGUAGE InstanceSigs #-}
 
 import Test.Hspec 
-import Core.Syntax
+import ENVCAP.Core.Syntax
     ( isValue,
       Exp(..),
       BinaryOp(..),

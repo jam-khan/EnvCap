@@ -1,8 +1,8 @@
-module Core.TypeChecker where
+module ENVCAP.Core.TypeChecker where
 
-import Core.Syntax (Exp(..), Typ(..), Value(..), BinaryOp(..), UnaryOp(..))
-import Core.Util(rlookupt, lookupt, containment)
-import Core.Evaluator (eval)
+import ENVCAP.Core.Syntax (Exp(..), Typ(..), Value(..), BinaryOp(..), UnaryOp(..))
+import ENVCAP.Core.Util(rlookupt, lookupt, containment)
+import ENVCAP.Core.Evaluator (eval)
 import Test.QuickCheck
 import Control.Monad (liftM2, liftM)
 import Data.Maybe (isNothing)

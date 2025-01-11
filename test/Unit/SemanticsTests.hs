@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE InstanceSigs #-}
 
-import Core.Syntax
+import ENVCAP.Core.Syntax
     ( Exp(..),
       BinaryOp(..),
       Value(..), Typ(..), ArithOp(..))

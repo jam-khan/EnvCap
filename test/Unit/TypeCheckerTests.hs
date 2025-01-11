@@ -1,14 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 import Test.Hspec 
-import Core.TypeChecker
+import ENVCAP.Core.TypeChecker
     ( infer )
-import Core.Util
+import ENVCAP.Core.Util
     ( lookupt,
       isLabel,
       containment,
       rlookupt,)
-import Core.Syntax
+import ENVCAP.Core.Syntax
     ( Typ(..),
       Exp(..),
       BinaryOp(..) )

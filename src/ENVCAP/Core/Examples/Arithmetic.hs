@@ -1,7 +1,7 @@
-module Core.Examples.Arithmetic where
-import Core.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), LogicOp(..), Typ (..))
-import Core.Util  (apply, proj, sub, mult, add)
-import Core.Evaluator (eval)
+module ENVCAP.Core.Examples.Arithmetic where
+import ENVCAP.Core.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), LogicOp(..), Typ (..))
+import ENVCAP.Core.Util  (apply, proj, sub, mult, add)
+import ENVCAP.Core.Evaluator (eval)
 
 sumN :: Exp
 sumN = Fix (Lam TInt 

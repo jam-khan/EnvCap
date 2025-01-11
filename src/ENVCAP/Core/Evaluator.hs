@@ -1,8 +1,8 @@
-module Core.Evaluator where
+module ENVCAP.Core.Evaluator where
 
-import Core.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), LogicOp(..), Typ (..))
+import ENVCAP.Core.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), LogicOp(..), Typ (..))
 import Data.Maybe (fromMaybe)
-import Core.Util  (apply, proj, sub, mult, add, compareOp, lookupv, rlookupv, arithOp)
+import ENVCAP.Core.Util  (apply, proj, sub, mult, add, compareOp, lookupv, rlookupv, arithOp)
 
 
 eval :: Value -> Exp -> Maybe Value

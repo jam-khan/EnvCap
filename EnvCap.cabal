@@ -21,8 +21,8 @@ maintainer:         jamkhan@connect.hku.hk
 -- category:
 extra-source-files: CHANGELOG.md
 library
-    exposed-modules:    Source.Parser.Lexer Source.Parser.Util Source.Parser.Parser Core.Evaluator Core.Syntax Core.TypeChecker PBT.Generators PBT.Properties
-                        Core.Util Core.Step Source.Syntax
+    exposed-modules:    ENVCAP.Parser.Lexer ENVCAP.Parser.Util ENVCAP.Parser.Parser ENVCAP.Core.Evaluator ENVCAP.Core.Syntax ENVCAP.Core.TypeChecker PBT.Generators PBT.Properties
+                        ENVCAP.Core.Util ENVCAP.Core.Step ENVCAP.Source.Syntax
     -- Modules included in this library but not exported.
     -- other-modules:
 
@@ -52,7 +52,7 @@ executable EnvCap
 test-suite tests-Syntax
     type: exitcode-stdio-1.0
     main-is: SyntaxTests.hs
-    hs-source-dirs: Test/CoreTests, Test/PBT
+    hs-source-dirs: Test/Unit, Test/PBT
     build-depends:  base >= 4.7 && <5,
                     hspec,
                     EnvCap,
@@ -62,7 +62,7 @@ test-suite tests-Syntax
 test-suite tests-Eval
     type: exitcode-stdio-1.0
     main-is: SemanticsTests.hs
-    hs-source-dirs: Test/CoreTests, Test/PBT
+    hs-source-dirs: Test/Unit, Test/PBT
     build-depends:  base >= 4.7 && <5,
                     hspec,
                     EnvCap,
@@ -72,7 +72,7 @@ test-suite tests-Eval
 test-suite tests-TypeChecker
     type: exitcode-stdio-1.0
     main-is: TypeCheckerTests.hs
-    hs-source-dirs: Test/CoreTests, Test/PBT
+    hs-source-dirs: Test/Unit, Test/PBT
     build-depends:  base >= 4.7 && <5,
                     hspec,
                     EnvCap,

@@ -1,6 +1,6 @@
-module Core.Step where
+module ENVCAP.Core.Step where
 
-import Core.Syntax
+import ENVCAP.Core.Syntax
     ( Exp )
 
 

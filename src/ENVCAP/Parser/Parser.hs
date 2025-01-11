@@ -1,7 +1,7 @@
-module Source.Parser.Parser where
+module ENVCAP.Parser.Parser where
 
-import Source.Syntax (Tm(..), Typ(..), TmBinaryOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
-import Source.Parser.Lexer
+import ENVCAP.Source.Syntax (Tm(..), Typ(..), TmBinaryOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
+import ENVCAP.Parser.Lexer
 import Text.Parsec (ParseError, many1, string, try, between, anyChar, notFollowedBy, lookAhead, Parsec)
 import Text.Parsec.String (Parser)
 import Text.Parsec.Prim (parse)
@@ -10,8 +10,8 @@ import Text.Parsec.Combinator (eof, manyTill, option, anyToken, chainl1)
 import Data.Char (isLetter, isDigit)
 import Control.Applicative ((<$>), (<*>), (<*), (*>), (<|>), many)
 import Control.Monad (void, guard)
-import Source.Parser.Util (lexeme, parseWithWhitespace)
-import Core.Syntax (Exp(BinOp))
+import ENVCAP.Parser.Util (lexeme, parseWithWhitespace)
+import ENVCAP.Core.Syntax (Exp(BinOp))
 import Text.Parsec.Expr as E (buildExpressionParser, Assoc(AssocNone), Assoc(AssocLeft), Assoc(AssocRight), Operator(Infix, Prefix) )
 import Data.Functor.Identity (Identity)
 
@@ -19,7 +19,7 @@ import Data.Functor.Identity (Identity)
 -- Parser for context
 
 parseCtx :: Parser Tm
-parseCtx = lexeme $ keyword "context()" >> return TmCtx
+parseCtx = lexeme $ keyword "context()" >> return TmQuery
 
 -- Parser for boolean literals
 
@@ -118,9 +118,9 @@ parens :: Parser Tm -> Parser Tm
 parens p = lexeme $ between (char '(') (char ')') p
 
 parseConditional :: Parser Tm
-parseConditional = TmIf <$> (void (keyword "if")       *> parseExp)
-                        <*> (void (keyword "then")     *> parseExp)
-                        <*> (void (keyword "else")     *> parseExp)
+parseConditional = TmIf2    <$> (void (keyword "if")       *> parseExp)
+                            <*> (void (keyword "then")     *> parseExp)
+                            <*> (void (keyword "else")     *> parseExp)
 
 -- parser for string
 parseString :: Parser Tm
@@ -134,7 +134,7 @@ parseMain = parseWithWhitespace parseExp
 
 test_cases :: [(String, Tm)]
 test_cases =
-    [ ("context()", TmCtx)
+    [ ("context()", TmQuery)
     , ("(1)", TmInt 1)
     , ("(false)", TmBool False)
     , ("true", TmBool True)
@@ -150,22 +150,22 @@ test_cases =
     , ("4 >= 1", TmBinary (TmComp TmGe) (TmInt 4) (TmInt 1))
     , ("1 == 1", TmBinary (TmComp TmEql) (TmInt 1) (TmInt 1))
     , ("2 != 3", TmBinary (TmComp TmNeq) (TmInt 2) (TmInt 3))
-    , ("if true then 1 else 0", TmIf (TmBool True) (TmInt 1) (TmInt 0))
-    , ("if false then 1 + 2 else 2 - 1", TmIf
+    , ("if true then 1 else 0", TmIf2 (TmBool True) (TmInt 1) (TmInt 0))
+    , ("if false then 1 + 2 else 2 - 1", TmIf2
         (TmBool False)
         (TmBinary (TmArith TmAdd) (TmInt 1) (TmInt 2))
         (TmBinary (TmArith TmSub) (TmInt 2) (TmInt 1)))
     , ("a + b * c", TmBinary (TmArith TmAdd) (TmVar "a") (TmBinary (TmArith TmMul) (TmVar "b") (TmVar "c")))
-    , ("if x < y then z else w", TmIf
+    , ("if x < y then z else w", TmIf2
         (TmBinary (TmComp TmLt) (TmVar "x") (TmVar "y"))
         (TmVar "z")
         (TmVar "w"))
     , ("if (1 + 2) > 2 then context() else false",
-        TmIf
+        TmIf2
             (TmBinary (TmComp TmGt)
                 (TmBinary (TmArith TmAdd) (TmInt 1) (TmInt 2))
                 (TmInt 2))
-            TmCtx
+            TmQuery
             (TmBool False))
     , ("(x * 2) + (y / 4) >= 3",
         TmBinary (TmComp TmGe)
@@ -174,7 +174,7 @@ test_cases =
                 (TmBinary (TmArith TmDiv) (TmVar "y") (TmInt 4)))
             (TmInt 3))
     ,  ("if false then 1 else (2 * 3) + 1",
-        TmIf
+        TmIf2
             (TmBool False)
             (TmInt 1)
             (TmBinary (TmArith TmAdd)
@@ -189,7 +189,7 @@ test_cases =
                 (TmBinary (TmArith TmDiv) (TmInt 5) (TmInt 2)))
             (TmBinary (TmArith TmAdd) (TmInt 1) (TmVar "x")))
       , ( "if (a * 2 + (3 < 4) * 5) >= (b / 2) then context() else (1 + (2 * 3) - (4 / x))",
-        TmIf
+        TmIf2
                 (TmBinary (TmComp TmGe)
                 (TmBinary (TmArith TmAdd)
                         (TmBinary (TmArith TmMul) (TmVar "a") (TmInt 2))
@@ -197,7 +197,7 @@ test_cases =
                         (TmBinary (TmComp TmLt) (TmInt 3) (TmInt 4))
                         (TmInt 5)))
                 (TmBinary (TmArith TmDiv) (TmVar "b") (TmInt 2)))
-                TmCtx
+                TmQuery
                 (TmBinary (TmArith TmSub)
                 (TmBinary (TmArith TmAdd) (TmInt 1)
                         (TmBinary (TmArith TmMul) (TmInt 2) (TmInt 3)))
