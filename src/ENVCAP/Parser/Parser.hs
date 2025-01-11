@@ -9,7 +9,15 @@ import Text.Parsec.Combinator (eof, manyTill, option, anyToken, chainl1)
 import Data.Char (isLetter, isDigit)
 import Control.Applicative ((<$>), (<*>), (<*), (*>), (<|>), many)
 import Control.Monad (void, guard)
-import ENVCAP.Parser.Util 
+import ENVCAP.Parser.Util
+    ( falseToken,
+      identifierToken,
+      keyword,
+      lexeme,
+      parseWithWhitespace,
+      stringToken,
+      trueToken,
+      unitToken ) 
 import ENVCAP.Core.Syntax (Exp(BinOp))
 import Text.Parsec.Expr as E (buildExpressionParser, Assoc(AssocNone), Assoc(AssocLeft), Assoc(AssocRight), Operator(Infix, Prefix) )
 import Data.Functor.Identity (Identity)
@@ -17,8 +25,8 @@ import Data.Functor.Identity (Identity)
 
 -- Parser for context
 
-parseCtx :: Parser Tm
-parseCtx = lexeme $ keyword "context()" >> return TmQuery
+parseCtx        :: Parser Tm
+parseCtx        = lexeme $ keyword "context()" >> return TmQuery
 
 parseTrue       :: Parser Tm
 parseTrue       = lexeme $ trueToken    >> return (TmBool True)

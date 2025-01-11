@@ -85,51 +85,51 @@ data Typ      =     TUnit                  -- Unit type for empty environment
 data TmBinaryOp   =     TmArith TmArithOp   -- Arithmetic
                 |       TmComp  TmCompOp    -- CompOp
                 |       TmLogic TmLogicOp   -- Boolean Logic
-
+        deriving  (Show)
 
 data TmUnaryOp  = TmNeg | TmNot | TmTypeOf |TmIndex Int
-                                                deriving Eq
+                                                deriving (Eq, Show)
 data TmArithOp   = TmAdd | TmSub | TmMul | TmDiv | TmMod | TmExp
-                                                deriving Eq
+                                                deriving (Eq, Show)
 data TmCompOp    = TmEql | TmNeq | TmLt | TmLe | TmGt | TmGe
-                                                deriving Eq
-data TmLogicOp   = TmAnd | TmOr         deriving Eq
+                                                deriving (Eq, Show)
+data TmLogicOp   = TmAnd | TmOr         deriving (Eq, Show)
 
-instance Show TmBinaryOp where
-        show :: TmBinaryOp -> String
-        show (TmArith op) = show op
-        show (TmComp op)  = show op
-        show (TmLogic op) = show op
+-- instance Show TmBinaryOp where
+--         show :: TmBinaryOp -> String
+--         show (TmArith op) = show op
+--         show (TmComp op)  = show op
+--         show (TmLogic op) = show op
         
-instance Show TmArithOp where
-        show :: TmArithOp -> String
-        show TmAdd = "+"
-        show TmSub = "-"
-        show TmMul = "*"
-        show TmDiv = "/"
-        show TmMod = "%"
-        show TmExp = "^"
+-- instance Show TmArithOp where
+--         show :: TmArithOp -> String
+--         show TmAdd = "+"
+--         show TmSub = "-"
+--         show TmMul = "*"
+--         show TmDiv = "/"
+--         show TmMod = "%"
+--         show TmExp = "^"
 
-instance Show TmCompOp where
-        show :: TmCompOp -> String
-        show TmEql = "=="
-        show TmNeq = "!="
-        show TmLt  = "<"
-        show TmLe  = "<="
-        show TmGt  = ">"
-        show TmGe  = ">="
+-- instance Show TmCompOp where
+--         show :: TmCompOp -> String
+--         show TmEql = "=="
+--         show TmNeq = "!="
+--         show TmLt  = "<"
+--         show TmLe  = "<="
+--         show TmGt  = ">"
+--         show TmGe  = ">="
 
-instance Show TmLogicOp where
-        show :: TmLogicOp -> String
-        show TmAnd = "&&"
-        show TmOr  = "||"
+-- instance Show TmLogicOp where
+--         show :: TmLogicOp -> String
+--         show TmAnd = "&&"
+--         show TmOr  = "||"
 
-instance Show TmUnaryOp where
-        show :: TmUnaryOp -> String
-        show TmNot = "!"
-        show TmNeg = "-"
-        show (TmIndex i) = "!!" ++ (show i)
-        show (TmTypeOf)  = "Type of"
+-- instance Show TmUnaryOp where
+--         show :: TmUnaryOp -> String
+--         show TmNot = "!"
+--         show TmNeg = "-"
+--         show (TmIndex i) = "!!" ++ (show i)
+--         show (TmTypeOf)  = "Type of"
 
 instance Eq TmBinaryOp where 
         (==) :: TmBinaryOp -> TmBinaryOp -> Bool

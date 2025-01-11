@@ -1,6 +1,6 @@
-module ENVCAP.Surface.Desugar where
+module ENVCAP.Source.Desugar where
 import ENVCAP.Core.Syntax (Exp(..), Typ(..), Value(..), BinaryOp(..), CompOp(..), ArithOp(..), LogicOp(..), UnaryOp(..))
-import ENVCAP.Surface.Syntax (Tm(..), Typ(..), TmBinaryOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
+import ENVCAP.Source.Syntax (Tm(..), Typ(..), TmBinaryOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
 
 
 desugarBinaryOp :: TmBinaryOp -> BinaryOp
@@ -28,18 +28,16 @@ surfaceUnaryToCoreOp :: TmUnaryOp -> UnaryOp
 surfaceUnaryToCoreOp TmNot              = Not
 
 
-surfaceToCore :: Tm -> Exp
-surfaceToCore TmCtx                     = Ctx
-surfaceToCore TmUnit                    = Unit
-surfaceToCore (TmInt n)                 = Lit n
-surfaceToCore (TmBool b)                = EBool b
-surfaceToCore (TmString s)              = EString s
-surfaceToCore (TmBinary op tm1 tm2)     = BinOp (surfaceBinaryToCoreOp op)
-                                                (surfaceToCore tm1)
-                                                (surfaceToCore tm2)
-surfaceToCore (TmUnary op tm)           = UnOp (surfaceUnaryToCoreOp op)
-                                                (surfaceToCore tm)
-surfaceToCore (TmIf tm1 tm2 tm3)        = If (surfaceToCore tm1)
-                                                (surfaceToCore tm2)
-                                                (surfaceToCore tm3)
+desugar :: Tm -> Maybe Exp
+desugar TmQuery                   = Just Ctx
+desugar TmUnit                    = Just Unit
+desugar (TmInt n)                 = Just $ Lit n
+desugar (TmBool b)                = Just $ EBool b
+desugar (TmString s)              = Just $ EString s
+desugar (TmBinary op tm1 tm2)     = case (desugarBinaryOp op, desugar tm1, desugar tm2) of
+                                        (op', Just e1, Just e2) -> Just (BinOp op' e1 e2)
+                                        _                       -> Nothing
+desugar (TmUnary op tm)           = UnOp <$> Just (surfaceUnaryToCoreOp op) <*> desugar tm
+desugar (TmIf2 tm1 tm2 tm3)       = If <$> desugar tm1 <*> desugar tm2 <*> desugar tm3
+desugar _                         = Nothing 
 
