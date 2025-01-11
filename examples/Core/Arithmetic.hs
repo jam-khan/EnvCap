@@ -1,4 +1,4 @@
-module ENVCAP.Core.Examples.Arithmetic where
+module Examples.Core.Arithmetic where
 import ENVCAP.Core.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), LogicOp(..), Typ (..))
 import ENVCAP.Core.Util  (apply, proj, sub, mult, add)
 import ENVCAP.Core.Evaluator (eval)
