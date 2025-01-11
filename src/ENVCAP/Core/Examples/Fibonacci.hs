@@ -1,7 +1,7 @@
-module Core.Examples.Fibonacci where
-import Core.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), LogicOp(..), Typ (..))
-import Core.Util  (apply, proj, sub, mult, add)
-import Core.Semantics (evalB)
+module ENVCAP.Core.Examples.Fibonacci where
+import ENVCAP.Core.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), LogicOp(..), Typ (..))
+import ENVCAP.Core.Util  (apply, proj, sub, mult, add)
+import ENVCAP.Core.Evaluator (eval)
 
 fib :: Exp
 fib =   Fix (Lam TInt
@@ -14,4 +14,4 @@ fib =   Fix (Lam TInt
 
 
 result :: Integer -> Maybe Value
-result n = evalB Unit (apply fib (Lit n))
+result n = eval VUnit (apply fib (Lit n))

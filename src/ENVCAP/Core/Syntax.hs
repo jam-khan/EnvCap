@@ -1,5 +1,5 @@
 {-# LANGUAGE InstanceSigs #-}
-module Core.Syntax where
+module ENVCAP.Core.Syntax where
 
 import Test.QuickCheck (Property, property, quickCheck, Arbitrary(arbitrary), Gen, elements, oneof )
 
@@ -79,21 +79,22 @@ data Typ =  TUnit                  -- Unit type for empty environment
         deriving (Eq, Show)
 
 data UnaryOp    =       Not
-        deriving Eq
+        deriving (Eq, Show)
 
 -- Operations Definitions
 data BinaryOp  =        Arith ArithOp   -- Arithmetic
                 |       Comp  CompOp    -- CompOp
                 |       Logic LogicOp   -- Boolean Logic
+                deriving (Eq, Show)
 
 data ArithOp = Add | Sub | Mul | Div | Mod
-        deriving Eq
+        deriving (Eq, Show)
 
 data CompOp  = Eql | Neq | Lt | Le | Gt | Ge
-        deriving Eq
+        deriving (Eq, Show)
 
 data LogicOp = And | Or
-        deriving Eq
+        deriving (Eq, Show)
 
 instance Arbitrary Typ where
     arbitrary :: Gen Typ
@@ -137,25 +138,6 @@ instance Arbitrary Exp where
                       , LCase   <$> arbitrary <*> arbitrary <*> arbitrary
                       , BinOp   <$> arbitrary <*> arbitrary <*> arbitrary
                       , UnOp    <$> arbitrary <*> arbitrary]
-{--
-data Value =    VUnit                   -- Unit value
-        |       VInt Integer            -- Integer value
-        |       VClos Value Exp         -- Closure
-        |       VRcd String Value       -- Single-field record value
-        |       VMrg Value Value        -- Merge of two values
-        -- Extensions
-        |       VBool Bool              -- Boolean Value
-        |       VString String          -- String Value
-        -- Pair extension
-        |       VPair Value Value       -- Pair value
-        -- Sums extension
-        |       VInL Typ Value          -- tagged value (left)
-        |       VInR Typ Value          -- tagged value (right)
-        -- Lists extension
-        |       VNil Typ                -- Nil for list
-        |       VCons Value Value       -- List
-        deriving Eq
---}
 
 instance Arbitrary Value where
         arbitrary :: Gen Value
@@ -171,8 +153,7 @@ instance Arbitrary Value where
                         VInL    <$> arbitrary <*> arbitrary,
                         VInR    <$> arbitrary <*> arbitrary,
                         VNil    <$> arbitrary,
-                        VCons   <$> arbitrary <*> arbitrary
-                ]
+                        VCons   <$> arbitrary <*> arbitrary]
 
 instance Arbitrary BinaryOp where
         arbitrary :: Gen BinaryOp
@@ -210,44 +191,44 @@ instance Arbitrary UnaryOp where
         arbitrary :: Gen UnaryOp
         arbitrary = return Not
 
-instance Show BinaryOp where
-        show :: BinaryOp -> String
-        show (Arith op) = show op
-        show (Comp op)  = show op
-        show (Logic op) = show op
+-- instance Show BinaryOp where
+--         show :: BinaryOp -> String
+--         show (Arith op) = show op
+--         show (Comp op)  = show op
+--         show (Logic op) = show op
 
-instance Show ArithOp where
-        show :: ArithOp -> String
-        show Add = "+"
-        show Sub = "-"
-        show Mul = "*"
-        show Div = "/"
-        show Mod = "%"
+-- instance Show ArithOp where
+--         show :: ArithOp -> String
+--         show Add = "+"
+--         show Sub = "-"
+--         show Mul = "*"
+--         show Div = "/"
+--         show Mod = "%"
 
-instance Show CompOp where
-        show :: CompOp -> String
-        show Eql = "=="
-        show Neq = "!="
-        show Lt  = "<"
-        show Le  = "<="
-        show Gt  = ">"
-        show Ge  = ">="
+-- instance Show CompOp where
+--         show :: CompOp -> String
+--         show Eql = "=="
+--         show Neq = "!="
+--         show Lt  = "<"
+--         show Le  = "<="
+--         show Gt  = ">"
+--         show Ge  = ">="
 
-instance Show LogicOp where
-        show :: LogicOp -> String
-        show And = "&&"
-        show Or  = "||"
+-- instance Show LogicOp where
+--         show :: LogicOp -> String
+--         show And = "&&"
+--         show Or  = "||"
 
-instance Show UnaryOp where
-        show :: UnaryOp -> String
-        show Not = "!"
+-- instance Show UnaryOp where
+--         show :: UnaryOp -> String
+--         show Not = "!"
 
-instance Eq BinaryOp where
-        (==) :: BinaryOp -> BinaryOp -> Bool
-        (Arith op1) == (Arith op2) = op1 == op2
-        (Comp op1)  == (Comp op2)  = op1 == op2
-        (Logic op1) == (Logic op2) = op1 == op2
-        _           == _           = False
+-- instance Eq BinaryOp where
+--         (==) :: BinaryOp -> BinaryOp -> Bool
+--         (Arith op1) == (Arith op2) = op1 == op2
+--         (Comp op1)  == (Comp op2)  = op1 == op2
+--         (Logic op1) == (Logic op2) = op1 == op2
+--         _           == _           = False
 
 
 isValue :: Value -> Bool
@@ -297,7 +278,7 @@ isValue (VMrg v1 v2)            = isValue v1 && isValue v2
 --         show' n (App e1 e2)        = "(" ++ show' n e1 ++ ")" ++ "(" ++ show' n e2 ++ ")"
 --         show' n (Box e1 e2)        = "(" ++ show' n e1 ++ "\x25B8" ++ show' n e2 ++ ")"
 --         show' n (Mrg e1 e2)        = "(" ++ show' n e2 ++ ")" ++ " ,, " ++ "(" ++ show' n e2 ++ ")"
-
+--         show' n _                  = ""
 
 -- instance Show Typ where
 --         show :: Typ -> String

@@ -1,7 +1,7 @@
-module Core.Examples.Arithmetic where
-import Core.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), LogicOp(..), Typ (..))
-import Core.Util  (apply, proj, sub, mult, add)
-import Core.Semantics (evalB)
+module ENVCAP.Core.Examples.Arithmetic where
+import ENVCAP.Core.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), LogicOp(..), Typ (..))
+import ENVCAP.Core.Util  (apply, proj, sub, mult, add)
+import ENVCAP.Core.Evaluator (eval)
 
 sumN :: Exp
 sumN = Fix (Lam TInt 
@@ -20,7 +20,7 @@ add1 =  Lam TInt
                     (proj 1) (proj 0)))
 
 result1 :: Integer -> Integer -> Maybe Value
-result1 n1 n2 = evalB Unit (apply (apply add1 (Lit n1)) (Lit n2))
+result1 n1 n2 = eval VUnit (apply (apply add1 (Lit n1)) (Lit n2))
 
 result :: Integer -> Maybe Value
-result n = evalB Unit (apply sumN (Lit n))
+result n = eval VUnit (apply sumN (Lit n))

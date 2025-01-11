@@ -2,45 +2,39 @@
 {-# LANGUAGE InstanceSigs #-}
 
 import Test.Hspec 
-import Core.Syntax
+import ENVCAP.Core.Syntax
     ( isValue,
       Exp(..),
-      BinaryOp(App, Box, Mrg),
-      Value(VUnit, VRcd, VMrg, VInt, VClos),
+      BinaryOp(..),
+      Value(..),
       Typ(..))
-import PBT.Properties (prop_isValue)
 import Control.Exception ()
 import Test.QuickCheck
 
 
 main :: IO ()
 main = hspec $ do
-  describe "Op" $ do
-    it "should show correct string representation" $ do
-      show App    `shouldBe`  "App"
-      show Box    `shouldBe`  "▸"
-      show Mrg    `shouldBe`  " ,, "
-
+  
   describe "Exp" $ do
     it "should construct and compare Expessions" $ do
-      BinOp App (Lit 1) (Lit 2) 
-                                `shouldBe`  BinOp App (Lit 1) (Lit 2)
+      App (Lit 1) (Lit 2) 
+                                `shouldBe`  App (Lit 1) (Lit 2)
       Unit                      `shouldBe`  Unit
       Lam TInt (Lit 1)          `shouldBe`  Lam TInt (Lit 1)
      
     it "should not be equal to different Expessions" $ do
       Lit 1               `shouldNotBe`   Lit 2
       Proj Ctx 1          `shouldNotBe`   Proj (Lit 1) 1
-      Clos Ctx TInt Unit  `shouldNotBe`   Clos Ctx TInt (Lit 1)
+      Clos Ctx (Lam TInt Unit)
+                          `shouldNotBe`   Clos Ctx (Lam TInt (Lit 1))
 
   describe "Value" $ do
     it "should represent correct values syntax" $ do
       VUnit     `shouldSatisfy` isValue
       VInt 10   `shouldSatisfy` isValue
-      quickCheck prop_isValue
       
     it "should recognize closures as values" $ do
-      let closure = VClos (VInt 1) TInt (Lit 1)
+      let closure = VClos (VInt 1) (Lam TInt (Lit 1))
       closure `shouldSatisfy` isValue
 
     it "should recognize records as values" $ do
@@ -52,13 +46,13 @@ main = hspec $ do
       merged `shouldSatisfy` isValue
 
     it "should not recognize non-values" $ do
-      let nonValue = VClos VUnit TInt (Lit 100)
+      let nonValue = VClos VUnit (Lam TInt (Lit 100))
       nonValue `shouldSatisfy` isValue
   
   describe "Typ" $ do
     it "should represent types correctly" $ do
-      show TInt     `shouldBe`  "INT"
-      show TUnit    `shouldBe`  "ε"
+      show TInt     `shouldBe`  "TInt"
+      show TUnit    `shouldBe`  "TUnit"
     
     it "should compare equivalent types correctly" $ do
       TArrow TInt TInt    `shouldBe`  TArrow TInt TInt

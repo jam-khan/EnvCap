@@ -11,7 +11,7 @@ An implementation of EnvCap Programming Language with environment-based λ_E wit
 - **Basic Operations**: Includes application, merging, and projection operations.
 - **Bidirectional Type Checker**
 
-## Features to be implemented (Core Calculus)
+## Features to be implemented (Core)
 
 - [x] Syntax/AST Definition
 - [x] Unit testing setup
@@ -25,13 +25,11 @@ An implementation of EnvCap Programming Language with environment-based λ_E wit
 - [x] Built-in Lists
 - [x] Sums
 - [x] Pairs
-- [ ] Case/Pattern matching for lists, sums and pairs
+- [x] Case lists and sums.
 
 ## Surface Language
 
 - [ ] Language Design
-- [ ] Basic elaboration
-- [ ] Parser Implementation
     - [ ] Bindings
     - [ ] Integers
     - [ ] Booleans
@@ -46,6 +44,10 @@ An implementation of EnvCap Programming Language with environment-based λ_E wit
     - [ ] Functions
     - [ ] Modules
     - [ ] Header Files
+    - [ ] Separate Compilation
+    - [ ] 
+- [ ] Typed-Directed Elaboration
+- [ ] Parser Implementation
 
 
 ## License

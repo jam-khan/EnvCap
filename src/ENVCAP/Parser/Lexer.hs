@@ -1,4 +1,4 @@
-module Parser.Lexer where
+module ENVCAP.Parser.Lexer where
 
 import Text.Parsec (ParseError, many1, string, try, anyChar)
 import Text.Parsec.String (Parser)
@@ -6,7 +6,7 @@ import Text.Parsec.Prim (parse)
 import Text.Parsec.Char (satisfy, char, oneOf, digit, letter)
 import Text.Parsec.Combinator (eof, manyTill, anyToken, chainl1)
 import Data.Char (isLetter, isDigit)
-import Parser.Util (lexeme)
+import ENVCAP.Parser.Util (lexeme)
 import Control.Applicative ((<$>), (<*>), (<*), (*>), (<|>), many)
 import Control.Monad (void)
 
