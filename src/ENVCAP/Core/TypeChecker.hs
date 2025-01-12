@@ -107,7 +107,7 @@ infer ctx (Nil tA)          = Just (TList tA)
 -- TYP-CONS
 infer ctx (Cons t1 t2)      = case infer ctx t2 of
                                 Just (TList tA) -> 
-                                    if check (TAnd ctx tA) t1 tA
+                                    if check ctx t1 tA
                                         then Just (TList tA)
                                         else Nothing
                                 _ -> Nothing
