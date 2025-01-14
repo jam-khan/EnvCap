@@ -1,68 +1,68 @@
 {-# LANGUAGE InstanceSigs #-}
 module ENVCAP.Source.Syntax where
 
-data Tm =   TmQuery                               -- Query
-        |   TmUnit                                -- Unit
-        |   TmString    String                    -- String  Literal
-        |   TmInt       Integer                   -- Integer Literal
-        |   TmBool      Bool                      -- Boolean Literal
-        |   TmAnno      Tm Typ                  -- Type annotation
-        |   TmBinary    TmBinaryOp Tm Tm          -- Binary Operation
-        {--
-        Unary operations: 
-                Boolean not ~
-                =
-        --}
-        |   TmUnary     TmUnaryOp Tm              -- Unary Operation
-        {--
-        Both are valid!
-
-        if {x == True} then {print("Hello")} else {print("False")}
-        if (x == True) then {print("Hello")}
-        --}
-        |   TmIf1       Tm Tm             -- 
-        |   TmIf2       Tm Tm Tm          -- Conditional
-        {--
-        Difference between Var and Lit:
-        var can be declared and then, assigned separately
-        
-        var x : Int; x = 10;            or var x : Int = 10; BOTH are good!
-        let x : Int = 10;               This a literal! Assigned value must be an expression and can not be re-assigned (sort of a constant)!
-
-        --}
-        |   TmLit       String Typ Tm           -- Literal (It has to be a specific value)
+{--
+data Exp =  Ctx                      -- Context
+        |   Unit                     -- Unit
+        |   Lit    Integer           -- Integer literal
+        |   EBool   Bool             -- Boolean Term
+        |   EString String           -- String Term
+        |   Lam    Typ Exp           -- Lambda Abstraction
+        |   Proj   Exp Int           -- Projection
+        |   Clos   Exp Exp           -- Closure
+        |   Rec    String Exp        -- Single-Field Record
+        |   RProj  Exp String        -- Record Projection by Label
+        |   App    Exp Exp           -- Application
+        |   Mrg    Exp Exp           -- Merge
+        |   Box    Exp Exp           -- Box
+        -- Extensions
+        |   If     Exp Exp Exp       -- Conditionals
+        |   Let    Exp Exp           -- Let Bindings
+        |   Fix    Exp               -- Recursion
+        -- Above extensions look good
+        -- Pairs
+        |   Pair   Exp Exp           -- Pair
+        |   Fst    Exp               -- First Projection
+        |   Snd    Exp               -- Second Projection
+        -- Sums
+        |   InL    Typ Exp           -- Tagging Left
+        |   InR    Typ Exp           -- Tagging Right
+        |   Case   Exp Exp Exp       -- Case of Sums
+        -- Built-in Lists
+        |   Nil    Typ               -- Nil List
+        |   Cons   Exp Exp           -- Cons for List
+        |   LCase  Exp Exp Exp       -- Case of List
+        -- Operations
+        |   BinOp  BinaryOp Exp Exp  -- Binary operations
+        |   UnOp   UnaryOp Exp       -- Unary operations
+        deriving (Eq, Show)
+--}
+data Tm =   TmCtx                               -- Query
+        |   TmUnit                              -- Unit
+        |   TmLit       Integer                 -- Integer Literal
+        |   TmBool      Bool                    -- Boolean Literal
+        |   TmString    String                  -- String  Literal
+        |   TmLam       String Typ Tm           -- Abstraction with binding
+        |   TmProj      Tm Int                  -- Projection on Expression
+        |   TmClos      Tm Tm
+        |   
+        |   TmBinary    TmBinaryOp Tm Tm        -- Binary Operation
+        |   TmUnary     TmUnaryOp Tm            -- Unary Operation
+        |   TmIf       Tm Tm Tm                 -- Conditional
         |   TmVar       String                  -- Variable can change and take different values
         |   TmLet       Tm Tm                   -- Simple Let
         |   TmLetRec    Tm Tm                   -- Let with recursion
         |   TmMrg       Tm Tm                   -- Merge expression
-        
-
-        -- |   TmInterface [ModuleDef]               -- Multiple module definitiion
-        -- |   TmModule    String SType Tm           -- Module name type expressions
+        |   Tm
+        |   TmAnno      Tm Typ                  -- Type annotation
+        |   Interface                           -- Multiple module definitiion
+        |   Module    String Typ Tm             -- Module name type expressions
         deriving (Eq, Show)
 {--
         Example for Interface:
 
         Header File
 
---}
-
--- type ModuleDef = Defmodule String SType 
-
-{-- Types
-data Typ =  TUnit                  -- Unit type for empty environment
-        |   TInt                   -- Integer type
-        -- Can be used for pair
-        |   TAnd Typ Typ           -- Intersection type
-        |   TArrow Typ Typ         -- Arrow type, e.g. A -> B
-        |   TRecord String Typ     -- Single-Field Record Type
-        -- Extensions
-        |   TBool                  -- Boolean type
-        |   TString                -- String type
-        |   TList  Typ             -- Type for built-in list
-        |   TSum   Typ Typ         -- Type for sums
-        |   TPair  Typ Typ
-        deriving (Eq, Show)
 --}
 
 

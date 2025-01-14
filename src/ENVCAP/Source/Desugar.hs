@@ -38,6 +38,6 @@ desugar (TmBinary op tm1 tm2)     = case (desugarBinaryOp op, desugar tm1, desug
                                         (op', Just e1, Just e2) -> Just (BinOp op' e1 e2)
                                         _                       -> Nothing
 desugar (TmUnary op tm)           = UnOp <$> Just (surfaceUnaryToCoreOp op) <*> desugar tm
-desugar (TmIf2 tm1 tm2 tm3)       = If <$> desugar tm1 <*> desugar tm2 <*> desugar tm3
+desugar (TmIf tm1 tm2 tm3)       = If <$> desugar tm1 <*> desugar tm2 <*> desugar tm3
 desugar _                         = Nothing 
 
