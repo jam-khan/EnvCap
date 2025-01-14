@@ -1,70 +1,48 @@
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE GADTs #-}
+
 module ENVCAP.Source.Syntax where
 
-{--
-data Exp =  Ctx                      -- Context
-        |   Unit                     -- Unit
-        |   Lit    Integer           -- Integer literal
-        |   EBool   Bool             -- Boolean Term
-        |   EString String           -- String Term
-        |   Lam    Typ Exp           -- Lambda Abstraction
-        |   Proj   Exp Int           -- Projection
-        |   Clos   Exp Exp           -- Closure
-        |   Rec    String Exp        -- Single-Field Record
-        |   RProj  Exp String        -- Record Projection by Label
-        |   App    Exp Exp           -- Application
-        |   Mrg    Exp Exp           -- Merge
-        |   Box    Exp Exp           -- Box
-        -- Extensions
-        |   If     Exp Exp Exp       -- Conditionals
-        |   Let    Exp Exp           -- Let Bindings
-        |   Fix    Exp               -- Recursion
-        -- Above extensions look good
-        -- Pairs
-        |   Pair   Exp Exp           -- Pair
-        |   Fst    Exp               -- First Projection
-        |   Snd    Exp               -- Second Projection
-        -- Sums
-        |   InL    Typ Exp           -- Tagging Left
-        |   InR    Typ Exp           -- Tagging Right
-        |   Case   Exp Exp Exp       -- Case of Sums
-        -- Built-in Lists
-        |   Nil    Typ               -- Nil List
-        |   Cons   Exp Exp           -- Cons for List
-        |   LCase  Exp Exp Exp       -- Case of List
-        -- Operations
-        |   BinOp  BinaryOp Exp Exp  -- Binary operations
-        |   UnOp   UnaryOp Exp       -- Unary operations
-        deriving (Eq, Show)
---}
 data Tm =   TmCtx                               -- Query
         |   TmUnit                              -- Unit
         |   TmLit       Integer                 -- Integer Literal
         |   TmBool      Bool                    -- Boolean Literal
         |   TmString    String                  -- String  Literal
-        |   TmLam       String Typ Tm           -- Abstraction with binding
+        |   TmLam       [(String, Typ)] Tm      -- Abstraction with binding
         |   TmProj      Tm Int                  -- Projection on Expression
         |   TmClos      Tm Tm
-        |   
-        |   TmBinary    TmBinaryOp Tm Tm        -- Binary Operation
-        |   TmUnary     TmUnaryOp Tm            -- Unary Operation
-        |   TmIf       Tm Tm Tm                 -- Conditional
-        |   TmVar       String                  -- Variable can change and take different values
-        |   TmLet       Tm Tm                   -- Simple Let
-        |   TmLetRec    Tm Tm                   -- Let with recursion
-        |   TmMrg       Tm Tm                   -- Merge expression
-        |   Tm
-        |   TmAnno      Tm Typ                  -- Type annotation
-        |   Interface                           -- Multiple module definitiion
-        |   Module    String Typ Tm             -- Module name type expressions
+        |   TmRec       String Tm
+        |   TmRProj     String Tm
+        |   TmApp       Tm Tm
+        |   TmMrg       Tm Tm
+        |   TmBox       Tm Tm
+        |   TmIf        Tm Tm Tm
+        |   TmLet       String Typ Tm Tm
+        |   TmLetrec    String Typ Tm Tm
+        |   TmPair      Tm Tm
+        |   TmFst       Tm
+        |   TmSnd       Tm
+        |   TmInL       Tm
+        |   TmInR       Tm
+        |   TmNil       Typ
+        |   TmCons      Tm Tm
+        |   TmBinOp     TmBinaryOp Tm Tm
+        |   TmUnOp      TmUnaryOp Tm
+        |   TmCase      Tm                      -- This will perform type-directed elaboration to different case in core
+        -- Extension that require elaboration
+        -- Type annotation
+        |   TmAnno      Tm Typ                  -- Tm : Typ
+        |   TmSwitch    Tm [(Tm, Tm)]           -- Match/Switch
+        |   TmSeq       Tm Tm                   -- Sequence (Not sure abt this)
         deriving (Eq, Show)
-{--
-        Example for Interface:
 
-        Header File
+data TypeVar = TVar String Typ
 
---}
+data Module     = Module Import Export [Tm] deriving (Eq, Show)
+type Import     = [Typ]
+type Export     = [Typ]
 
+data Header     = Header Import Export deriving (Eq, Show)
 
 -- Types
 data Typ      =     TUnit                  -- Unit type for empty environment
@@ -78,7 +56,7 @@ data Typ      =     TUnit                  -- Unit type for empty environment
                 |   TString                -- String type
                 |   TList  Typ             -- Type for built-in list
                 |   TSum   Typ Typ         -- Type for sums
-                |   TPair  Typ Typ
+                |   TPair  Typ Typ         
                 deriving (Eq, Show)
 
 -- Operations Definitions
