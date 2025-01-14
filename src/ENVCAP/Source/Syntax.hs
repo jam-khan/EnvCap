@@ -19,11 +19,9 @@ data Tm =   TmCtx                               -- Query
         |   TmIf        Tm Tm Tm
         |   TmLet       String Typ Tm Tm
         |   TmLetrec    String Typ Tm Tm
-        |   TmPair      Tm Tm
+        |   TmTuple     [Tm]
         |   TmFst       Tm
         |   TmSnd       Tm
-        |   TmInL       Tm
-        |   TmInR       Tm
         |   TmNil       Typ
         |   TmCons      Tm Tm
         |   TmBinOp     TmBinaryOp Tm Tm
@@ -31,7 +29,11 @@ data Tm =   TmCtx                               -- Query
         |   TmCase      Tm                      -- This will perform type-directed elaboration to different case in core
         -- Extension that require elaboration
         -- Type annotation
+        |   TmInL       Tm
+        |   TmInR       Tm
+        -- Not sure if tagging is needed at source level -- can be simply added during elaboration to core
         |   TmAnno      Tm Typ                  -- Tm : Typ
+        |   TmIndex     Tm Int                  -- List Indexing
         |   TmSwitch    Tm [(Tm, Tm)]           -- Match/Switch
         |   TmSeq       Tm Tm                   -- Sequence (Not sure abt this)
         deriving (Eq, Show)

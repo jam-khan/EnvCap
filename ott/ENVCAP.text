@@ -1,0 +1,61 @@
+<program> ::= <expression>
+
+<expression> ::=  "?"
+				| "void"
+               	| <basic_expr>
+             	| "\\(" ( <param> )* ")=>" "{" <program> "}"
+                | <expression> "." ( <identifier> )
+                | <expression> "." ( [0-9] )+
+                | "{" <identifier> ":" <expression> "}"
+                | <application>
+                | <expression> ( ",," <expression> )+
+                | "Box" "(" <expression> "," <expression> ")"
+                | "if" <expression> "then" <expression> "else" <expression>
+                | "let" <var_assignment> "in" <expression>
+                | "letrec" <var_assignment> "in" <expression>
+                | <tuple>
+                | "Fst" <tuple>
+                | "Snd" <tuple>
+              	| <list>
+                | <parens_expr> <binop> <parens_expr>
+                | <unaryop> <parens_expr>
+                | <expression> ";" <expression>
+
+<parens_expr> ::= <expression> | "(" <expression> ")"
+<binop> 	::= "+" | "-" | "*" | "/" | "%" | ">" | ">=" | "==" | "!=" | "<" | "<=" | "&&" | "||"
+<unaryop>	::= "!"
+
+<list> ::= "[]"
+          | "[" <expression> ( "," <expression> )* "]"
+
+<application> ::= <identifier> "(" ( <expression> ) ( "," <expression> )* ")"
+<tuple> ::= "(" <basic_expr> ( "," <basic_expr> )* ")"
+<basic_expr> ::=  <integer>
+				| <string>
+                | <boolean>
+
+<var_assignment> ::= <identifier> "=" <expression>
+                
+<param>   ::= <identifier> ":" <type>
+
+<integer> ::= ( <sign> )* [0-9]+
+<sign>	  ::= "+" | "-"
+
+<string> ::= "\"" [a-z]* "\""
+<boolean> ::= "False" | "True"
+
+<type> ::= <base_type>
+		|  <intersection_type>
+        |  <arrow_type>
+        |  <record_type>
+        |  "(" <type> ")"
+
+<base_type> ::= "Int"
+			|	"Bool"
+			|	"String"
+
+<intersection_type> ::= "(" <type> "," <type> ")"
+<arrow_type>		::= "(" <type> "->" <type> ")"
+<record_type>		::= "{" <identifier> ":" <type> "}"
+
+<identifier>		::= ([a-z])+ ([0-9] [a-z])*
