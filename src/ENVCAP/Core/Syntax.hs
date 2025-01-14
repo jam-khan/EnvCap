@@ -21,7 +21,6 @@ data Exp =  Ctx                      -- Context
         |   If     Exp Exp Exp       -- Conditionals
         |   Let    Exp Exp           -- Let Bindings
         |   Fix    Exp               -- Recursion
-        -- Above extensions look good
         -- Pairs
         |   Pair   Exp Exp           -- Pair
         |   Fst    Exp               -- First Projection

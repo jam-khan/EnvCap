@@ -115,13 +115,3 @@ instance Eq TmBinaryOp where
         (TmComp op1)  == (TmComp op2)  = op1 == op2
         (TmLogic op1) == (TmLogic op2) = op1 == op2
         _           == _           = False
-
-{--
-isValue :: Value -> Bool
-isValue VUnit                   = True
-isValue (VInt _)                = True
-isValue (VBool _)               = True
-isValue (VClos v t e)           = isValue v
-isValue (VRcd label val)        = isValue val
-isValue (VMrg v1 v2)            = isValue v1 && isValue v2
---}
