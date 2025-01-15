@@ -1,0 +1,52 @@
+--- Utility file code ---
+
+type Util = (
+    lessthanEqual:      (Int, [Int]) -> [Int],
+    greaterthan:        (Int, [Int]) -> [Int],
+    merge:              ([Int], [Int]) -> [Int],
+    split:  ((Int, [Int]) -> [Int], Int, [Int]) -> [Int]
+);
+
+module Utility : Util {
+    {-- Example
+    
+    - Annonymous function with recursion.
+    - Elaboration will add Fix to the expression to support
+        recursion.
+    --}
+    
+    defrec lessthanEqual: (Int, [Int]) -> [Int] = 
+            \(y:Int, xs:[Int]) => {
+                case xs of
+                    []  => []
+                    (x:xs') => if x <= y then ([x] ++ lessthanEqual(y,xs'))
+                                            {-- alternately
+                                            
+                                            (x::lessthanEqual(y, xs'))
+                                            or
+                                            (cons x (lessthanEqual(y,xs')))
+                                            --}
+                                         else lessthanEqual(x,xs')
+            };
+
+    defrec greaterthanEqual: (Int, [Int]) -> [Int] =
+            \(y: Int, xs: [Int]) => {
+                case xs of
+                    []      => []
+                    (x:xs') => if x > y then x::greaterthanEqual(y, xs')
+            };
+    
+    defrec merge: (Int, [Int]) -> [Int] =
+            \(xs: [Int], ys: [Int]) => {
+                case xs of
+                    []          => ys
+                    (x:xs')     => cons x (merge (xs', ys))
+            };
+    {--
+    --    splitter is a first-class function!
+    --}
+    def split: ((Int, [Int]) -> [Int], Int, [Int]) -> [Int] =
+            \(splitter: (Int, [Int]) -> [Int], y: Int, xs: [Int]) => {
+                    splitter(y, xs);
+            }
+};

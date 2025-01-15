@@ -146,36 +146,36 @@ Arithmetic, Binary and Logical operations are the standard manipulations.
 ## Typing Rules:  λ<sub>E</sub> extensions
 
 
-                                                                                Γ |- e : T1 -> T1    
-                    ------------ TYP-BOOL       --------------- TYP-STRING      ----------------- TYP-FIX    
-                    Γ |- b : Bool               Γ |- s : String                  Γ |- Fix e : T1
+                                                                                    Γ |- e => T1 -> T1    
+                    -------------- TYP-BOOL      ---------------- TYP-STRING        ------------------ TYP-FIX    
+                    Γ |- b => Bool               Γ |- s => String                    Γ |- Fix e => T1
 
-        Γ |- e1 : A      Γ &  A |- e2 : B                       Γ |- e1 : Bool      Γ |- e2 : A     Γ |- e2 : B     A = B
-        --------------------------------- TYP-LET               --------------------------------------------------------- TYP-IF
-                Γ |- let e1 e2 : B                                              Γ |- if e1 e2 e3 : B
+        Γ |- e1 : A      Γ &  A |- e2 : B                       Γ |- e1 => Bool      Γ |- e2 => A     Γ |- e2 <= A 
+        --------------------------------- TYP-LET               -------------------------------------------------- TYP-IF
+                Γ |- let e1 e2 : B                                              Γ |- if e1 e2 e3 => A
         
-                Γ |- e1 : A     Γ |- e2 : B                     Γ |- e : A * B                  Γ |- e : A * B
-                ---------------------------- TYP-PAIR           ---------------- TYP-Fst        -------------- TYP-Snd
-                    Γ |- (e1, e2) : A * B                       Γ |- Fst e : A                  Γ |- Snd e : N
+                Γ |- e1 => A     Γ |- e2 => B                    Γ |- e => A * B                 Γ |- e => A * B
+                ----------------------------- TYP-PAIR           ---------------- TYP-Fst        --------------- TYP-Snd
+                    Γ |- (e1, e2) => A * B                       Γ |- Fst e => A                 Γ |- Snd e => B
 
-                                Γ |- e1 : T1                                  Γ |- e2 : T2
-                        ------------------------ TYP-InL                ------------------------ TYP-InR
-                        Γ |- inl T2 e1 : T1 + T2                        Γ |- inr T1 e2 : T1 + T2
+                                Γ |- e1 => T1                                 Γ |- e2 => T2
+                        ------------------------ TYP-InL                ------------------------- TYP-InR
+                        Γ |- inl T2 e1 => T1 + T2                       Γ |- inr T1 e2 => T1 + T2
 
-                                Γ |- e0 : T1 + T2   Γ & T1 |- e1 : T3   Γ & T2 |- e2 : T3
-                                --------------------------------------------------------- TYP-CASE
-                                                Γ |- case e0 e1 e2 : T3
+                                Γ |- e0 => T1 + T2   Γ & T1 |- e1 => T3   Γ & T2 |- e2 <= T3
+                                ------------------------------------------------------------ TYP-CASE
+                                                Γ |- case e0 e1 e2 => T3
 
-                        Γ |- e0 : List T1       Γ |- e1 : T2    (Γ & T1) & List T1 |- e2 : T2
-                        --------------------------------------------------------------------- TYP-LCASE
-                                                Γ |- lcase e0 e1 e2 : T2
+                        Γ |- e0 => List T1      Γ |- e1 => T2    (Γ & T1) & List T1 |- e2 <= T2
+                        ----------------------------------------------------------------------- TYP-LCASE
+                                                Γ |- lcase e0 e1 e2 => T2
                             
-                                                                        Γ |- e2 : List T    Γ |- e1 : T
-                    ------------------- TYP-Nil                         ------------------------------- TYP-Cons
-                    Γ |- nil T : List T                                 Γ |- cons e1 e2 : List T
+                                                                        Γ |- e2 => List T    Γ |- e1 <= T
+                    -------------------- TYP-Nil                        --------------------------------- TYP-Cons
+                    Γ |- nil T => List T                                   Γ |- cons e1 e2 => List T
             
 
-            Γ |- e1 : T1   Γ |- e2 : T1   Γ |- v1 binop v2 : T1                              Γ |- e : T
-            ------------------------------------------------------ BSTEP-BinaryOp         -------------------- BSTEP-Unaryop
-                             Γ |- e1 binop e2 : T1                                        Γ |- unaryop e : T
+                    Γ |- e1 => T1   Γ |- e2 <= T1                           Γ |- e => T
+                    ----------------------------- BSTEP-BinaryOp         ------------------- BSTEP-Unaryop
+                        Γ |- e1 binop e2 => T1                            Γ |- unaryop e => T
 

@@ -1,70 +1,50 @@
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE GADTs #-}
+
 module ENVCAP.Source.Syntax where
 
-data Tm =   TmQuery                               -- Query
-        |   TmUnit                                -- Unit
-        |   TmString    String                    -- String  Literal
-        |   TmInt       Integer                   -- Integer Literal
-        |   TmBool      Bool                      -- Boolean Literal
-        |   TmAnno      Tm Typ                  -- Type annotation
-        |   TmBinary    TmBinaryOp Tm Tm          -- Binary Operation
-        {--
-        Unary operations: 
-                Boolean not ~
-                =
-        --}
-        |   TmUnary     TmUnaryOp Tm              -- Unary Operation
-        {--
-        Both are valid!
-
-        if {x == True} then {print("Hello")} else {print("False")}
-        if (x == True) then {print("Hello")}
-        --}
-        |   TmIf1       Tm Tm             -- 
-        |   TmIf2       Tm Tm Tm          -- Conditional
-        {--
-        Difference between Var and Lit:
-        var can be declared and then, assigned separately
-        
-        var x : Int; x = 10;            or var x : Int = 10; BOTH are good!
-        let x : Int = 10;               This a literal! Assigned value must be an expression and can not be re-assigned (sort of a constant)!
-
-        --}
-        |   TmLit       String Typ Tm           -- Literal (It has to be a specific value)
-        |   TmVar       String                  -- Variable can change and take different values
-        |   TmLet       Tm Tm                   -- Simple Let
-        |   TmLetRec    Tm Tm                   -- Let with recursion
-        |   TmMrg       Tm Tm                   -- Merge expression
-        
-
-        -- |   TmInterface [ModuleDef]               -- Multiple module definitiion
-        -- |   TmModule    String SType Tm           -- Module name type expressions
+data Tm =   TmCtx                               -- Query
+        |   TmUnit                              -- Unit
+        |   TmLit       Integer                 -- Integer Literal
+        |   TmBool      Bool                    -- Boolean Literal
+        |   TmString    String                  -- String  Literal
+        |   TmLam       [(String, Typ)] Tm      -- Abstraction with binding
+        |   TmProj      Tm Int                  -- Projection on Expression
+        |   TmClos      Tm Tm
+        |   TmRec       String Tm
+        |   TmRProj     String Tm
+        |   TmApp       Tm Tm
+        |   TmMrg       Tm Tm
+        |   TmBox       Tm Tm
+        |   TmIf        Tm Tm Tm
+        |   TmLet       String Typ Tm Tm
+        |   TmLetrec    String Typ Tm Tm
+        |   TmTuple     [Tm]
+        |   TmFst       Tm
+        |   TmSnd       Tm
+        |   TmNil       Typ
+        |   TmCons      Tm Tm
+        |   TmBinOp     TmBinaryOp Tm Tm
+        |   TmUnOp      TmUnaryOp Tm
+        |   TmCase      Tm                      -- This will perform type-directed elaboration to different case in core
+        -- Extension that require elaboration
+        -- Type annotation
+        |   TmInL       Tm
+        |   TmInR       Tm
+        -- Not sure if tagging is needed at source level -- can be simply added during elaboration to core
+        |   TmAnno      Tm Typ                  -- Tm : Typ
+        |   TmIndex     Tm Int                  -- List Indexing
+        |   TmSwitch    Tm [(Tm, Tm)]           -- Match/Switch
+        |   TmSeq       Tm Tm                   -- Sequence (Not sure abt this)
         deriving (Eq, Show)
-{--
-        Example for Interface:
 
-        Header File
+data TypeVar = TVar String Typ
 
---}
+data Module     = Module Import Export [Tm] deriving (Eq, Show)
+type Import     = [Typ]
+type Export     = [Typ]
 
--- type ModuleDef = Defmodule String SType 
-
-{-- Types
-data Typ =  TUnit                  -- Unit type for empty environment
-        |   TInt                   -- Integer type
-        -- Can be used for pair
-        |   TAnd Typ Typ           -- Intersection type
-        |   TArrow Typ Typ         -- Arrow type, e.g. A -> B
-        |   TRecord String Typ     -- Single-Field Record Type
-        -- Extensions
-        |   TBool                  -- Boolean type
-        |   TString                -- String type
-        |   TList  Typ             -- Type for built-in list
-        |   TSum   Typ Typ         -- Type for sums
-        |   TPair  Typ Typ
-        deriving (Eq, Show)
---}
-
+data Header     = Header Import Export deriving (Eq, Show)
 
 -- Types
 data Typ      =     TUnit                  -- Unit type for empty environment
@@ -78,7 +58,7 @@ data Typ      =     TUnit                  -- Unit type for empty environment
                 |   TString                -- String type
                 |   TList  Typ             -- Type for built-in list
                 |   TSum   Typ Typ         -- Type for sums
-                |   TPair  Typ Typ
+                |   TPair  Typ Typ         
                 deriving (Eq, Show)
 
 -- Operations Definitions
@@ -137,13 +117,3 @@ instance Eq TmBinaryOp where
         (TmComp op1)  == (TmComp op2)  = op1 == op2
         (TmLogic op1) == (TmLogic op2) = op1 == op2
         _           == _           = False
-
-{--
-isValue :: Value -> Bool
-isValue VUnit                   = True
-isValue (VInt _)                = True
-isValue (VBool _)               = True
-isValue (VClos v t e)           = isValue v
-isValue (VRcd label val)        = isValue val
-isValue (VMrg v1 v2)            = isValue v1 && isValue v2
---}

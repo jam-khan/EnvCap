@@ -1,0 +1,76 @@
+
+metavar n ::=
+  {{ com Numeric literals }}
+  {{ phantom }}
+  {{ lex numeric }}
+  {{ lem integer }}
+
+metavar location, l ::= 
+  {{ com Store locations }}
+  {{ lem string }}
+
+grammar 
+b :: 'B_' ::=              {{ com booleans }}  {{ phantom }} {{ lem bool }}
+  | true                    ::   :: true      {{ lem true }}
+  | false                   ::   :: false     {{ lem false }}
+
+operations, op :: 'Op_' ::=            {{ com operations }}
+  | +                       ::   :: plus
+  | -                       ::   :: minus
+  | *                       ::   :: mult
+  | /                       ::   :: div
+  | >=                      ::   :: gteq
+  | >                       ::   :: gt
+  | ==                      ::   :: eq
+  | !=                      ::   :: neq
+  | <                       ::   :: lt
+  | <=                      ::   :: lteq
+  | &&                      ::   :: and
+  | ||                      ::   :: or
+  | not                     ::   :: not
+
+e :: 'E_'  ::=	           {{ com expressions }}
+  | i                       ::   :: int
+  | b                       ::   :: bool
+  | s                       ::   :: string
+  | e1 op e2                ::   :: op
+  | if e1 then e2 else e3   ::   :: if
+  | l := e                  ::   :: assign
+  | skip                    ::   :: skip
+  | e1 ; e2                 ::   :: sequence
+  | ( e )                   :: M :: paren  {{ ichlo ([[e]]) }}
+
+param :: 'P_' ::=           {{ com parameter }}
+  | identifier 
+v :: 'V_' ::=              {{ com values }}
+  | n                       ::   :: num
+  | b                       ::   :: bool
+  | skip                    ::   :: skip    
+
+store , s :: 'Store_' ::=  {{ com stores }} {{ phantom }} {{ lem list (location * integer) }}
+   | empty                  ::   :: empty {{ lem [] }}
+   | s , l |-> n            ::   :: extend  {{ lem (([[l]],[[n]])::[[s]]) }}
+
+typ, T :: 'T_' ::=         {{ com types }}
+  | int                     ::   :: int
+  | bool                    ::   :: bool
+  | unit                    ::   :: unit
+
+
+type_assumption, ta :: 'TA_' ::= {{ com type assumption }}
+  | l : Tloc                ::   :: loc
+
+G {{ tex \Gamma }} :: G_ ::=     {{ com type environments }} {{ phantom }} {{ lem list type_assumption }}
+  | empty                   ::   :: empty {{ lem [] }}
+  | G , ta                  ::   :: extend {{ lem ([[ta]]::[[G]]) }}
+
+
+terminals :: terminals_ ::=
+  | +    :: :: plus
+  | >=   :: :: leq       {{ tex \geq }}
+  | |-   :: :: turnstile {{ tex \vdash }}
+  | |->  :: :: mapsto    {{ tex \mapsto }}
+  | ;    :: :: seq
+  | ->   :: :: red       {{ tex \longrightarrow }}
+  | <    :: :: la        {{ tex \langle }}
+  | >    :: :: ra        {{ tex \rangle }}

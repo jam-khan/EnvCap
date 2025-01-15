@@ -118,10 +118,18 @@ parens :: Parser Tm -> Parser Tm
 parens p = lexeme $ between (char '(') (char ')') p
 
 parseConditional :: Parser Tm
-parseConditional = TmIf2    <$> (void (keyword "if")       *> parseExp)
+parseConditional = TmIf    <$> (void (keyword "if")       *> parseExp)
                             <*> (void (keyword "then")     *> parseExp)
                             <*> (void (keyword "else")     *> parseExp)
 
 -- main parser
 parseMain :: String -> Either ParseError Tm
 parseMain = parseWithWhitespace parseExp
+
+
+{--
+        Do the following:
+        1. Parse defintions
+        2. 
+
+--}
