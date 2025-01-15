@@ -1,0 +1,10 @@
+--- util header file ---
+
+type Util = (
+    lessthanEqual:      (Int, [Int]) -> [Int],
+    greaterthan:        (Int, [Int]) -> [Int],
+    merge:              ([Int], [Int]) -> [Int],
+    split:  ((Int, [Int]) -> [Int], Int, [Int]) -> [Int]
+);
+
+signature Utility : Util;

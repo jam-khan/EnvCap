@@ -8,7 +8,6 @@ import Control.Monad (liftM2, liftM)
 import Data.Maybe (isNothing)
 
 
--- ==> direction
 infer :: Typ -> Exp -> Maybe Typ
 -- TYP-CTX
 infer ctx Ctx               = Just ctx

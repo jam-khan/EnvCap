@@ -1,0 +1,106 @@
+metavar tvar, X, Y, Z ::= {{ com type variable name }}
+metavar var, x, y, z, E, this ::= {{ com variable name }}
+metavar label, l {{ tex \ell }} ::= {{ com label name }}
+
+grammar
+
+typ, A, B, C :: 't_' ::= {{ com types }}
+  | Int              ::  :: int    {{ com top type }}
+  | Unit             ::  :: unit   {{ com unit }} {{ tex \epsilon }}
+  | A & B            ::  :: and    {{ com intersection type }}
+  | A -> B           ::  :: arrow  {{ com function type }}
+  | { l : A }        ::  :: rcd    {{ com record type }}
+  | ( A )            :: S:: paren
+
+exp, e :: 'e_' ::= {{ com expressions }}
+  | ?                ::  :: query       {{ com query environment }}
+  | e.n              ::  :: lookupv     {{ com indexed lookup }}
+  | i                ::  :: lit         {{ com integer value }}
+  | EUnit            ::  :: unit        {{ com unit }} {{ tex \epsilon }}
+  | \ A . e          ::  :: abstraction {{ com abstraction }}
+  | e1 box e2        ::  :: box         {{ com box }}
+  | ⟨v, \A . e⟩      ::  :: closure     {{ com closure }}
+  | e1 e2            ::  :: app         {{ com application }}
+  | e1 ,, e2         ::  :: merge       {{ com merging }} {{ tex [[e1]]\bbcomma[[e2]] }}
+  | { l = e }        ::  :: rcd         {{ com record }}
+  | e . l            ::  :: proj        {{ com projection }}
+  | ( e )            ::  :: parense
+
+v :: V ::= {{ com values }}
+  | i                   ::  :: lit
+  | unit                ::  :: unit {{ tex \epsilon }}
+  | ⟨v, \A . e⟩         ::  :: closure     {{ com closure }}
+  | v1 ,, v2            ::  :: merge
+  | { l = v }           ::  :: rcd
+  | ( v )               ::  :: parensv
+
+frame, F :: 'F_' ::= {{ com Frames }}
+  | [].n                ::  :: f1
+  | [] ,, e             ::  :: f2
+  | [] e                ::  :: f3
+  | [] box e            ::  :: f4
+  | v []                ::  :: f5
+  | { l = [] }          ::  :: f6
+  | [].l                ::  :: f7
+  | ( F )               ::  :: f8
+
+terminals :: 'terminals_' ::=
+  | box          ::  :: box        {{ tex \triangleright }}
+  | \            ::  :: lambda     {{ tex \lambda }}
+  | /\           ::  :: biglambda  {{ tex \Lambda }}
+  | ~>           ::  :: subst      {{ tex \mapsto }}
+  | ->           ::  :: arrow      {{ tex \rightarrow }}
+  | >->          ::  :: stepalt    {{ tex \rightarrow }}
+  | >->*         ::  :: stepmul    {{ tex \rightarrow^{*} }}
+  | -->          ::  :: longarrow  {{ tex \hookrightarrow }}
+  | ==>          ::  :: darrow     {{ tex \Downarrow }}
+  | ~~>          ::  :: sarrow     {{ tex \, \rightsquigarrow \, }}
+  | |->          ::  :: mapsto     {{ tex \longmapsto }}
+  | <--          ::  :: leftarrow  {{ tex \leftarrow }}
+  | <=           ::  :: check      {{ tex \Leftarrow }}
+  | =>           ::  :: infer      {{ tex \Rightarrow }}
+  | |-           ::  :: turnstile  {{ tex \vdash }}
+  | |=           ::  :: dturnstile {{ tex \models }}
+  | in           ::  :: in         {{ tex \in }}
+  | forall       ::  :: forall     {{ tex \forall }}
+  | ~            ::  :: consistent {{ tex \approx }}
+  | &            ::  :: intersect  {{ tex \, \& \, }}
+  | ,,           ::  :: merge      {{ tex \, ,\!, \, }}
+  | .=.          ::  :: equiv      {{ tex \fallingdotseq }}
+  | $            ::  :: apply      {{ tex \, \bullet \, }}
+  | <|           ::  :: lhd        {{ tex \; \lhd \; }}
+  | |>           ::  :: rhd        {{ tex \; \rhd \; }}
+
+formula :: 'formula_' ::=
+  | judgement             ::  :: judgement
+  | not formula           :: M:: not       {{ tex \neg [[formula]] }}
+  | formula1 or formula2  :: M:: or        {{ tex [[formula1]] \lor [[formula2]] }}
+  | formula1 and formula2 :: M:: and       {{ tex [[formula1]] \land [[formula2]] }}
+  | ( formula )           :: M:: brackets  {{ tex ([[formula]]) }}
+  | << formula >>         :: M:: highlight {{ tex \colorbox{lightgray}{$[[formula]]$} }}
+  | [ formula ]           :: M:: hide      {{ tex }}
+  | uniq G                ::  :: uniqG     {{ tex }}
+  | x : A in G            ::  :: inG
+  | x notin fv e          ::  :: fresh
+  | x notin dom G         ::  :: notInGx   {{ tex [[x]] \notin [[G]] }}
+  | l1 <> l2              ::  :: labelNeq  {{ tex [[l1]] \neq [[l2]] }}
+  | T1 = T2               ::  :: typEq
+  | Ts = itoa | A |       ::  :: itoa      {{ com intersection to array of types }}
+  | e1 --> i e2           :: M:: multistep {{ tex [[e1]]~[[-->]][[i]]~[[e2]] }}
+  | G |- A * B            :: M:: disjointSpec
+  | v |- e --> e'         :: M:: adawd            
+  | v1 ~ v2               :: M:: consistentSpec
+  | A .=. B               :: M:: equivalent
+  | F[e]                  :: M:: Frame
+
+defns 
+Jop :: '' ::= 
+
+defns
+Semantics :: '' ::=
+
+defn
+E |- e --> e' :: :: step :: Step_ by
+
+--------------- :: CTX
+  E |- ? --> v
