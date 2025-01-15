@@ -1,6 +1,6 @@
 module ENVCAP.Parser.Parser where
 
-import ENVCAP.Source.Syntax (Tm(..), Typ(..), TmBinaryOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
+import ENVCAP.Source.Syntax (Tm(..), Typ(..), TmBinOpOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
 import Text.Parsec (ParseError, many1, string, try, between, anyChar, notFollowedBy, lookAhead, Parsec)
 import Text.Parsec.String (Parser)
 import Text.Parsec.Prim (parse)
@@ -26,7 +26,7 @@ import Data.Functor.Identity (Identity)
 -- Parser for context
 
 parseCtx        :: Parser Tm
-parseCtx        = lexeme $ keyword "context()" >> return TmQuery
+parseCtx        = lexeme $ keyword "context()" >> return TmCtx
 
 parseTrue       :: Parser Tm
 parseTrue       = lexeme $ trueToken    >> return (TmBool True)
@@ -37,8 +37,8 @@ parseFalse      = lexeme $ falseToken   >> return (TmBool False)
 parseBoolean    :: Parser Tm
 parseBoolean    = try parseTrue <|> parseFalse
 
-parseString :: Parser Tm
-parseString = TmString <$> lexeme stringToken
+parseString     :: Parser Tm
+parseString     = TmString <$> lexeme stringToken
 
 -- Parser for integer literals
 
@@ -47,7 +47,7 @@ parseInteger = lexeme $ do
                         sign    <-  option "" (string "-")  -- Handling Prefix -
                         void    $   option "" (string "+")   -- Handling Prefix +
                         num     <-  read <$> many1 digit
-                        return $ TmInt (if null sign then num else -num)
+                        return $ TmLit (if null sign then num else -num)
 -- Parser for unit
 
 parseUnit   :: Parser Tm
@@ -66,26 +66,26 @@ operationParser = lexeme $ buildExpressionParser operators parseTerm
 operators :: [[Operator String () Identity Tm]]
 operators =
         [
-                [E.Prefix (TmUnary TmNot            <$ char '!')],
-                [E.Infix (TmBinary (TmArith TmExp)  <$ symbol "^") E.AssocLeft],
-                [E.Infix (TmBinary (TmArith TmMod)  <$ symbol "%") E.AssocLeft,
-                 E.Infix (TmBinary (TmArith TmMul)  <$ symbol "*") E.AssocLeft,
-                 E.Infix (TmBinary (TmArith TmDiv)  <$ symbol "/") E.AssocLeft],
+                [E.Prefix (TmUnOp TmNot            <$ char '!')],
+                [E.Infix (TmBinOp (TmArith TmExp)  <$ symbol "^") E.AssocLeft],
+                [E.Infix (TmBinOp (TmArith TmMod)  <$ symbol "%") E.AssocLeft,
+                 E.Infix (TmBinOp (TmArith TmMul)  <$ symbol "*") E.AssocLeft,
+                 E.Infix (TmBinOp (TmArith TmDiv)  <$ symbol "/") E.AssocLeft],
 
-                [E.Infix (TmBinary (TmArith TmAdd)  <$ symbol "+") E.AssocLeft,
-                 E.Infix (TmBinary (TmArith TmSub)  <$ symbol "-") E.AssocLeft],
+                [E.Infix (TmBinOp (TmArith TmAdd)  <$ symbol "+") E.AssocLeft,
+                 E.Infix (TmBinOp (TmArith TmSub)  <$ symbol "-") E.AssocLeft],
 
-                [E.Infix (TmBinary (TmComp TmLt)    <$ symbol "<")  E.AssocNone,
-                 E.Infix (TmBinary (TmComp TmGt)    <$ symbol ">")  E.AssocNone],
+                [E.Infix (TmBinOp (TmComp TmLt)    <$ symbol "<")  E.AssocNone,
+                 E.Infix (TmBinOp (TmComp TmGt)    <$ symbol ">")  E.AssocNone],
 
-                [E.Infix (TmBinary (TmComp TmGe)    <$ symbol ">=") E.AssocRight,
-                 E.Infix (TmBinary (TmComp TmLe)    <$ symbol "<=") E.AssocRight,
-                 E.Infix (TmBinary (TmComp TmEql)   <$ symbol "==") E.AssocRight,
-                 E.Infix (TmBinary (TmComp TmNeq)   <$ symbol "!=") E.AssocRight],
+                [E.Infix (TmBinOp (TmComp TmGe)    <$ symbol ">=") E.AssocRight,
+                 E.Infix (TmBinOp (TmComp TmLe)    <$ symbol "<=") E.AssocRight,
+                 E.Infix (TmBinOp (TmComp TmEql)   <$ symbol "==") E.AssocRight,
+                 E.Infix (TmBinOp (TmComp TmNeq)   <$ symbol "!=") E.AssocRight],
 
-                [E.Infix (TmBinary (TmLogic TmAnd)  <$ symbol "&&") E.AssocRight],
+                [E.Infix (TmBinOp (TmLogic TmAnd)  <$ symbol "&&") E.AssocRight],
 
-                [E.Infix (TmBinary (TmLogic TmOr)   <$ symbol "||")   E.AssocRight]
+                [E.Infix (TmBinOp (TmLogic TmOr)   <$ symbol "||")   E.AssocRight]
         ]
 
 
@@ -125,11 +125,3 @@ parseConditional = TmIf    <$> (void (keyword "if")       *> parseExp)
 -- main parser
 parseMain :: String -> Either ParseError Tm
 parseMain = parseWithWhitespace parseExp
-
-
-{--
-        Do the following:
-        1. Parse defintions
-        2. 
-
---}
