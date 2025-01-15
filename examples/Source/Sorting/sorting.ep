@@ -9,7 +9,7 @@ type Util = (
 
 type Sort = (mergesort: [Int] -> [Int]);
 
-signature Sorting (
+module Sorting (
     util: Util
 ): Sort {
 

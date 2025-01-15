@@ -1,2 +1,13 @@
+include "util.eph"
+include "sorting.eph"
 
-signature main : void;
+module main : void {
+       def main: void {
+            var unsorted_list: [Int] = [6, 18, 1, 3, 5];
+
+            var utility: Util   = new Utility();
+            var sorter: Sort    = new Sorting(utility);
+
+            print(sorter.mergesort(unsorted_list));
+       }
+}

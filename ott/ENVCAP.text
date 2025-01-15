@@ -1,16 +1,22 @@
 <program> ::= <expression>
-
+			| <module>
+    
+<module> ::= "module " ( <identifier> ) "(" ( <param> )* ( "," <param> )* ")" ":" ( <param> ) "= {\n" <program> "\n}"
+ 
+<header_file> ::= "type" (<identifier>) "=" (<record_type>) ";"
+               | "signature" (<identifier>) "(" (<param>) ")" ":=" (<type>) ";"
+               
 <expression> ::=  "?"
-				| "void"
+				        | "void"
                	| <basic_expr>
-             	| "\\(" ( <param> )* ")=>" "{" <program> "}"
+             	  | <lambda_expr>
                 | <expression> "." ( <identifier> )
                 | <expression> "." ( [0-9] )+
-                | "{" <identifier> ":" <expression> "}"
+                | <record>
                 | <application>
-                | <expression> ( ",," <expression> )+
-                | "Box" "(" <expression> "," <expression> ")"
-                | "if" <expression> "then" <expression> "else" <expression>
+                | <merge>
+                | <box_env>
+                | <conditional>
                 | "let" <var_assignment> "in" <expression>
                 | "letrec" <var_assignment> "in" <expression>
                 | <tuple>
@@ -21,9 +27,17 @@
                 | <unaryop> <parens_expr>
                 | <expression> ";" <expression>
 
+<lambda_expr>   ::= "\\(" ( <param> )* ")=>" "{" <program> "}"
+<record>        ::= "{" <single_record> ( "," <single_record> )* "}"
+<single_record> ::= "{" <identifier> ":" <expression> "}"
+<merge>         ::= <expression> ( ",," <expression> )+
+<conditional>   ::= "if" <expression> "then" <expression> "else" <expression>
+<box_env>       ::= "Box" "(" <expression> "," <expression> ")"
+
 <parens_expr> ::= <expression> | "(" <expression> ")"
-<binop> 	::= "+" | "-" | "*" | "/" | "%" | ">" | ">=" | "==" | "!=" | "<" | "<=" | "&&" | "||"
-<unaryop>	::= "!"
+
+<binop> 	    ::= "+" | "-" | "*" | "/" | "%" | ">" | ">=" | "==" | "!=" | "<" | "<=" | "&&" | "||"
+<unaryop>	    ::= "!"
 
 <list> ::= "[]"
           | "[" <expression> ( "," <expression> )* "]"
