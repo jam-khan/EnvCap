@@ -1,0 +1,2 @@
+module IOUtils where
+    print : String -> Void = printLn
