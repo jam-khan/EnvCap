@@ -10,9 +10,9 @@ import Data.Char (isLetter, isDigit)
 import Control.Applicative ((<$>), (<*>), (<*), (*>), (<|>), many)
 import Control.Monad (void, guard)
 import ENVCAP.Parser.Util
-import ENVCAP.Core.Syntax (Exp(BinOp))
 import Text.Parsec.Expr as E (buildExpressionParser, Assoc(AssocNone), Assoc(AssocLeft), Assoc(AssocRight), Operator(Infix, Prefix) )
 import Data.Functor.Identity (Identity)
+import ENVCAP.Core.Util (merge)
 
 
 parseCtx        :: Parser Tm
@@ -50,12 +50,29 @@ parseAssign = do
                 void (lexeme $ char '=')
                 TmRec name <$> parseExp
 
--- Parser for lambda abstractions
-{--
-        Example: (\x:Int, \y: Int) => {x + 1};
---}
--- parseLambda :: Parser Tm
--- parseLambda = TmLam 
+parseType :: Parser Typ
+parseType = do
+                void (lexeme $ string "Int")
+                return TInt
+
+parseLambdaParams :: Parser [Typ]
+parseLambdaParams = parseParam `sepEndBy1` lexeme (char ',')
+
+parseParam :: Parser Typ
+parseParam = do
+    name <- identifierToken
+    void (lexeme $ char ':')
+    TRecord name <$> parseType
+
+
+parseLambda :: Parser Tm
+parseLambda = do
+                void (lexeme $ string "\\(")
+                ty <- lexeme parseLambdaParams
+                void (lexeme $ char ')')
+                void (lexeme $ symbol "=>")
+                tm <- lexeme $ between (lexeme $ char '{') (lexeme $ char '}') parseMultExpr
+                return $ TmLam (intersections ty) (merges tm)
 
 operationParser :: Parsec String () Tm
 operationParser = lexeme $ buildExpressionParser operators parseTerm
@@ -88,11 +105,13 @@ parseTerm = try         parseCtx
                 <|>     parseString
                 <|>     parseBoolean
                 <|>     parseVar
+                <|>     parseLambda
                 <|>     parens operationParser
                 <|>     parseUnit
 
 parseExp :: Parser Tm
 parseExp =      parseAssign
+        <|>     parseLambda     
         <|>     parseConditional
         <|>     operationParser
         <|>     parseCtx
@@ -108,7 +127,7 @@ symbol s = try $ lexeme $ do
                 guard (s == u)
                 return s
 
-parens :: Parser Tm -> Parser Tm
+parens :: Parser a -> Parser a
 parens p = lexeme $ between (char '(') (char ')') p
 
 parseConditional :: Parser Tm
@@ -123,9 +142,6 @@ parseMain :: String -> Either ParseError Tm
 parseMain input = case parseWithWhitespace parseMultExpr input of
                         Left err          ->    Left err
                         Right res        ->     Right (merges res)
-
-merges :: [Tm] -> Tm
-merges = foldr TmMrg TmUnit
 
 parseFile :: String -> IO ()
 parseFile filePath = do

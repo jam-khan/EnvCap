@@ -1,6 +1,6 @@
 module ENVCAP.Source.Desugar where
-import ENVCAP.Core.Syntax (Exp(..), Typ(..), Value(..), BinaryOp(..), CompOp(..), ArithOp(..), LogicOp(..), UnaryOp(..))
-import ENVCAP.Source.Syntax (Tm(..), Typ(..), TmBinOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
+import ENVCAP.Core.Syntax as Core
+import ENVCAP.Source.Syntax as Source
 
 
 desugarBinaryOp :: TmBinOp -> BinaryOp
@@ -27,6 +27,31 @@ desugarBinaryOp (TmLogic logicop)
 surfaceUnaryToCoreOp :: TmUnaryOp -> UnaryOp
 surfaceUnaryToCoreOp TmNot              = Not
 
+-- Types
+-- data Typ      =     TUnit                  -- Unit type for empty environment
+--                 |   TInt                   -- Integer type
+--                 |   TBool                  -- Boolean type
+--                 |   TString                -- String type
+--                 |   TAnd Typ Typ           -- Intersection type
+--                 |   TArrow Typ Typ         -- Arrow type, e.g. A -> B
+--                 |   TRecord String Typ     -- Single-Field Record Type
+--                 -- Extensions
+--                 |   TList  Typ             -- Type for built-in list
+--                 |   TSum   Typ Typ         -- Type for sums
+--                 |   TPair  Typ Typ         
+--                 deriving (Eq, Show)
+
+desugarTyp :: Source.Typ -> Maybe Core.Typ
+desugarTyp Source.TUnit                = Just Core.TUnit
+desugarTyp Source.TInt                 = Just Core.TInt
+desugarTyp Source.TBool                = Just Core.TBool
+desugarTyp Source.TString              = Just Core.TString
+desugarTyp (Source.TAnd ty1 ty2)       = Core.TAnd <$> desugarTyp ty1 <*> desugarTyp ty2
+desugarTyp (Source.TArrow ty1 ty2)     = Core.TArrow             <$> desugarTyp ty1 <*> desugarTyp ty2
+desugarTyp (Source.TRecord label ty)   = Core.TRecord label      <$> desugarTyp ty
+desugarTyp (Source.TList ty)           = Core.TList              <$> desugarTyp ty 
+desugarTyp (Source.TSum ty1 ty2)       = Core.TSum               <$> desugarTyp ty1 <*> desugarTyp ty2
+desugarTyp (Source.TPair ty1 ty2)      = Core.TPair              <$> desugarTyp ty1 <*> desugarTyp ty2
 
 desugar :: Tm -> Maybe Exp
 desugar TmCtx                   = Just Ctx
@@ -42,4 +67,5 @@ desugar (TmIf tm1 tm2 tm3)      = If <$> desugar tm1 <*> desugar tm2 <*> desugar
 desugar (TmMrg tm1 tm2)         = Mrg <$> desugar tm1 <*> desugar tm2
 desugar (TmRec name tm)         = Rec name <$> desugar tm
 desugar (TmRProj tm name)       = RProj <$> desugar tm <*> Just name
+desugar (TmLam typ tm)          = Lam <$> desugarTyp typ <*> desugar tm
 desugar _                       = Nothing
