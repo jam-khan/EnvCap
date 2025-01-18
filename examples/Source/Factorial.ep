@@ -1,11 +1,3 @@
-module factorial where
-    fib : Int -> Int = 
-        (\n: Int) => {
-            if (n <= 1) {
-                return n;
-            } else {
-                return fib (n - 1) + fib (n - 2);
-            };
-        }
-
-    main : Void = print . (show (fib 13))
+1 + 2;
+3 + 4;
+5 + 6;
