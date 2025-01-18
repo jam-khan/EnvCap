@@ -47,6 +47,8 @@ parseVar    = TmVar     <$> identifierToken
 {--
         Example: (\x:Int, \y: Int) => {x + 1};
 --}
+-- parseLambda :: Parser Tm
+-- parseLambda = TmLam 
 
 operationParser :: Parsec String () Tm
 operationParser = lexeme $ buildExpressionParser operators parseTerm

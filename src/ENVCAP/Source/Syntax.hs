@@ -8,7 +8,7 @@ data Tm =   TmCtx                               -- Query
         |   TmLit       Integer                 -- Integer Literal
         |   TmBool      Bool                    -- Boolean Literal
         |   TmString    String                  -- String  Literal
-        |   TmLam       [(String, Typ)] Tm      -- Abstraction with binding
+        |   TmLam       Typ Tm      -- Abstraction with binding
         |   TmProj      Tm Int                  -- Projection on Expression
         |   TmClos      Tm Tm
         |   TmRec       String Tm
@@ -16,10 +16,10 @@ data Tm =   TmCtx                               -- Query
         |   TmApp       Tm Tm
         |   TmMrg       Tm Tm
         |   TmBox       Tm Tm
+        -- Extension that require elaboration
         |   TmIf        Tm Tm Tm
         |   TmLet       String Typ Tm Tm
         |   TmLetrec    String Typ Tm Tm
-        |   TmTuple     [Tm]
         |   TmFst       Tm
         |   TmSnd       Tm
         |   TmNil       Typ
@@ -27,11 +27,10 @@ data Tm =   TmCtx                               -- Query
         |   TmBinOp     TmBinOp Tm Tm
         |   TmUnOp      TmUnaryOp Tm
         |   TmCase      Tm                      -- This will perform type-directed elaboration to different case in core
-        -- Extension that require elaboration
-        -- Type annotation
         |   TmInL       Tm
         |   TmInR       Tm
         -- Not sure if tagging is needed at source level -- can be simply added during elaboration to core
+        |   TmTuple     [Tm]
         |   TmSwitch    Tm [(Tm, Tm)]           -- Match/Switch
         |   TmSeq       Tm Tm                   -- Sequence (Not sure abt this)
         |   TmVar       String
