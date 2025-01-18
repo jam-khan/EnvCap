@@ -1,32 +1,22 @@
 module ENVCAP.Parser.Parser where
 
-import ENVCAP.Source.Syntax (Tm(..), Typ(..), TmBinOpOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
+import ENVCAP.Source.Syntax (Tm(..), Typ(..), TmBinOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
 import Text.Parsec (ParseError, many1, string, try, between, anyChar, notFollowedBy, lookAhead, Parsec)
 import Text.Parsec.String (Parser)
 import Text.Parsec.Prim (parse)
 import Text.Parsec.Char (satisfy, char, oneOf, digit, letter, noneOf)
-import Text.Parsec.Combinator (eof, manyTill, option, anyToken, chainl1)
+import Text.Parsec.Combinator (eof, manyTill, option, anyToken, chainl1, choice)
 import Data.Char (isLetter, isDigit)
 import Control.Applicative ((<$>), (<*>), (<*), (*>), (<|>), many)
 import Control.Monad (void, guard)
-import ENVCAP.Parser.Util
-    ( falseToken,
-      identifierToken,
-      keyword,
-      lexeme,
-      parseWithWhitespace,
-      stringToken,
-      trueToken,
-      unitToken ) 
+import ENVCAP.Parser.Util 
 import ENVCAP.Core.Syntax (Exp(BinOp))
 import Text.Parsec.Expr as E (buildExpressionParser, Assoc(AssocNone), Assoc(AssocLeft), Assoc(AssocRight), Operator(Infix, Prefix) )
 import Data.Functor.Identity (Identity)
 
 
--- Parser for context
-
 parseCtx        :: Parser Tm
-parseCtx        = lexeme $ keyword "context()" >> return TmCtx
+parseCtx        = lexeme $ keyword "?" >> return TmCtx
 
 parseTrue       :: Parser Tm
 parseTrue       = lexeme $ trueToken    >> return (TmBool True)
@@ -40,33 +30,29 @@ parseBoolean    = try parseTrue <|> parseFalse
 parseString     :: Parser Tm
 parseString     = TmString <$> lexeme stringToken
 
--- Parser for integer literals
-
 parseInteger :: Parser Tm
 parseInteger = lexeme $ do
-                        sign    <-  option "" (string "-")  -- Handling Prefix -
-                        void    $   option "" (string "+")   -- Handling Prefix +
+                        sign    <-  option "" (string "-")      -- Handling Prefix -
+                        void    $   option "" (string "+")      -- Handling Prefix +
                         num     <-  read <$> many1 digit
                         return $ TmLit (if null sign then num else -num)
--- Parser for unit
 
 parseUnit   :: Parser Tm
 parseUnit   = lexeme    $ void unitToken >> return TmUnit
 
--- Parser for variable
-
 parseVar    :: Parser Tm
 parseVar    = TmVar     <$> identifierToken
 
+-- Parser for lambda abstractions
+{--
+        Example: (\x:Int, \y: Int) => {x + 1};
+--}     
 
--- Parser for logical operations
 operationParser :: Parsec String () Tm
 operationParser = lexeme $ buildExpressionParser operators parseTerm
 
 operators :: [[Operator String () Identity Tm]]
-operators =
-        [
-                [E.Prefix (TmUnOp TmNot            <$ char '!')],
+operators =    [[E.Prefix (TmUnOp TmNot            <$ char '!')],
                 [E.Infix (TmBinOp (TmArith TmExp)  <$ symbol "^") E.AssocLeft],
                 [E.Infix (TmBinOp (TmArith TmMod)  <$ symbol "%") E.AssocLeft,
                  E.Infix (TmBinOp (TmArith TmMul)  <$ symbol "*") E.AssocLeft,
@@ -85,9 +71,7 @@ operators =
 
                 [E.Infix (TmBinOp (TmLogic TmAnd)  <$ symbol "&&") E.AssocRight],
 
-                [E.Infix (TmBinOp (TmLogic TmOr)   <$ symbol "||")   E.AssocRight]
-        ]
-
+                [E.Infix (TmBinOp (TmLogic TmOr)   <$ symbol "||")   E.AssocRight]]
 
 parseTerm :: Parser Tm
 parseTerm = try         parseCtx
@@ -118,10 +102,11 @@ parens :: Parser Tm -> Parser Tm
 parens p = lexeme $ between (char '(') (char ')') p
 
 parseConditional :: Parser Tm
-parseConditional = TmIf    <$> (void (keyword "if")       *> parseExp)
+parseConditional = TmIf    <$>  (void (keyword "if")       *> parseExp)
                             <*> (void (keyword "then")     *> parseExp)
                             <*> (void (keyword "else")     *> parseExp)
 
--- main parser
 parseMain :: String -> Either ParseError Tm
-parseMain = parseWithWhitespace parseExp
+parseMain input = case parseWithWhitespace parseExp input of
+                        Left _          ->      Right TmUnit
+                        Right tm        ->      Right tm

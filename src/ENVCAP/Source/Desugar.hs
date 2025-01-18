@@ -1,9 +1,9 @@
 module ENVCAP.Source.Desugar where
 import ENVCAP.Core.Syntax (Exp(..), Typ(..), Value(..), BinaryOp(..), CompOp(..), ArithOp(..), LogicOp(..), UnaryOp(..))
-import ENVCAP.Source.Syntax (Tm(..), Typ(..), TmBinOpOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
+import ENVCAP.Source.Syntax (Tm(..), Typ(..), TmBinOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
 
 
-desugarBinaryOp :: TmBinOpOp -> BinaryOp
+desugarBinaryOp :: TmBinOp -> BinaryOp
 desugarBinaryOp (TmArith arithop)
         = case arithop of
                 TmAdd   -> Arith Add

@@ -17,7 +17,7 @@ import Data.Functor.Identity (Identity)
 
 test_cases :: [(String, Tm)]
 test_cases =
-    [ ("context()", TmCtx)
+    [ ("?", TmCtx)
     , ("(1)", TmLit 1)
     , ("(false)", TmBool False)
     , ("true", TmBool True)
@@ -43,7 +43,7 @@ test_cases =
         (TmBinOp (TmComp TmLt) (TmVar "x") (TmVar "y"))
         (TmVar "z")
         (TmVar "w"))
-    , ("if (1 + 2) > 2 then context() else false",
+    , ("if (1 + 2) > 2 then ? else false",
         TmIf
             (TmBinOp (TmComp TmGt)
                 (TmBinOp (TmArith TmAdd) (TmLit 1) (TmLit 2))
@@ -71,7 +71,7 @@ test_cases =
                     (TmLit 2))
                 (TmBinOp (TmArith TmDiv) (TmLit 5) (TmLit 2)))
             (TmBinOp (TmArith TmAdd) (TmLit 1) (TmVar "x")))
-      , ( "if (a * 2 + (3 < 4) * 5) >= (b / 2) then context() else (1 + (2 * 3) - (4 / x))",
+      , ( "if (a * 2 + (3 < 4) * 5) >= (b / 2) then ? else (1 + (2 * 3) - (4 / x))",
         TmIf
                 (TmBinOp (TmComp TmGe)
                 (TmBinOp (TmArith TmAdd)

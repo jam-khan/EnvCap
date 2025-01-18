@@ -1,9 +1,11 @@
 <program> ::= <expression>
-			| <module>
+			    |   <module>
+          |   <header>
+
     
 <module> ::= "module " ( <identifier> ) "(" ( <param> )* ( "," <param> )* ")" ":" ( <param> ) "= {\n" <program> "\n}"
  
-<header_file> ::= "type" (<identifier>) "=" (<record_type>) ";"
+<header>  ::= "type" (<identifier>) "=" (<record_type>) ";"
                | "signature" (<identifier>) "(" (<param>) ")" ":=" (<type>) ";"
                
 <expression> ::=  "?"
