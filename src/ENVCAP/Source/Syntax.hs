@@ -8,11 +8,11 @@ data Tm =   TmCtx                               -- Query
         |   TmLit       Integer                 -- Integer Literal
         |   TmBool      Bool                    -- Boolean Literal
         |   TmString    String                  -- String  Literal
-        |   TmLam       Typ Tm      -- Abstraction with binding
-        |   TmProj      Tm Int                  -- Projection on Expression
+        |   TmLam       Typ Tm                  -- Abstraction with binding
         |   TmClos      Tm Tm
         |   TmRec       String Tm
-        |   TmRProj     String Tm
+        |   TmRProj     Tm String
+        |   TmProj      Tm Int                  -- Projection on Expression
         |   TmApp       Tm Tm
         |   TmMrg       Tm Tm
         |   TmBox       Tm Tm

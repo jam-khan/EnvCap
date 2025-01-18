@@ -40,5 +40,6 @@ desugar (TmBinOp op tm1 tm2)    = case (desugarBinaryOp op, desugar tm1, desugar
 desugar (TmUnOp op tm)          = UnOp <$> Just (surfaceUnaryToCoreOp op) <*> desugar tm
 desugar (TmIf tm1 tm2 tm3)      = If <$> desugar tm1 <*> desugar tm2 <*> desugar tm3
 desugar (TmMrg tm1 tm2)         = Mrg <$> desugar tm1 <*> desugar tm2
-desugar _                       = Nothing 
-
+desugar (TmRec name tm)         = Rec name <$> desugar tm
+desugar (TmRProj tm name)       = RProj <$> desugar tm <*> Just name
+desugar _                       = Nothing

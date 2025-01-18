@@ -1,3 +1,7 @@
-1 + 2;
-3 + 4;
-5 + 6;
+var age = 12;
+/*
+Important distinction that strings are handled with single quote \' \'
+*/
+if age <= 18 then 
+    'Not old enough to ride!' else 
+    'Good to go'

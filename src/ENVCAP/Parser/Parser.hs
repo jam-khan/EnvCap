@@ -41,7 +41,14 @@ parseUnit   :: Parser Tm
 parseUnit   = lexeme    $ void unitToken >> return TmUnit
 
 parseVar    :: Parser Tm
-parseVar    = TmVar     <$> identifierToken
+parseVar    = TmRProj TmCtx <$> identifierToken
+
+parseAssign :: Parser Tm
+parseAssign = do
+                void (lexeme $ keyword "var")
+                name <- identifierToken
+                void (lexeme $ char '=')
+                TmRec name <$> parseExp
 
 -- Parser for lambda abstractions
 {--
@@ -85,7 +92,8 @@ parseTerm = try         parseCtx
                 <|>     parseUnit
 
 parseExp :: Parser Tm
-parseExp =      parseConditional
+parseExp =      parseAssign
+        <|>     parseConditional
         <|>     operationParser
         <|>     parseCtx
         <|>     parseUnit

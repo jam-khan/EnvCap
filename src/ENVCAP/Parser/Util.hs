@@ -22,7 +22,7 @@ whitespace =
                   *> manyTill anyChar (void (char '\n') <|> eof)
     blockComment = try (string "/*")
                    *> manyTill anyChar (try $ string "*/")
-    simpleWhitespace = void $ many1 (oneOf " \t\n")
+    simpleWhitespace = void $ many1 (oneOf " \t\n\r")
 
 regularParse :: Parser a -> String -> Either ParseError a
 regularParse p  = parse p ""
