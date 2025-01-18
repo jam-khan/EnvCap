@@ -45,10 +45,8 @@ eval env (Box e1 e2)            = eval v1 e2
                                     where Just v1 = eval env e1
 
 -- EXTENSIONS
--- BSTEP-True
-eval env (EBool True)           = VBool <$> Just True
--- BSTEP-False
-eval env (EBool False)          = VBool <$> Just True
+-- BSTEP-Bool
+eval env (EBool b)           = VBool <$> Just b
 -- BSTEP-STR
 eval env (EString s)            = VString <$> Just s
 -- BSTEP-FIX
@@ -59,7 +57,8 @@ eval env (Fix e)                = case eval env e of
 -- BSTEP-IF
 eval env (If cond e1 e2)        = case eval env cond of
                                     Just (VBool True)   -> eval env e1
-                                    _                   -> eval env e2
+                                    Just (VBool False)  -> eval env e2
+                                    _                   -> Nothing
 -- BSTEP-PAIR
 eval env (Pair e1 e2)           = VPair <$> eval env e1 <*> eval env e2
 

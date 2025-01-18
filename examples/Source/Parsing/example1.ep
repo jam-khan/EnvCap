@@ -1,0 +1,38 @@
+
+{--
+    Implementation of Inc
+    inc = \(x: Int) => x + 1
+--}
+
+module test(inc: Int -> Int) : (x: Int, y: Bool, z: String, k: Int) {
+    var x: Int          = 3;
+    var y: Bool         = False;
+    var z: String       = "Hello";
+    var k: Int          = x + 1;
+    var result: Int     = inc(k);
+}
+
+{-- 
+    Ignore this comment.
+
+    
+    Module "test"   [{"inc": (Int -> Int)}] 
+                    [{"x": Int}, {"y": Bool}, {"z": String}, {"k": Int}]
+                    
+                    [{"x"     = (TmLit 3)} : {"x": TInt},
+                    {"y"      = False}     : {"y": TBool},
+                    {"z"      = "Hello"}   : {"z": TString},
+                    {"k"      = x + 1}     : {"k": Int},
+                    {"result" = (inc k)}   : {"result": Int}]
+
+    -~~>  elaboration
+
+    { "test" : {"inc" : Int -> Int} -> ({"x": Int} & {"y": Bool} & {"z": String} & {"k": Int})}
+    { "test" = λ{"inc" : Int -> Int} . ({"x" = (TmLit 3)} ,, {"y" = False} ,, {"z" = "Hello"} ,, {"k" = x + 1} ,, {"result" = (?.inc k)})}
+
+    var increment: Int -> Int = \(x: Int) => (x + 1);
+    var x = test(increment);
+
+    {"increment" : Int -> Int}
+    {"increment" = λ{"x" : Int} . (x + 1)}
+--}

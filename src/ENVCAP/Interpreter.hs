@@ -15,15 +15,15 @@ main filePath = do
     case parseMain content of
         Left    err -> putStrLn $ "Parse Error: " ++ show err
         Right   res -> do
-                        putStrLn "Parsing:        SUCCESS"
+                        putStrLn $ "Parsing:        SUCCESS " ++ show res
                         case desugar res of
                             Just tm     -> do
-                                                putStrLn "Elaboration:    SUCCESS"
+                                                putStrLn $ "Elaboration:    SUCCESS " ++ show tm
                                                 case infer TUnit tm of
                                                     Just ty     -> do
-                                                                    putStrLn "Type Check:     SUCCESS"
+                                                                    putStrLn $ "Type Check:     SUCCESS " ++ show ty 
                                                                     case eval VUnit tm of
-                                                                        Just val    -> putStrLn ("\nRESULT:\n" ++ show val)
+                                                                        Just val    -> putStrLn ("Evaluation:     SUCCESS " ++ show val)
                                                                         _           -> putStrLn "Evaluation FAILED"
                                                     _           -> putStrLn "Type Check: FAIL"
                             _           -> putStrLn "Elaboration Failed"
