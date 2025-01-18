@@ -18,14 +18,12 @@ import Test.QuickCheck
       Args(maxSuccess),
       (===), forAll )
 import Data.Maybe (isNothing)
-                                        
-  
--- -- Property: All values have types
--- prop_values :: Value -> Property
--- prop_values v = counterexample (show v) $
---                 case getValueTyp TUnit v of
---                     Just typ    -> property True 
---                     _           -> property False
+
+
+{--
+  Check if the term, type, context and environment is well-formed before checking a property!
+--}
+
 
 -- Property: Type Preservation
 prop_preservation :: Exp -> Property

@@ -24,7 +24,7 @@ data Tm =   TmCtx                               -- Query
         |   TmSnd       Tm
         |   TmNil       Typ
         |   TmCons      Tm Tm
-        |   TmBinOp     TmBinaryOp Tm Tm
+        |   TmBinOp     TmBinOp Tm Tm
         |   TmUnOp      TmUnaryOp Tm
         |   TmCase      Tm                      -- This will perform type-directed elaboration to different case in core
         -- Extension that require elaboration
@@ -32,15 +32,15 @@ data Tm =   TmCtx                               -- Query
         |   TmInL       Tm
         |   TmInR       Tm
         -- Not sure if tagging is needed at source level -- can be simply added during elaboration to core
-        |   TmAnno      Tm Typ                  -- Tm : Typ
-        |   TmIndex     Tm Int                  -- List Indexing
         |   TmSwitch    Tm [(Tm, Tm)]           -- Match/Switch
         |   TmSeq       Tm Tm                   -- Sequence (Not sure abt this)
+        |   TmVar       String
+        |   TmFunc      [Typ] Tm
         deriving (Eq, Show)
 
-data TypeVar = TVar String Typ
-
+data TypeVar    = TVar String Typ
 data Module     = Module Import Export [Tm] deriving (Eq, Show)
+
 type Import     = [Typ]
 type Export     = [Typ]
 
@@ -56,18 +56,19 @@ data Typ      =     TUnit                  -- Unit type for empty environment
                 -- Extensions
                 |   TBool                  -- Boolean type
                 |   TString                -- String type
+                
                 |   TList  Typ             -- Type for built-in list
                 |   TSum   Typ Typ         -- Type for sums
                 |   TPair  Typ Typ         
                 deriving (Eq, Show)
 
 -- Operations Definitions
-data TmBinaryOp   =     TmArith TmArithOp   -- Arithmetic
+data TmBinOp   =     TmArith TmArithOp   -- Arithmetic
                 |       TmComp  TmCompOp    -- CompOp
                 |       TmLogic TmLogicOp   -- Boolean Logic
         deriving  (Show)
 
-data TmUnaryOp  = TmNeg | TmNot | TmTypeOf |TmIndex Int
+data TmUnaryOp  = TmNeg | TmNot | TmTypeOf | TmIndex Int
                                                 deriving (Eq, Show)
 data TmArithOp   = TmAdd | TmSub | TmMul | TmDiv | TmMod | TmExp
                                                 deriving (Eq, Show)
@@ -75,8 +76,8 @@ data TmCompOp    = TmEql | TmNeq | TmLt | TmLe | TmGt | TmGe
                                                 deriving (Eq, Show)
 data TmLogicOp   = TmAnd | TmOr         deriving (Eq, Show)
 
--- instance Show TmBinaryOp where
---         show :: TmBinaryOp -> String
+-- instance Show TmBinOpOp where
+--         show :: TmBinOpOp -> String
 --         show (TmArith op) = show op
 --         show (TmComp op)  = show op
 --         show (TmLogic op) = show op
@@ -111,8 +112,8 @@ data TmLogicOp   = TmAnd | TmOr         deriving (Eq, Show)
 --         show (TmIndex i) = "!!" ++ (show i)
 --         show (TmTypeOf)  = "Type of"
 
-instance Eq TmBinaryOp where 
-        (==) :: TmBinaryOp -> TmBinaryOp -> Bool
+instance Eq TmBinOp where 
+        (==) :: TmBinOp -> TmBinOp -> Bool
         (TmArith op1) == (TmArith op2) = op1 == op2
         (TmComp op1)  == (TmComp op2)  = op1 == op2
         (TmLogic op1) == (TmLogic op2) = op1 == op2

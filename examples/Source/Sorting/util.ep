@@ -8,12 +8,6 @@ type Util = (
 );
 
 module Utility : Util {
-    {-- Example
-    
-    - Annonymous function with recursion.
-    - Elaboration will add Fix to the expression to support
-        recursion.
-    --}
     
     defrec lessthanEqual: (Int, [Int]) -> [Int] = 
             \(y:Int, xs:[Int]) => {
