@@ -1,8 +1,8 @@
-var age = 12;
+define age = 12;
 /*
 Important distinction that strings are handled with single quote \' \'
 */
-var age = 19;
+-- var age = 19;
 if age <= 18 then 
     'Not old enough to ride!' else 
     'Good to go'

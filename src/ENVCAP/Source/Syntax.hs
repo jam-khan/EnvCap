@@ -62,7 +62,7 @@ data Typ      =     TUnit                  -- Unit type for empty environment
                 deriving (Eq, Show)
 
 -- Operations Definitions
-data TmBinOp   =     TmArith TmArithOp   -- Arithmetic
+data TmBinOp   =        TmArith TmArithOp   -- Arithmetic
                 |       TmComp  TmCompOp    -- CompOp
                 |       TmLogic TmLogicOp   -- Boolean Logic
         deriving  (Show)

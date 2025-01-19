@@ -40,12 +40,12 @@ parseInteger = lexeme $ do
 parseUnit   :: Parser Tm
 parseUnit   = lexeme    $ void unitToken >> return TmUnit
 
-parseVar    :: Parser Tm
-parseVar    = TmRProj TmCtx <$> identifierToken
+parseDef    :: Parser Tm
+parseDef    = TmRProj TmCtx <$> identifierToken
 
 parseAssign :: Parser Tm
 parseAssign = do
-                void (lexeme $ keyword "var")
+                void (lexeme $ keyword "define")
                 name <- identifierToken
                 void (lexeme $ char '=')
                 TmRec name <$> parseExp
@@ -74,6 +74,15 @@ parseLambda = do
                 tm <- lexeme $ between (lexeme $ char '{') (lexeme $ char '}') parseMultExpr
                 return $ TmLam (intersections ty) (merges tm)
 
+parseApplication :: Parser Tm
+parseApplication = do
+                        funcName <- identifierToken
+                        void $ lexeme $ char '('
+                        exp <- lexeme parseExp
+                        void $ lexeme $ char ')'
+                        return $ TmApp (TmRProj TmCtx funcName) exp
+
+
 operationParser :: Parsec String () Tm
 operationParser = lexeme $ buildExpressionParser operators parseTerm
 
@@ -100,26 +109,29 @@ operators =    [[E.Prefix (TmUnOp TmNot            <$ char '!')],
                 [E.Infix (TmBinOp (TmLogic TmOr)   <$ symbol "||")   E.AssocRight]]
 
 parseTerm :: Parser Tm
-parseTerm = try         parseCtx
-                <|>     parseInteger
-                <|>     parseString
-                <|>     parseBoolean
-                <|>     parseVar
-                <|>     parseLambda
-                <|>     parens operationParser
-                <|>     parseUnit
+parseTerm = try parseApplication
+            <|> parseCtx
+            <|> parseInteger
+            <|> parseString
+            <|> parseBoolean
+            <|> parseDef
+            <|> parseLambda
+            <|> parens operationParser
+            <|> parseUnit
 
 parseExp :: Parser Tm
-parseExp =      parseAssign
-        <|>     parseLambda     
-        <|>     parseConditional
-        <|>     operationParser
-        <|>     parseCtx
-        <|>     parseUnit
-        <|>     parseVar
-        <|>     parseBoolean
-        <|>     parseInteger
-        <|>     parseString
+parseExp = try parseApplication
+           <|> try parseAssign   
+           <|> parseLambda
+           <|> parseConditional
+           <|> operationParser
+           <|> parseCtx
+           <|> parseUnit
+           <|> parseDef
+           <|> parseBoolean
+           <|> parseInteger
+           <|> parseString
+
 
 symbol :: String -> Parser String
 symbol s = try $ lexeme $ do

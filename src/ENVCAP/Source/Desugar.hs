@@ -2,16 +2,68 @@ module ENVCAP.Source.Desugar where
 import ENVCAP.Core.Syntax as Core
 import ENVCAP.Source.Syntax as Source
 
+surfaceUnaryToCoreOp :: TmUnaryOp -> UnaryOp
+surfaceUnaryToCoreOp TmNot              = Not
 
-desugarBinaryOp :: TmBinOp -> BinaryOp
-desugarBinaryOp (TmArith arithop)
+desugar :: Tm -> Maybe Tm
+desugar TmCtx                           = Just TmCtx
+desugar TmUnit                          = Just TmUnit
+desugar (TmLit n)                       = Just $ TmLit n
+desugar (TmBool b)                      = Just $ TmBool b
+desugar (TmString s)                    = Just $ TmString s
+desugar (TmBinOp op tm1 tm2)            = case (desugar tm1, desugar tm2) of
+                                                (Just tm1', Just tm2') -> Just (TmBinOp op tm1' tm2')
+                                                _                       -> Nothing
+desugar (TmUnOp op tm)                  = TmUnOp op <$> desugar tm
+desugar (TmIf tm1 tm2 tm3)              = TmIf <$> desugar tm1 <*> desugar tm2 <*> desugar tm3
+desugar (TmMrg tm1 tm2)                 = TmMrg <$> desugar tm1 <*> desugar tm2
+desugar (TmRec name tm)                 = TmRec name <$> desugar tm
+desugar (TmRProj tm name)               = TmRProj <$> desugar tm <*> Just name
+desugar (TmLam ty tm)                   = case ty of
+                                                Source.TAnd t1 t2       -> TmLam t1 <$> desugar (TmLam t2 tm)
+                                                ty                      -> TmLam ty <$> desugar tm
+desugar (TmApp tm1 tm2)                 = TmApp <$> desugar tm1 <*> desugar tm2
+desugar _                               = Nothing
+
+
+debruijnTransform :: String -> Int -> Tm -> Maybe Tm
+debruijnTransform _ _ TmCtx                     = Just TmCtx
+debruijnTransform _ _ TmUnit                    = Just TmUnit
+debruijnTransform _ _ (TmLit n)                 = Just $ TmLit n
+debruijnTransform _ _ (TmBool b)                = Just $ TmBool b
+debruijnTransform _ _ (TmString s)              = Just $ TmString s
+debruijnTransform x i (TmBinOp op tm1 tm2)      = case (debruijnTransform x i tm1, debruijnTransform x i tm2) of
+                                                        (Just tm1', Just tm2')  -> Just (TmBinOp op tm1' tm2')
+                                                        _                       -> Nothing
+debruijnTransform x i (TmUnOp op tm)            = case debruijnTransform x i tm of
+                                                        (Just tm')      -> Just (TmUnOp op tm')
+                                                        _               -> Nothing
+debruijnTransform x i (TmIf tm1 tm2 tm3)        = TmIf <$> debruijnTransform x i tm1 <*> debruijnTransform x i tm2 <*> debruijnTransform x i tm3
+debruijnTransform x i (TmMrg tm1 tm2)           = TmMrg <$> debruijnTransform x i tm1 <*> debruijnTransform x (i + 1) tm2
+debruijnTransform x i (TmRec name tm)           = TmRec name <$> debruijnTransform x i tm
+debruijnTransform x i (TmRProj tm name)         = if name == x  then Just $ TmProj tm i
+                                                                else Just $ TmRProj tm name
+debruijnTransform x i (TmProj tm n)             = TmProj <$> debruijnTransform x i tm <*> Just n
+debruijnTransform x i (TmLam (Source.TRecord label ty) tm)
+                                                = if label == x then Just $ TmLam (Source.TRecord label ty) tm
+                                                                else TmLam (Source.TRecord label ty) <$> debruijnTransform x (i + 1) tm
+debruijnTransform x i (TmLam ty tm)             = TmLam ty <$> debruijnTransform x (i + 1) tm
+debruijnTransform x i (TmApp tm1 tm2)           = TmApp <$> debruijnTransform x i tm1 <*> debruijnTransform x i tm2
+debruijnTransform _ _ _                         = Nothing
+
+
+
+
+
+elaborateBinaryOp :: TmBinOp -> BinaryOp
+elaborateBinaryOp (TmArith arithop)
         = case arithop of
                 TmAdd   -> Arith Add
                 TmSub   -> Arith Sub
                 TmMul   -> Arith Mul
                 TmDiv   -> Arith Div
                 TmMod   -> Arith Mod
-desugarBinaryOp (TmComp compop)
+elaborateBinaryOp (TmComp compop)
         = case compop of
                 TmEql   -> Comp Eql
                 TmNeq   -> Comp Neq
@@ -19,53 +71,48 @@ desugarBinaryOp (TmComp compop)
                 TmLe    -> Comp Le
                 TmGt    -> Comp Gt
                 TmGe    -> Comp Ge
-desugarBinaryOp (TmLogic logicop)
+elaborateBinaryOp (TmLogic logicop)
         = case logicop of
                 TmAnd   -> Logic And
                 TmOr    -> Logic Or
 
-surfaceUnaryToCoreOp :: TmUnaryOp -> UnaryOp
-surfaceUnaryToCoreOp TmNot              = Not
 
--- Types
--- data Typ      =     TUnit                  -- Unit type for empty environment
---                 |   TInt                   -- Integer type
---                 |   TBool                  -- Boolean type
---                 |   TString                -- String type
---                 |   TAnd Typ Typ           -- Intersection type
---                 |   TArrow Typ Typ         -- Arrow type, e.g. A -> B
---                 |   TRecord String Typ     -- Single-Field Record Type
---                 -- Extensions
---                 |   TList  Typ             -- Type for built-in list
---                 |   TSum   Typ Typ         -- Type for sums
---                 |   TPair  Typ Typ         
---                 deriving (Eq, Show)
+elaborateTyp :: Source.Typ -> Maybe Core.Typ
+elaborateTyp Source.TUnit                = Just Core.TUnit
+elaborateTyp Source.TInt                 = Just Core.TInt
+elaborateTyp Source.TBool                = Just Core.TBool
+elaborateTyp Source.TString              = Just Core.TString
+elaborateTyp (Source.TAnd ty1 ty2)       = Core.TAnd <$> elaborateTyp ty1 <*> elaborateTyp ty2
+elaborateTyp (Source.TArrow ty1 ty2)     = Core.TArrow             <$> elaborateTyp ty1 <*> elaborateTyp ty2
+elaborateTyp (Source.TRecord label ty)   = Core.TRecord label      <$> elaborateTyp ty
+elaborateTyp (Source.TList ty)           = Core.TList              <$> elaborateTyp ty
+elaborateTyp (Source.TSum ty1 ty2)       = Core.TSum               <$> elaborateTyp ty1 <*> elaborateTyp ty2
+elaborateTyp (Source.TPair ty1 ty2)      = Core.TPair              <$> elaborateTyp ty1 <*> elaborateTyp ty2
 
-desugarTyp :: Source.Typ -> Maybe Core.Typ
-desugarTyp Source.TUnit                = Just Core.TUnit
-desugarTyp Source.TInt                 = Just Core.TInt
-desugarTyp Source.TBool                = Just Core.TBool
-desugarTyp Source.TString              = Just Core.TString
-desugarTyp (Source.TAnd ty1 ty2)       = Core.TAnd <$> desugarTyp ty1 <*> desugarTyp ty2
-desugarTyp (Source.TArrow ty1 ty2)     = Core.TArrow             <$> desugarTyp ty1 <*> desugarTyp ty2
-desugarTyp (Source.TRecord label ty)   = Core.TRecord label      <$> desugarTyp ty
-desugarTyp (Source.TList ty)           = Core.TList              <$> desugarTyp ty 
-desugarTyp (Source.TSum ty1 ty2)       = Core.TSum               <$> desugarTyp ty1 <*> desugarTyp ty2
-desugarTyp (Source.TPair ty1 ty2)      = Core.TPair              <$> desugarTyp ty1 <*> desugarTyp ty2
 
-desugar :: Tm -> Maybe Exp
-desugar TmCtx                   = Just Ctx
-desugar TmUnit                  = Just Unit
-desugar (TmLit n)               = Just $ Lit n
-desugar (TmBool b)              = Just $ EBool b
-desugar (TmString s)            = Just $ EString s
-desugar (TmBinOp op tm1 tm2)    = case (desugarBinaryOp op, desugar tm1, desugar tm2) of
-                                        (op', Just e1, Just e2) -> Just (BinOp op' e1 e2)
-                                        _                       -> Nothing
-desugar (TmUnOp op tm)          = UnOp <$> Just (surfaceUnaryToCoreOp op) <*> desugar tm
-desugar (TmIf tm1 tm2 tm3)      = If <$> desugar tm1 <*> desugar tm2 <*> desugar tm3
-desugar (TmMrg tm1 tm2)         = Mrg <$> desugar tm1 <*> desugar tm2
-desugar (TmRec name tm)         = Rec name <$> desugar tm
-desugar (TmRProj tm name)       = RProj <$> desugar tm <*> Just name
-desugar (TmLam typ tm)          = Lam <$> desugarTyp typ <*> desugar tm
-desugar _                       = Nothing
+elaborate :: Tm -> Maybe Exp
+elaborate TmCtx                         = Just Ctx
+elaborate TmUnit                        = Just Unit
+elaborate (TmLit n)                     = Just $ Lit n
+elaborate (TmBool b)                    = Just $ EBool b
+elaborate (TmString s)                  = Just $ EString s
+elaborate (TmBinOp op tm1 tm2)          = case (elaborateBinaryOp op, elaborate tm1, elaborate tm2) of
+                                                (op', Just e1, Just e2) -> Just (BinOp op' e1 e2)
+                                                _                       -> Nothing
+elaborate (TmUnOp op tm)                = UnOp <$> Just (surfaceUnaryToCoreOp op) <*> elaborate tm
+elaborate (TmIf tm1 tm2 tm3)            = If   <$> elaborate tm1        <*> elaborate tm2 <*> elaborate tm3
+elaborate (TmMrg tm1 tm2)               = Mrg  <$> elaborate tm1        <*> elaborate tm2
+elaborate (TmRec name tm)               = Rec name    <$> elaborate tm
+elaborate (TmProj tm n)                 = Proj <$> elaborate tm <*> Just n               
+elaborate (TmRProj tm name)             = RProj       <$> elaborate tm <*> Just name
+elaborate (TmLam ty tm)                 = case ty of
+                                                (Source.TRecord label ty')        -> Lam <$> elaborateTyp ty' <*> case debruijnTransform label 0 tm of
+                                                                                                                        Just tm'        -> elaborate tm'
+                                                                                                                        _               -> Nothing
+                                                _                                 -> Lam <$> elaborateTyp ty <*> elaborate tm
+elaborate (TmApp tm1 tm2)                 = App <$> elaborate tm1 <*> elaborate tm2
+elaborate _                               = Nothing
+
+
+translate :: Tm -> Maybe Exp
+translate tm    = elaborate =<< desugar tm
