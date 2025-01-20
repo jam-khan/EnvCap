@@ -1,16 +1,22 @@
 {
 module ENVCAP.Parser.Happy where
 import Data.Char
-import ENVCAP.Source.Syntax
+import ENVCAP.Source.Syntax 
 }
 
-%name calc
+%name sourceParser
 %tokentype { Token }
 %error { parseError }
 
 %token
      int       { TokenInt $$ }
      var       { TokenVar $$ }
+     'if'      { TokenIf }
+     'then'    { TokenThen }
+     'else'    { TokenElse }
+     'def'     { TokenDefine }
+     'False'   { TokenFalse }
+     'True'    { TokenTrue }
      '+'       { TokenPlus }
      '-'       { TokenMinus }
      '*'       { TokenTimes }
@@ -27,24 +33,32 @@ import ENVCAP.Source.Syntax
      '<='      { TokenLe }
      '&&'      { TokenAnd }
      '||'      { TokenOr }
+     ';'       { TokenSemicolon }
+     '='       { TokenEq }
+     '{'       { TokenOpenBracket }
+     '}'       { TokenCloseBracket }
+     
 
 %left '||'
 %left '&&'
-%left '>='
-%left '>'
-%left '=='
-%left '!='
-%left '<'
-%left '<='
-%left '+'
-%left '-'
-%left '*'
-%left '/'
-%left '%'
+%left '>=' '>' '==' '!=' '<' '<='
+%left '+' '-'
+%left '*' '/' '%'
+%right '='
+%nonassoc TokenIf TokenThen TokenElse
 
 %%
+Program   : TermList                          { $1 }
+
+TermList  : Term ';' TermList1                { TmMrg $1 $3 }
+          
+TermList1 : {- empty -}                       { TmUnit }
+          | TermList                          { $1 }
 
 Term      : '?'                               { TmCtx }
+          | Bool                              { $1 }
+          | int                               { TmLit $1 }
+          | var                               { TmVar $1 }
           | Term    '+'     Term              { TmBinOp (TmArith TmAdd)  $1 $3 }
           | Term    '-'     Term              { TmBinOp (TmArith TmSub)  $1 $3 }
           | Term    '*'     Term              { TmBinOp (TmArith TmMul)  $1 $3 }
@@ -58,9 +72,17 @@ Term      : '?'                               { TmCtx }
           | Term    '<='    Term              { TmBinOp (TmComp  TmLe)   $1 $3 }
           | Term    '&&'    Term              { TmBinOp (TmLogic TmAnd)  $1 $3 }
           | Term    '||'    Term              { TmBinOp (TmLogic TmOr)   $1 $3 }
-          | int                               { TmLit $1 }
-          | var                               { TmVar $1 }
-          | '(' Term ')'                      { $2 } 
+          | 'def' var '=' Term                { TmRec $2 $4 }
+          | IfThenElse                        { $1 }
+          | Parens                            { $1 }
+
+Bool      : 'False'                           { TmBool False }
+          | 'True'                            { TmBool True }
+
+Parens    : '(' Term ')'                      { $2 }
+          
+IfThenElse : 'if' Term 'then' '{' Term '}' 'else' '{' Term '}'        { TmIf $2 $5 $9 }
+           | 'if' Term 'then' '{' Term '}'                            { TmIf $2 $5 TmUnit }
 
 {
 parseError :: [Token] -> a
@@ -86,6 +108,15 @@ data Token
      | TokenCB           -- ')'
      | TokenQuery        -- '?'
      | TokenEq           -- '='
+     | TokenSemicolon    -- ';'
+     | TokenIf           -- 'if'
+     | TokenThen         -- 'then'
+     | TokenElse         -- 'else'
+     | TokenDefine       -- 'def'
+     | TokenTrue         -- 'True'
+     | TokenFalse        -- 'False'
+     | TokenOpenBracket  -- '{'
+     | TokenCloseBracket -- '}'
      deriving Show
 
 lexer :: String -> [Token]
@@ -123,16 +154,27 @@ lexer ('<':cs) =
      case cs of
           ('=':cs') -> TokenLe  : lexer cs'
           _         -> TokenLt  : lexer cs
+lexer (';':cs)      = TokenSemicolon : lexer cs
+lexer ('{':cs)      = TokenOpenBracket : lexer cs
+lexer ('}':cs)      = TokenCloseBracket : lexer cs
 
 lexNum cs = TokenInt (read num) : lexer rest
      where (num, rest) = span isDigit cs
 
 lexVar cs = 
      case span isAlpha cs of
-          (var,   rest) -> TokenVar var : lexer rest
+          ("True",   rest)    -> TokenTrue    : lexer rest
+          ("False",  rest)    -> TokenFalse   : lexer rest
+          ("def",    rest)    -> TokenDefine  : lexer rest
+          ("if",     rest)    -> TokenIf      : lexer rest
+          ("then",   rest)    -> TokenThen    : lexer rest
+          ("else",   rest)    -> TokenElse    : lexer rest
+          (var,   rest)       -> TokenVar var : lexer rest
 
-runCalc :: String -> Tm
-runCalc = calc . lexer
+parseSource :: String -> Maybe Tm
+parseSource input = case sourceParser (lexer input) of
+                         (TmMrg e1 e2)         -> Just (TmMrg e1 e2)
+                         _                    -> Nothing
 
 test_cases :: [(String, Tm)]
 test_cases = [ ("?", TmCtx)
@@ -160,11 +202,16 @@ test_cases = [ ("?", TmCtx)
                                              (TmBinOp (TmArith TmAdd)
                                                   (TmBinOp (TmArith TmMul) (TmVar "x") (TmLit 2))
                                                   (TmBinOp (TmArith TmDiv) (TmVar "y") (TmLit 4)))
-                                             (TmLit 3))  
+                                             (TmLit 3))
+               , ("1 ; (x * 2) + (y / 4) >= 3", TmMrg (TmLit 1) (TmBinOp (TmComp TmGe)
+                                                                 (TmBinOp (TmArith TmAdd)
+                                                                      (TmBinOp (TmArith TmMul) (TmVar "x") (TmLit 2))
+                                                                      (TmBinOp (TmArith TmDiv) (TmVar "y") (TmLit 4)))
+                                                                 (TmLit 3)))
           ]
 
 tester :: [(String, Tm)] -> Bool
-tester = foldr (\ x -> (&&) (runCalc (fst x) == snd x)) True
+tester = foldr (\ x -> (&&) (parseSource (fst x) == Just (snd x))) True
 
 quit :: IO ()
 quit = print "runCalc failed\n"

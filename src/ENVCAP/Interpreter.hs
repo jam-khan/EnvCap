@@ -2,6 +2,7 @@ module ENVCAP.Interpreter where
 
 import System.IO.Error (catchIOError)
 import ENVCAP.Parser.Parser (parseMain)
+import ENVCAP.Parser.Happy (parseSource)
 import ENVCAP.Source.Desugar
 import ENVCAP.Core.TypeChecker (infer)
 import ENVCAP.Core.Syntax (Typ(..), Value (VUnit))
@@ -12,9 +13,9 @@ import ENVCAP.Core.Evaluator (eval)
 main :: String -> IO ()
 main filePath = do
     content <- catchIOError (readFile filePath) handleError
-    case parseMain content of
-        Left    err -> putStrLn $ "Parse Error: " ++ show err
-        Right   res -> do
+    case parseSource content of
+        Nothing  -> putStrLn $ "Parse Error: " ++ show content
+        Just res -> do
                         putStrLn $ "Parsing:        SUCCESS " ++ show res
                         case desugar res of
                             Nothing -> putStrLn $ "Desugar:        FAILED " ++ show res

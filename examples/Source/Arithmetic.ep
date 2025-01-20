@@ -1,7 +1,1 @@
-((3 + 4) * 2) - (5 / 2) >= (1 + 1)
-
-/*
-This is a comment!
-*/
-
--- This will also be ignored!
+((3 + 4) * 2) - (5 / 2) >= (1 + 1);
