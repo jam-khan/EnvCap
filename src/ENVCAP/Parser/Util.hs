@@ -3,12 +3,12 @@ module ENVCAP.Parser.Util where
 import Text.Parsec (ParseError, many1, string, try, anyChar, notFollowedBy)
 import Text.Parsec.String (Parser)
 import Text.Parsec.Prim (parse)
-import Text.Parsec.Char (satisfy, char, oneOf, digit, letter, noneOf)
-import Text.Parsec.Combinator (eof, manyTill, anyToken, chainl1, choice)
-import Data.Char (isLetter, isDigit)
+import Text.Parsec.Char
+import Text.Parsec.Combinator
+import Data.Char
 import Control.Applicative ((<$>), (<*>), (<*), (*>), (<|>), many)
 import Control.Monad (void)
-import ENVCAP.Source.Syntax (Tm(..))
+import ENVCAP.Source.Syntax 
 
 -- We want to comments to be considered as whitespace.
 whitespace :: Parser ()
@@ -22,7 +22,7 @@ whitespace =
                   *> manyTill anyChar (void (char '\n') <|> eof)
     blockComment = try (string "/*")
                    *> manyTill anyChar (try $ string "*/")
-    simpleWhitespace = void $ many1 (oneOf " \t\n")
+    simpleWhitespace = void $ many1 (oneOf " \t\n\r")
 
 regularParse :: Parser a -> String -> Either ParseError a
 regularParse p  = parse p ""
@@ -51,6 +51,19 @@ identifierToken     = lexeme ((:) <$> firstChar <*> many nonFirstChar)
                         where
                             firstChar       = letter <|> char '_'
                             nonFirstChar    = digit  <|> firstChar
+
+intersections :: [Typ] -> Typ
+intersections []  = TUnit
+intersections [x] = x
+intersections (x:xs) = TAnd x $ intersections xs
+
+merges :: [Tm] -> Tm
+merges [] = TmUnit
+merges [x] = x
+merges (x:xs) = TmMrg x $ merges xs
+
+commaSep :: Parser a -> Parser [a]
+commaSep = (`sepBy` lexeme (char ','))
 
 contextToken    :: Parser String
 contextToken    = lexeme (string "?")

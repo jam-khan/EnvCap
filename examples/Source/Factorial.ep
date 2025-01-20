@@ -1,11 +1,8 @@
-module factorial where
-    fib : Int -> Int = 
-        (\n: Int) => {
-            if (n <= 1) {
-                return n;
-            } else {
-                return fib (n - 1) + fib (n - 2);
-            };
-        }
-
-    main : Void = print . (show (fib 13))
+define age = 12;
+/*
+Important distinction that strings are handled with single quote \' \'
+*/
+-- var age = 19;
+if age <= 18 then 
+    'Not old enough to ride!' else 
+    'Good to go'

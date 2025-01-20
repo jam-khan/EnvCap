@@ -1,0 +1,21 @@
+define y1 = 'Good to go!';
+
+
+define inc = \( x: Int ) => { x + 1; };
+
+define canRide = \( age: Int ) => {
+    inc(age);
+};
+
+/*  
+    Module Example
+
+    define temp = new module(x: Int, y: Int) : module(f: Int, k: Int) {
+        define temp = \(x: Int) => {x + 1};
+    };
+    
+*/
+
+define y2 = canRide(20);
+
+if y2 == 21 then y1 else 'No';

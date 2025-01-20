@@ -1,6 +1,6 @@
 
 import Test.Hspec
-import ENVCAP.Source.Syntax (Tm(..), Typ(..), TmBinOpOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
+import ENVCAP.Source.Syntax (Tm(..), Typ(..), TmBinOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
 import ENVCAP.Parser.Parser (parseMain)
 import Text.Parsec (ParseError, many1, string, try, between, anyChar, notFollowedBy, lookAhead, Parsec)
 import Text.Parsec.String (Parser)
@@ -14,6 +14,9 @@ import ENVCAP.Parser.Util (lexeme, parseWithWhitespace)
 import ENVCAP.Core.Syntax (Exp(BinOp))
 import Text.Parsec.Expr as E (buildExpressionParser, Assoc(AssocNone), Assoc(AssocLeft), Assoc(AssocRight), Operator(Infix, Prefix) )
 import Data.Functor.Identity (Identity)
+
+mergeWrap :: Tm -> Tm
+mergeWrap tm = TmMrg tm TmUnit 
 
 test_cases :: [(String, Tm)]
 test_cases =
