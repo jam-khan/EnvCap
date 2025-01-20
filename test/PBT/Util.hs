@@ -18,7 +18,7 @@ getValueTyp env (VNil t)        = Just (TList t)
 getValueTyp ev (VClos v (Lam tA e)) 
                                 = case getValueTyp ev v of
                                         Just env    -> (case infer (TAnd env tA) e of
-                                                            Just tB -> Just (TArrow tA tB)
+                                                            Right tB -> Just (TArrow tA tB)
                                                             _       -> Nothing)
                                         _           -> Nothing
 getValueTyp _ (VClos v _)       = Just TUnit

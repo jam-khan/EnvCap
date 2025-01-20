@@ -1,0 +1,9 @@
+Build profile: -w ghc-9.4.7 -O1
+In order, the following will be built (use -v for more details):
+ - EnvCap-0.1.0.0 (lib) (file src/ENVCAP/Parser/Happy.y changed)
+ - EnvCap-0.1.0.0 (exe:EnvCap) (dependency rebuilt)
+Preprocessing library for EnvCap-0.1.0.0..
+Building library for EnvCap-0.1.0.0..
+[11 of 13] Compiling ENVCAP.Parser.Happy ( /Users/jamkabeeralikhan/Documents/Programming/EnvCap/dist-newstyle/build/aarch64-osx/ghc-9.4.7/EnvCap-0.1.0.0/build/ENVCAP/Parser/Happy.hs, /Users/jamkabeeralikhan/Documents/Programming/EnvCap/dist-newstyle/build/aarch64-osx/ghc-9.4.7/EnvCap-0.1.0.0/build/ENVCAP/Parser/Happy.o, /Users/jamkabeeralikhan/Documents/Programming/EnvCap/dist-newstyle/build/aarch64-osx/ghc-9.4.7/EnvCap-0.1.0.0/build/ENVCAP/Parser/Happy.dyn_o ) [Source file changed]
+Preprocessing executable 'EnvCap' for EnvCap-0.1.0.0..
+Building executable 'EnvCap' for EnvCap-0.1.0.0..

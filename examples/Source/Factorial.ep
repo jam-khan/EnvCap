@@ -1,8 +1,9 @@
-define age = 12;
-/*
-Important distinction that strings are handled with single quote \' \'
-*/
--- var age = 19;
-if age <= 18 then 
-    'Not old enough to ride!' else 
-    'Good to go'
+function factorial(n: Int) {
+    if (n == 0) then {
+        1
+    } else {
+        n * factorial(n - 1)
+    }
+};
+
+factorial(5)

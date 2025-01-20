@@ -19,6 +19,7 @@ data Tm =   TmCtx                               -- Query
         -- Extension that require elaboration
         |   TmIf        Tm Tm Tm
         |   TmLet       String Typ Tm Tm
+        |   TmFix       Tm
         |   TmLetrec    String Typ Tm Tm
         |   TmFst       Tm
         |   TmSnd       Tm
@@ -34,7 +35,7 @@ data Tm =   TmCtx                               -- Query
         |   TmSwitch    Tm [(Tm, Tm)]           -- Match/Switch
         |   TmSeq       Tm Tm                   -- Sequence (Not sure abt this)
         |   TmVar       String
-        |   TmFunc      [Typ] Tm
+        |   TmFunc      String Typ Tm
         deriving (Eq, Show)
 
 data TypeVar    = TVar String Typ
