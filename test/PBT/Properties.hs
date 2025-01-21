@@ -3,7 +3,7 @@ import Test.Hspec
 import ENVCAP.Core.Syntax
     ( Exp(..),
       BinaryOp(..),
-      Value(..), Typ(..), ArithOp(..), isValue)
+      Value(..), Typ(..), ArithOp(..))
 import ENVCAP.Core.Evaluator (eval)
 import ENVCAP.Core.Util (lookupv, rlookupv)
 import PBT.Util ( getValueTyp )

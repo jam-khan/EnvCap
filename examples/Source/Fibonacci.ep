@@ -1,4 +1,4 @@
-function identity(i : Int) { i + 1 };
+function inc(i : Int) { i + 1 };
 
 function fibonacci(n: Int) {
     if (n == 0 || n == 1) then {
@@ -8,4 +8,4 @@ function fibonacci(n: Int) {
     }
 };
 
-fibonacci(10)
+fibonacci(inc(10))

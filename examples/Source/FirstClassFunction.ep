@@ -1,22 +1,12 @@
-function identity(n: Int) {
+function identity( n : Int ) {
     n + 10
 };
 
-function fibonacci(call: Int -> Int) {
-    call(10)
+def n = 100000;
+
+function fibonacci( call : Int -> Int, n : Int ) {
+    call(n)
 };
 
-fibonacci(identity)
-
-
-function identity(i : Int) { i + 1 };
-
-function fibonacci(n: Int, id: Int -> Int) {
-    if (n == 0) then {
-        id(n)
-    } else {
-        fibonacci(n - 1, id) + fibonacci(n - 2, id)
-    }
-};
-
-fibonacci(0, identity)
+def temp = fibonacci(identity);
+temp(10)

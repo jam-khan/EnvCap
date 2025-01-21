@@ -3,8 +3,7 @@
 
 import Test.Hspec 
 import ENVCAP.Core.Syntax
-    ( isValue,
-      Exp(..),
+    ( Exp(..),
       BinaryOp(..),
       Value(..),
       Typ(..))
@@ -27,27 +26,6 @@ main = hspec $ do
       Proj Ctx 1          `shouldNotBe`   Proj (Lit 1) 1
       Clos Ctx (Lam TInt Unit)
                           `shouldNotBe`   Clos Ctx (Lam TInt (Lit 1))
-
-  describe "Value" $ do
-    it "should represent correct values syntax" $ do
-      VUnit     `shouldSatisfy` isValue
-      VInt 10   `shouldSatisfy` isValue
-      
-    it "should recognize closures as values" $ do
-      let closure = VClos (VInt 1) (Lam TInt (Lit 1))
-      closure `shouldSatisfy` isValue
-
-    it "should recognize records as values" $ do
-      let record = VRcd "label" (VInt 5)
-      record `shouldSatisfy` isValue
-
-    it "should recognize merged values as values" $ do
-      let merged = VMrg (VInt 1) (VInt 2)
-      merged `shouldSatisfy` isValue
-
-    it "should not recognize non-values" $ do
-      let nonValue = VClos VUnit (Lam TInt (Lit 100))
-      nonValue `shouldSatisfy` isValue
   
   describe "Typ" $ do
     it "should represent types correctly" $ do

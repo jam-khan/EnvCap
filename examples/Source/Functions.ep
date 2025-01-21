@@ -1,0 +1,9 @@
+def x = 1;
+def b = 1;
+def c = 1;
+
+function average(x: Int, y: Int, z: Int) {
+    (x + y + z) / 3
+};
+
+average(20, 20, 20)
