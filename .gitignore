@@ -6,3 +6,4 @@ Literature/*
 extra/*
 src/Addition.hs
 .vscode/*
+proofs/core

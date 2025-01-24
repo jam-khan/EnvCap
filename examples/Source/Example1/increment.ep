@@ -1,6 +1,0 @@
-Module increment : Int -> Int
-Import nothing
-
-Begin
-    (x:Int) => x + 1 
-End

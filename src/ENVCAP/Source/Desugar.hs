@@ -62,9 +62,6 @@ debruijnTransform x i (TmApp tm1 tm2)           = TmApp <$> debruijnTransform x 
 debruijnTransform _ _ _                         = Nothing
 
 
-
-
-
 elaborateBinaryOp :: TmBinOp -> BinaryOp
 elaborateBinaryOp (TmArith arithop)
         = case arithop of

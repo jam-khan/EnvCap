@@ -1,9 +1,10 @@
-def x = 1;
-def b = 1;
-def c = 1;
 
-function average(x: Int, y: Int, z: Int) {
-    (x + y + z) / 3
+function mul (n : Int) {
+    n * 2
 };
 
-average(20, 20, 20)
+function square( mult: Int -> Int, n2 : Int ) {
+    mult(10)
+};
+
+square(mul, 10)

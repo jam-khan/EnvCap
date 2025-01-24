@@ -1,6 +1,5 @@
 {
 {-# OPTIONS_GHC -Werror=non-exhaustive-patterns #-}
-
 module ENVCAP.Parser.Happy where
 import Data.Char
 import ENVCAP.Source.Syntax 
@@ -49,7 +48,14 @@ import ENVCAP.Source.Syntax
      '='            { TokenEq }
      '{'            { TokenOpenBracket }
      '}'            { TokenCloseBracket }
+     '\\'           { TokenLambda }
+     '=>'           { TokenArrow }
 
+
+%right '='
+%right '=>'
+%left TokenElse
+%left application_prec
 %left '->'
 %left '&'
 %left '||'
@@ -57,8 +63,7 @@ import ENVCAP.Source.Syntax
 %left '>=' '>' '==' '!=' '<' '<='
 %left '+' '-'
 %left '*' '/' '%'
-%right '='
-%left TokenElse
+
 
 %%
 Program   : Statements                          { $1 }
@@ -78,6 +83,7 @@ Term      : '?'                               { TmCtx }
           | Binding                           { $1 }
           | IfThenElse                        { $1 }
           | Parens                            { $1 }
+          | Lambda                            { $1 }
           | error                             { parseError [$1] }
 
 Type      : 'Int'                             { TInt }
@@ -113,12 +119,14 @@ ArithmeticOp   :    Term    '+'     Term               { TmBinOp (TmArith TmAdd)
 Arguments      : Term ',' Arguments                         { $1 : $3 }
                | Term                                       { [$1] }
 
-Application : var '(' Arguments ')'                    { foldl TmApp (TmRProj TmCtx $1) $3}
+Application : var '(' Arguments ')' %prec application_prec { foldl TmApp (TmRProj TmCtx $1) $3}
 
 Bool      : 'False'                                    { TmBool False }
           | 'True'                                     { TmBool True }
 
 Function  : 'function' var '(' ParamList ')' '{' Statements '}'       { TmFunc $2 $4 $7 }
+
+Lambda    : '\\' '(' ParamList ')' '=>' '{' Statements '}'            { TmLam $3 $7 }
 
 Binding   : 'def' var '=' Term                         { TmRec $2 $4 }
 
@@ -135,6 +143,8 @@ parseError _ = error "Parse error"
 data Token
      = TokenInt Integer  -- Lit i
      | TokenVar String   -- x
+     | TokenLambda       -- '\'
+     | TokenArrow        -- = >
      | TokenPlus         -- '+'
      | TokenMinus        -- '-'
      | TokenTimes        -- '*'
@@ -188,10 +198,12 @@ lexer ('-':cs)      =
 lexer ('*':cs)      = TokenTimes    : lexer cs
 lexer ('/':cs)      = TokenDiv      : lexer cs
 lexer ('%':cs)      = TokenMod      : lexer cs
+lexer ('\\':cs)     = TokenLambda   : lexer cs
 lexer ('=':cs)      = 
      case cs of
-          ('=':cs') -> TokenEql : lexer cs'
-          _         -> TokenEq  : lexer cs
+          ('>':cs') -> TokenArrow  : lexer cs'
+          ('=':cs') -> TokenEql    : lexer cs'
+          _         -> TokenEq     : lexer cs
 lexer ('!':cs) = 
      case cs of
           ('=':cs') -> TokenNeq : lexer cs'
