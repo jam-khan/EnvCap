@@ -1,3 +1,11 @@
-define x = 1;
-define age = 10;
-define hello = 12131313 + 123131;
+function inc(i : Int) { i + 1 };
+
+function fibonacci(n: Int) {
+    if (n == 0 || n == 1) then {
+        1
+    } else {
+        fibonacci(n - 1) + fibonacci(n - 2)
+    }
+};
+
+fibonacci(inc(10))

@@ -1,4 +1,3 @@
-
 import Test.Hspec
 import ENVCAP.Source.Syntax (Tm(..), Typ(..), TmBinOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
 import ENVCAP.Parser.Parser (parseMain)

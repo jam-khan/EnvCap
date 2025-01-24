@@ -1,4 +1,4 @@
-module Core.Factorial where
+module Examples.Core.Factorial where
 import ENVCAP.Core.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), LogicOp(..), Typ (..))
 import ENVCAP.Core.Util  (apply, proj, sub, mult, add)
 import ENVCAP.Core.Evaluator (eval)

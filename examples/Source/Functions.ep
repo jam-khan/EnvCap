@@ -1,0 +1,10 @@
+
+function mul (n : Int) {
+    n * 2
+};
+
+function square( mult: Int -> Int, n2 : Int ) {
+    mult(10)
+};
+
+square(mul, 10)

@@ -1,66 +1,140 @@
 {
+{-# OPTIONS_GHC -Werror=non-exhaustive-patterns #-}
 module ENVCAP.Parser.Happy where
 import Data.Char
-import ENVCAP.Source.Syntax
+import ENVCAP.Source.Syntax 
 }
 
-%name calc
+%name sourceParser
 %tokentype { Token }
 %error { parseError }
 
 %token
-     int       { TokenInt $$ }
-     var       { TokenVar $$ }
-     '+'       { TokenPlus }
-     '-'       { TokenMinus }
-     '*'       { TokenTimes }
-     '/'       { TokenDiv }
-     '%'       { TokenMod }
-     '('       { TokenOB }
-     ')'       { TokenCB }
-     '?'       { TokenQuery }
-     '>='      { TokenGe }
-     '>'       { TokenGt }
-     '=='      { TokenEql }
-     '!='      { TokenNeq }
-     '<'       { TokenLt }
-     '<='      { TokenLe }
-     '&&'      { TokenAnd }
-     '||'      { TokenOr }
+     int            { TokenInt $$ }
+     var            { TokenVar $$ }
+     'if'           { TokenIf }
+     'then'         { TokenThen }
+     'else'         { TokenElse }
+     'def'          { TokenDefine }
+     'False'        { TokenFalse }
+     'True'         { TokenTrue }
+     'function'     { TokenFunc }
+     'Int'          { TokenTypeInt }
+     'Bool'         { TokenTypeBool }
+     'String'       { TokenTypeString }
+     '->'           { TokenTypeArrow }
+     '&'            { TokenTypeAnd }
+     '['            { TokenOpenSqBracket }
+     ']'            { TokenCloseSqBracket }
+     ','            { TokenComma }
+     '+'            { TokenPlus }
+     '-'            { TokenMinus }
+     '*'            { TokenTimes }
+     '/'            { TokenDiv }
+     '%'            { TokenMod }
+     '('            { TokenOB }
+     ')'            { TokenCB }
+     '?'            { TokenQuery }
+     '>='           { TokenGe }
+     '>'            { TokenGt }
+     '=='           { TokenEql }
+     '!='           { TokenNeq }
+     '<'            { TokenLt }
+     '<='           { TokenLe }
+     '&&'           { TokenAnd }
+     '||'           { TokenOr }
+     ';'            { TokenSemicolon }
+     ':'            { TokenColon }
+     '='            { TokenEq }
+     '{'            { TokenOpenBracket }
+     '}'            { TokenCloseBracket }
+     '\\'           { TokenLambda }
+     '=>'           { TokenArrow }
 
+
+%right '='
+%right '=>'
+%left TokenElse
+%left application_prec
+%left '->'
+%left '&'
 %left '||'
 %left '&&'
-%left '>='
-%left '>'
-%left '=='
-%left '!='
-%left '<'
-%left '<='
-%left '+'
-%left '-'
-%left '*'
-%left '/'
-%left '%'
+%left '>=' '>' '==' '!=' '<' '<='
+%left '+' '-'
+%left '*' '/' '%'
+
 
 %%
-
+Program   : Statements                          { $1 }
+          
+Statements     : Term ';' Statements            { TmMrg $1 $3 }
+               | Term                           { $1 }
+          
 Term      : '?'                               { TmCtx }
-          | Term    '+'     Term              { TmBinOp (TmArith TmAdd)  $1 $3 }
-          | Term    '-'     Term              { TmBinOp (TmArith TmSub)  $1 $3 }
-          | Term    '*'     Term              { TmBinOp (TmArith TmMul)  $1 $3 }
-          | Term    '/'     Term              { TmBinOp (TmArith TmDiv)  $1 $3 }
-          | Term    '%'     Term              { TmBinOp (TmArith TmMod)  $1 $3 }
-          | Term    '>='    Term              { TmBinOp (TmComp  TmGe)   $1 $3 }
-          | Term    '>'     Term              { TmBinOp (TmComp  TmGt)   $1 $3 }
-          | Term    '=='    Term              { TmBinOp (TmComp  TmEql)  $1 $3 }
-          | Term    '!='    Term              { TmBinOp (TmComp  TmNeq)  $1 $3 }
-          | Term    '<'     Term              { TmBinOp (TmComp  TmLt)   $1 $3 }
-          | Term    '<='    Term              { TmBinOp (TmComp  TmLe)   $1 $3 }
-          | Term    '&&'    Term              { TmBinOp (TmLogic TmAnd)  $1 $3 }
-          | Term    '||'    Term              { TmBinOp (TmLogic TmOr)   $1 $3 }
+          | Function                          { $1 }
+          | Application                       { $1 }
+          | Bool                              { $1 }
           | int                               { TmLit $1 }
-          | var                               { TmVar $1 }
-          | '(' Term ')'                      { $2 } 
+          | var                               { TmRProj TmCtx $1 }
+          | ArithmeticOp                      { $1 }
+          | ComparisonOp                      { $1 }
+          | BooleanOp                         { $1 }
+          | Binding                           { $1 }
+          | IfThenElse                        { $1 }
+          | Parens                            { $1 }
+          | Lambda                            { $1 }
+          | error                             { parseError [$1] }
+
+Type      : 'Int'                             { TInt }
+          | 'Bool'                            { TBool }
+          | 'String'                          { TString }
+          | Type '->' Type                    { TArrow $1 $3 }
+          | Type '&'  Type                    { TAnd $1 $3 }
+          | '[' Type ']'                      { TList $2 }
+          | '{' var ':' Type '}'              { TRecord $2 $4 }
+          
+ParamList : Param ',' ParamList               { TAnd $1 $3 }
+          | Param                             { $1 }
+
+Param     : var ':' Type                      { TRecord $1 $3 }   
+
+
+ComparisonOp   :  Term    '>='    Term                 { TmBinOp (TmComp  TmGe)   $1 $3 }
+               |  Term    '>'     Term                 { TmBinOp (TmComp  TmGt)   $1 $3 }
+               |  Term    '=='    Term                 { TmBinOp (TmComp  TmEql)  $1 $3 }
+               |  Term    '!='    Term                 { TmBinOp (TmComp  TmNeq)  $1 $3 }
+               |  Term    '<'     Term                 { TmBinOp (TmComp  TmLt)   $1 $3 }
+               |  Term    '<='    Term                 { TmBinOp (TmComp  TmLe)   $1 $3 }
+
+BooleanOp      : Term    '&&'    Term                  { TmBinOp (TmLogic TmAnd)  $1 $3 }
+               | Term    '||'    Term                  { TmBinOp (TmLogic TmOr)   $1 $3 }
+          
+ArithmeticOp   :    Term    '+'     Term               { TmBinOp (TmArith TmAdd)  $1 $3 }
+               |    Term    '-'     Term               { TmBinOp (TmArith TmSub)  $1 $3 }
+               |    Term    '*'     Term               { TmBinOp (TmArith TmMul)  $1 $3 }
+               |    Term    '/'     Term               { TmBinOp (TmArith TmDiv)  $1 $3 }
+               |    Term    '%'     Term               { TmBinOp (TmArith TmMod)  $1 $3 }
+
+Arguments      : Term ',' Arguments                         { $1 : $3 }
+               | Term                                       { [$1] }
+
+Application : var '(' Arguments ')' %prec application_prec { foldl TmApp (TmRProj TmCtx $1) $3}
+
+Bool      : 'False'                                    { TmBool False }
+          | 'True'                                     { TmBool True }
+
+Function  : 'function' var '(' ParamList ')' '{' Statements '}'       { TmFunc $2 $4 $7 }
+
+Lambda    : '\\' '(' ParamList ')' '=>' '{' Statements '}'            { TmLam $3 $7 }
+
+Binding   : 'def' var '=' Term                         { TmRec $2 $4 }
+
+Parens      : '(' Term ')'                             { $2 }
+CurlyParens : '{' Statements '}'                       { $2 }
+
+IfThenElse : 'if' Parens 'then' CurlyParens 'else' CurlyParens { TmIf $2 $4 $6 }
+           | 'if' Parens 'then' CurlyParens                    { TmIf $2 $4 TmUnit }
 
 {
 parseError :: [Token] -> a
@@ -69,6 +143,8 @@ parseError _ = error "Parse error"
 data Token
      = TokenInt Integer  -- Lit i
      | TokenVar String   -- x
+     | TokenLambda       -- '\'
+     | TokenArrow        -- = >
      | TokenPlus         -- '+'
      | TokenMinus        -- '-'
      | TokenTimes        -- '*'
@@ -86,6 +162,25 @@ data Token
      | TokenCB           -- ')'
      | TokenQuery        -- '?'
      | TokenEq           -- '='
+     | TokenSemicolon    -- ';'
+     | TokenIf           -- 'if'
+     | TokenThen         -- 'then'
+     | TokenElse         -- 'else'
+     | TokenDefine       -- 'def'
+     | TokenTrue         -- 'True'
+     | TokenFalse        -- 'False'
+     | TokenFunc         -- 'function'
+     | TokenOpenBracket  -- '{'
+     | TokenCloseBracket -- '}'
+     | TokenColon        -- ':'
+     | TokenTypeInt      -- 'Int'
+     | TokenTypeBool     -- 'Bool'
+     | TokenTypeString   -- 'String'
+     | TokenTypeArrow    -- '->'
+     | TokenTypeAnd      -- '&'
+     | TokenComma        -- ','
+     | TokenOpenSqBracket  -- '['
+     | TokenCloseSqBracket -- ']'
      deriving Show
 
 lexer :: String -> [Token]
@@ -96,22 +191,26 @@ lexer (c:cs)
      | isDigit c = lexNum (c:cs)
 lexer ('?':cs)      = TokenQuery    : lexer cs
 lexer ('+':cs)      = TokenPlus     : lexer cs
-lexer ('-':cs)      = TokenMinus    : lexer cs
+lexer ('-':cs)      = 
+     case cs of
+          ('>':cs')      -> TokenTypeArrow   : lexer cs'
+          _              -> TokenMinus       : lexer cs
 lexer ('*':cs)      = TokenTimes    : lexer cs
 lexer ('/':cs)      = TokenDiv      : lexer cs
 lexer ('%':cs)      = TokenMod      : lexer cs
-lexer ('(':cs)      = TokenOB       : lexer cs
-lexer (')':cs)      = TokenCB       : lexer cs
+lexer ('\\':cs)     = TokenLambda   : lexer cs
 lexer ('=':cs)      = 
      case cs of
-          ('=':cs') -> TokenEql : lexer cs'
-          _         -> TokenEq  : lexer cs
+          ('>':cs') -> TokenArrow  : lexer cs'
+          ('=':cs') -> TokenEql    : lexer cs'
+          _         -> TokenEq     : lexer cs
 lexer ('!':cs) = 
      case cs of
           ('=':cs') -> TokenNeq : lexer cs'
 lexer ('&':cs) =
      case cs of
-          ('&':cs') -> TokenAnd : lexer cs'
+          ('&':cs') -> TokenAnd         : lexer cs'
+          _         -> TokenTypeAnd     : lexer cs
 lexer ('|':cs) =
      case cs of
           ('|':cs') -> TokenOr  : lexer cs'
@@ -123,16 +222,37 @@ lexer ('<':cs) =
      case cs of
           ('=':cs') -> TokenLe  : lexer cs'
           _         -> TokenLt  : lexer cs
+lexer (';':cs)      = TokenSemicolon : lexer cs
+lexer (',':cs)      = TokenComma : lexer cs
+lexer (':':cs)      = TokenColon : lexer cs
+lexer ('{':cs)      = TokenOpenBracket : lexer cs
+lexer ('}':cs)      = TokenCloseBracket : lexer cs
+lexer ('[':cs)      = TokenOpenSqBracket : lexer cs
+lexer (']':cs)      = TokenCloseSqBracket : lexer cs
+lexer ('(':cs)      = TokenOB       : lexer cs
+lexer (')':cs)      = TokenCB       : lexer cs
 
 lexNum cs = TokenInt (read num) : lexer rest
      where (num, rest) = span isDigit cs
 
 lexVar cs = 
      case span isAlpha cs of
-          (var,   rest) -> TokenVar var : lexer rest
+          ("Int", rest)       -> TokenTypeInt     : lexer rest
+          ("Bool", rest)      -> TokenTypeBool    : lexer rest
+          ("String", rest)    -> TokenTypeString  : lexer rest
+          ("True",   rest)    -> TokenTrue        : lexer rest
+          ("False",  rest)    -> TokenFalse       : lexer rest
+          ("function", rest)  -> TokenFunc        : lexer rest
+          ("def",    rest)    -> TokenDefine      : lexer rest
+          ("if",     rest)    -> TokenIf          : lexer rest
+          ("then",   rest)    -> TokenThen        : lexer rest
+          ("else",   rest)    -> TokenElse        : lexer rest
+          (var,   rest)       -> TokenVar var     : lexer rest
 
-runCalc :: String -> Tm
-runCalc = calc . lexer
+parseSource :: String -> Maybe Tm
+parseSource input = case sourceParser (lexer input) of
+                         result -> Just result
+                         _      -> Nothing                    
 
 test_cases :: [(String, Tm)]
 test_cases = [ ("?", TmCtx)
@@ -160,11 +280,16 @@ test_cases = [ ("?", TmCtx)
                                              (TmBinOp (TmArith TmAdd)
                                                   (TmBinOp (TmArith TmMul) (TmVar "x") (TmLit 2))
                                                   (TmBinOp (TmArith TmDiv) (TmVar "y") (TmLit 4)))
-                                             (TmLit 3))  
+                                             (TmLit 3))
+               , ("1 ; (x * 2) + (y / 4) >= 3", TmMrg (TmLit 1) (TmBinOp (TmComp TmGe)
+                                                                 (TmBinOp (TmArith TmAdd)
+                                                                      (TmBinOp (TmArith TmMul) (TmVar "x") (TmLit 2))
+                                                                      (TmBinOp (TmArith TmDiv) (TmVar "y") (TmLit 4)))
+                                                                 (TmLit 3)))
           ]
 
 tester :: [(String, Tm)] -> Bool
-tester = foldr (\ x -> (&&) (runCalc (fst x) == snd x)) True
+tester = foldr (\ x -> (&&) (parseSource (fst x) == Just (snd x))) True
 
 quit :: IO ()
 quit = print "runCalc failed\n"

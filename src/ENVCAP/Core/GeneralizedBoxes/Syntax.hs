@@ -1,47 +1,37 @@
 {-# LANGUAGE InstanceSigs #-}
-module ENVCAP.Core.Syntax where
+module ENVCAP.Core.GeneralizedBoxes.Syntax where
 
 import Test.QuickCheck (Property, property, quickCheck, Arbitrary(arbitrary), Gen, elements, oneof )
-
 
 data Exp =  Ctx                      -- Context
         |   Unit                     -- Unit
         |   Lit    Integer           -- Integer literal
+        |   EBool   Bool             -- Boolean Term
+        |   EString String           -- String Term
         |   Lam    Typ Exp           -- Lambda Abstraction
         |   Proj   Exp Int           -- Projection
-        |   Clos   Exp Exp           -- Closure
+        |   Clos   Exp Typ Exp       -- Closure
         |   Rec    String Exp        -- Single-Field Record
         |   RProj  Exp String        -- Record Projection by Label
         |   App    Exp Exp           -- Application
         |   Mrg    Exp Exp           -- Merge
         |   Box    Exp Exp           -- Box
-        -- Extensions
-        |   EBool   Bool             -- Boolean Term
-        |   EString String           -- String Term
         |   If     Exp Exp Exp       -- Conditionals
         |   Let    Exp Exp           -- Let Bindings
         |   Fix    Exp               -- Recursion
-        -- Pairs
         |   Pair   Exp Exp           -- Pair
         |   Fst    Exp               -- First Projection
         |   Snd    Exp               -- Second Projection
-        -- Sums
         |   InL    Typ Exp           -- Tagging Left
         |   InR    Typ Exp           -- Tagging Right
         |   Case   Exp Exp Exp       -- Case of Sums
-        -- Built-in Lists
         |   Nil    Typ               -- Nil List
         |   Cons   Exp Exp           -- Cons for List
         |   LCase  Exp Exp Exp       -- Case of List
-        -- Operations
         |   BinOp  BinaryOp Exp Exp  -- Binary operations
         |   UnOp   UnaryOp Exp       -- Unary operations
         deriving (Eq, Show)
 
-{--
-        Maintaining a different AST for Value for Big Step operational semantics.
-        Potentially, utilize small step for step-wise debugging later!
---}
 
 -- Values
 data Value =    VUnit                      -- Unit value

@@ -1,0 +1,27 @@
+/* main.ep */
+
+/* Open the Utils and Math modules to bring their contents into scope */
+utilize "math"
+utilize "utils"
+
+(* Define a functor that takes modules as arguments *)
+
+module type MAKEPROGRAM = {
+     val run : unit -> unit
+};
+
+module MakeProgram (U : UTILS, M : MATH) : MAKEPROGRAM = 
+{
+     function run() = {
+
+          def x = M.add 1 2;
+          def y = M.multiply x 3;
+          
+          print_math_operations();
+
+     };
+};
+
+module Program = MakeProgram(Utils, Math);
+
+Program.run();

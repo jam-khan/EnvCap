@@ -1,6 +1,0 @@
-Module main : Int
-Import increment : Int -> Int
-
-Begin
-    increment(3)
-End

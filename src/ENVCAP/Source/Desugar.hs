@@ -16,13 +16,22 @@ desugar (TmBinOp op tm1 tm2)            = case (desugar tm1, desugar tm2) of
                                                 _                       -> Nothing
 desugar (TmUnOp op tm)                  = TmUnOp op <$> desugar tm
 desugar (TmIf tm1 tm2 tm3)              = TmIf <$> desugar tm1 <*> desugar tm2 <*> desugar tm3
+desugar (TmFix tm)                      = TmFix <$> desugar tm
 desugar (TmMrg tm1 tm2)                 = TmMrg <$> desugar tm1 <*> desugar tm2
 desugar (TmRec name tm)                 = TmRec name <$> desugar tm
 desugar (TmRProj tm name)               = TmRProj <$> desugar tm <*> Just name
+desugar (TmProj tm i)                   = Just $ TmProj tm i
 desugar (TmLam ty tm)                   = case ty of
                                                 Source.TAnd t1 t2       -> TmLam t1 <$> desugar (TmLam t2 tm)
                                                 ty                      -> TmLam ty <$> desugar tm
+-- desugar (TmFunc name ty tm)             = TmFunc name ty <$> desugar tm
+desugar (TmFunc name ty tm)             = case desugar (TmLam ty tm) of
+                                                Just tm'        -> case debruijnTransform name 0 tm' of
+                                                                        Just tm''       -> Just $ TmRec name (TmFix tm'')
+                                                                        _               -> Nothing 
+                                                _               -> Nothing
 desugar (TmApp tm1 tm2)                 = TmApp <$> desugar tm1 <*> desugar tm2
+
 desugar _                               = Nothing
 
 
@@ -44,15 +53,13 @@ debruijnTransform x i (TmRec name tm)           = TmRec name <$> debruijnTransfo
 debruijnTransform x i (TmRProj tm name)         = if name == x  then Just $ TmProj tm i
                                                                 else Just $ TmRProj tm name
 debruijnTransform x i (TmProj tm n)             = TmProj <$> debruijnTransform x i tm <*> Just n
+debruijnTransform x i (TmFix tm)                = TmFix <$> debruijnTransform x i tm
 debruijnTransform x i (TmLam (Source.TRecord label ty) tm)
                                                 = if label == x then Just $ TmLam (Source.TRecord label ty) tm
                                                                 else TmLam (Source.TRecord label ty) <$> debruijnTransform x (i + 1) tm
 debruijnTransform x i (TmLam ty tm)             = TmLam ty <$> debruijnTransform x (i + 1) tm
 debruijnTransform x i (TmApp tm1 tm2)           = TmApp <$> debruijnTransform x i tm1 <*> debruijnTransform x i tm2
 debruijnTransform _ _ _                         = Nothing
-
-
-
 
 
 elaborateBinaryOp :: TmBinOp -> BinaryOp
@@ -110,8 +117,9 @@ elaborate (TmLam ty tm)                 = case ty of
                                                                                                                         Just tm'        -> elaborate tm'
                                                                                                                         _               -> Nothing
                                                 _                                 -> Lam <$> elaborateTyp ty <*> elaborate tm
-elaborate (TmApp tm1 tm2)                 = App <$> elaborate tm1 <*> elaborate tm2
-elaborate _                               = Nothing
+elaborate (TmApp tm1 tm2)               = App <$> elaborate tm1 <*> elaborate tm2
+elaborate (TmFix tm)                    = Fix <$> elaborate tm  
+elaborate _                             = Nothing
 
 
 translate :: Tm -> Maybe Exp

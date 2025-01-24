@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use newtype instead of data" #-}
-module ENVCAP.Core.TypeChecker where
+module ENVCAP.Core.GeneralizedBoxes.TypeChecker where
 
 import ENVCAP.Core.Syntax (Exp(..), Typ(..), Value(..), BinaryOp(..), UnaryOp(..))
 import ENVCAP.Core.Util (rlookupt, lookupt, containment)

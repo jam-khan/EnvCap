@@ -3,7 +3,7 @@ module PBT.Util where
 import ENVCAP.Core.Syntax
     ( Exp(..),
       BinaryOp(..),
-      Value(..), Typ(..), ArithOp(..), isValue)
+      Value(..), Typ(..), ArithOp(..))
 import ENVCAP.Core.Evaluator (eval)
 import ENVCAP.Core.Util (lookupv, rlookupv)
 import ENVCAP.Core.TypeChecker (infer)
@@ -18,7 +18,7 @@ getValueTyp env (VNil t)        = Just (TList t)
 getValueTyp ev (VClos v (Lam tA e)) 
                                 = case getValueTyp ev v of
                                         Just env    -> (case infer (TAnd env tA) e of
-                                                            Just tB -> Just (TArrow tA tB)
+                                                            Right tB -> Just (TArrow tA tB)
                                                             _       -> Nothing)
                                         _           -> Nothing
 getValueTyp _ (VClos v _)       = Just TUnit
