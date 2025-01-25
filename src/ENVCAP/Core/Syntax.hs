@@ -30,7 +30,7 @@ data Exp =  Ctx                      -- Context
         |   InR    Typ Exp           -- Tagging Right
         |   Case   Exp Exp Exp       -- Case of Sums
         -- Built-in Lists
-        |   Nil    Typ               -- Nil List
+        |   Nil    
         |   Cons   Exp Exp           -- Cons for List
         |   LCase  Exp Exp Exp       -- Case of List
         -- Operations
@@ -58,7 +58,7 @@ data Value =    VUnit                      -- Unit value
         |       VInL    Typ Value          -- tagged value (left)
         |       VInR    Typ Value          -- tagged value (right)
         -- Lists extension
-        |       VNil    Typ                -- Nil for list
+        |       VNil    
         |       VCons   Value Value        -- List
         deriving (Eq, Show)
 
@@ -112,6 +112,7 @@ instance Arbitrary Exp where
     arbitrary :: Gen Exp
     arbitrary = oneof [ return Ctx
                       , return Unit
+                      , return Nil
                       , Lit     <$> arbitrary
                       , Lam     <$> arbitrary <*> arbitrary
                       , Proj    <$> arbitrary <*> arbitrary
@@ -132,7 +133,6 @@ instance Arbitrary Exp where
                       , InL     <$> arbitrary <*> arbitrary
                       , InR     <$> arbitrary <*> arbitrary
                       , Case    <$> arbitrary <*> arbitrary <*> arbitrary
-                      , Nil     <$> arbitrary
                       , Cons    <$> arbitrary <*> arbitrary
                       , LCase   <$> arbitrary <*> arbitrary <*> arbitrary
                       , BinOp   <$> arbitrary <*> arbitrary <*> arbitrary
@@ -142,6 +142,7 @@ instance Arbitrary Value where
         arbitrary :: Gen Value
         arbitrary = oneof [
                         return VUnit,
+                        return VNil,
                         VInt    <$> arbitrary,
                         VBool   <$> arbitrary,
                         VString <$> arbitrary,
@@ -151,7 +152,6 @@ instance Arbitrary Value where
                         VPair   <$> arbitrary <*> arbitrary,
                         VInL    <$> arbitrary <*> arbitrary,
                         VInR    <$> arbitrary <*> arbitrary,
-                        VNil    <$> arbitrary,
                         VCons   <$> arbitrary <*> arbitrary]
 
 instance Arbitrary BinaryOp where

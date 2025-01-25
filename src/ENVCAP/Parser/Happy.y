@@ -48,7 +48,7 @@ import ENVCAP.Source.Syntax
      '='            { TokenEq }
      '{'            { TokenOpenBracket }
      '}'            { TokenCloseBracket }
-     '\\'           { TokenLambda }
+     '\\('           { TokenLambda }
      '=>'           { TokenArrow }
 
 
@@ -82,8 +82,8 @@ Term      : '?'                               { TmCtx }
           | BooleanOp                         { $1 }
           | Binding                           { $1 }
           | IfThenElse                        { $1 }
-          | Parens                            { $1 }
           | Lambda                            { $1 }
+          | Parens                            { $1 }
           | error                             { parseError [$1] }
 
 Type      : 'Int'                             { TInt }
@@ -119,14 +119,18 @@ ArithmeticOp   :    Term    '+'     Term               { TmBinOp (TmArith TmAdd)
 Arguments      : Term ',' Arguments                         { $1 : $3 }
                | Term                                       { [$1] }
 
-Application : var '(' Arguments ')' %prec application_prec { foldl TmApp (TmRProj TmCtx $1) $3}
+Application    : FunctionApplication                   %prec application_prec { $1 }
+               
+
+FunctionApplication : var '(' Arguments ')'            { foldl TmApp (TmRProj TmCtx $1) $3 }
 
 Bool      : 'False'                                    { TmBool False }
           | 'True'                                     { TmBool True }
 
-Function  : 'function' var '(' ParamList ')' '{' Statements '}'       { TmFunc $2 $4 $7 }
+Function  : 'function' var '(' ParamList ')' '{' Statements '}'            { TmFunc $2 $4 $7 }
 
-Lambda    : '\\' '(' ParamList ')' '=>' '{' Statements '}'            { TmLam $3 $7 }
+Lambda    : '(' Lambda ')' '(' Arguments ')'              { foldl TmApp $2 $5 }
+          | '\\(' ParamList ')' '=>' '{' Statements '}'   { TmLam $2 $6 }           
 
 Binding   : 'def' var '=' Term                         { TmRec $2 $4 }
 
@@ -198,7 +202,8 @@ lexer ('-':cs)      =
 lexer ('*':cs)      = TokenTimes    : lexer cs
 lexer ('/':cs)      = TokenDiv      : lexer cs
 lexer ('%':cs)      = TokenMod      : lexer cs
-lexer ('\\':cs)     = TokenLambda   : lexer cs
+lexer ('\\':cs)     = case cs of 
+                         ('(':cs') -> TokenLambda   : lexer cs' 
 lexer ('=':cs)      = 
      case cs of
           ('>':cs') -> TokenArrow  : lexer cs'

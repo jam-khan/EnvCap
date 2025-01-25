@@ -1,10 +1,11 @@
 
-function mul (n : Int) {
-    n * 2
+function square( double : Int -> Int , n : Int ) {
+    double(n)
 };
 
-function square( mult: Int -> Int, n2 : Int ) {
-    mult(10)
+function fancy ( n : Int ) {
+    \(x : Int) => { x + square( \(n: Int) => { n * 2 } , 10 ) }
 };
 
-square(mul, 10)
+def temp = fancy(10);
+temp(20)
