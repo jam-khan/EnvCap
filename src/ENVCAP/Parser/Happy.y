@@ -13,6 +13,7 @@ import ENVCAP.Source.Syntax
      int            { TokenInt $$ }
      var            { TokenVar $$ }
      'if'           { TokenIf }
+     'type'         { TokenTyAlias }
      'then'         { TokenThen }
      'else'         { TokenElse }
      'def'          { TokenDefine }
@@ -43,7 +44,7 @@ import ENVCAP.Source.Syntax
      '<='           { TokenLe }
      '&&'           { TokenAnd }
      '||'           { TokenOr }
-     ';'            { TokenSemicolon }
+     ';;'           { TokenSemicolon }
      ':'            { TokenColon }
      '='            { TokenEq }
      '{'            { TokenOpenBracket }
@@ -68,7 +69,7 @@ import ENVCAP.Source.Syntax
 %%
 Program   : Statements                          { $1 }
           
-Statements     : Term ';' Statements            { TmMrg $1 $3 }
+Statements     : Term ';;' Statements            { TmMrg $1 $3 }
                | Term                           { $1 }
           
 Term      : '?'                               { TmCtx }
@@ -82,9 +83,12 @@ Term      : '?'                               { TmCtx }
           | BooleanOp                         { $1 }
           | Binding                           { $1 }
           | IfThenElse                        { $1 }
+          | TyAlias                           { $1 }
           | Lambda                            { $1 }
           | Parens                            { $1 }
           | error                             { parseError [$1] }
+
+TyAlias   : 'type' var '=' Type               { TmAliasTyp $2 $4 }
 
 Type      : 'Int'                             { TInt }
           | 'Bool'                            { TBool }
@@ -93,6 +97,7 @@ Type      : 'Int'                             { TInt }
           | Type '&'  Type                    { TAnd $1 $3 }
           | '[' Type ']'                      { TList $2 }
           | '{' var ':' Type '}'              { TRecord $2 $4 }
+          | var                               { TIden $1 }
           
 ParamList : Param ',' ParamList               { TAnd $1 $3 }
           | Param                             { $1 }
@@ -182,6 +187,7 @@ data Token
      | TokenTypeString   -- 'String'
      | TokenTypeArrow    -- '->'
      | TokenTypeAnd      -- '&'
+     | TokenTyAlias      -- 'type'
      | TokenComma        -- ','
      | TokenOpenSqBracket  -- '['
      | TokenCloseSqBracket -- ']'
@@ -227,7 +233,8 @@ lexer ('<':cs) =
      case cs of
           ('=':cs') -> TokenLe  : lexer cs'
           _         -> TokenLt  : lexer cs
-lexer (';':cs)      = TokenSemicolon : lexer cs
+lexer (';':cs)      = case cs of
+                         (';':cs') -> TokenSemicolon : lexer cs'
 lexer (',':cs)      = TokenComma : lexer cs
 lexer (':':cs)      = TokenColon : lexer cs
 lexer ('{':cs)      = TokenOpenBracket : lexer cs
@@ -242,17 +249,18 @@ lexNum cs = TokenInt (read num) : lexer rest
 
 lexVar cs = 
      case span isAlpha cs of
-          ("Int", rest)       -> TokenTypeInt     : lexer rest
-          ("Bool", rest)      -> TokenTypeBool    : lexer rest
-          ("String", rest)    -> TokenTypeString  : lexer rest
-          ("True",   rest)    -> TokenTrue        : lexer rest
-          ("False",  rest)    -> TokenFalse       : lexer rest
-          ("function", rest)  -> TokenFunc        : lexer rest
-          ("def",    rest)    -> TokenDefine      : lexer rest
-          ("if",     rest)    -> TokenIf          : lexer rest
-          ("then",   rest)    -> TokenThen        : lexer rest
-          ("else",   rest)    -> TokenElse        : lexer rest
-          (var,   rest)       -> TokenVar var     : lexer rest
+          ("Int",        rest)     -> TokenTypeInt     : lexer rest
+          ("Bool",       rest)     -> TokenTypeBool    : lexer rest
+          ("String",     rest)     -> TokenTypeString  : lexer rest
+          ("True",       rest)     -> TokenTrue        : lexer rest
+          ("False",      rest)     -> TokenFalse       : lexer rest
+          ("type",       rest)     -> TokenTyAlias     : lexer rest
+          ("function",   rest)     -> TokenFunc        : lexer rest
+          ("def",        rest)     -> TokenDefine      : lexer rest
+          ("if",         rest)     -> TokenIf          : lexer rest
+          ("then",       rest)     -> TokenThen        : lexer rest
+          ("else",       rest)     -> TokenElse        : lexer rest
+          (var,          rest)     -> TokenVar var     : lexer rest
 
 parseSource :: String -> Maybe Tm
 parseSource input = case sourceParser (lexer input) of
@@ -260,7 +268,7 @@ parseSource input = case sourceParser (lexer input) of
                          _      -> Nothing                    
 
 test_cases :: [(String, Tm)]
-test_cases = [ ("?", TmCtx)
+test_cases = [  ("?", TmCtx)
               , ("1 + 2", TmBinOp (TmArith TmAdd) (TmLit 1) (TmLit 2))
               , ("1 - 2", TmBinOp (TmArith TmSub) (TmLit 1) (TmLit 2))
               , ("3 * 4", TmBinOp (TmArith TmMul) (TmLit 3) (TmLit 4))
@@ -272,29 +280,28 @@ test_cases = [ ("?", TmCtx)
               , ("4 >= 1", TmBinOp (TmComp TmGe) (TmLit 4) (TmLit 1))
               , ("1 == 1", TmBinOp (TmComp TmEql) (TmLit 1) (TmLit 1))
               , ("2 != 3", TmBinOp (TmComp TmNeq) (TmLit 2) (TmLit 3))
-              , ("a + b * c", TmBinOp (TmArith TmAdd) (TmVar "a") (TmBinOp (TmArith TmMul) (TmVar "b") (TmVar "c")))
-              , ("1 + 2 * c", TmBinOp (TmArith TmAdd) (TmLit 1) (TmBinOp (TmArith TmMul) (TmLit 2) (TmVar "c")))
+              , ("a + b * c", TmBinOp (TmArith TmAdd) (TmRProj TmCtx "a") (TmBinOp (TmArith TmMul) (TmRProj TmCtx "b") (TmRProj TmCtx "c")))
+              , ("1 + 2 * c", TmBinOp (TmArith TmAdd) (TmLit 1) (TmBinOp (TmArith TmMul) (TmLit 2) (TmRProj TmCtx "c")))
               , ("((3 + 4) * 2) - (5 / 2) >= (1 + x)", TmBinOp   (TmComp TmGe)
                                                             (TmBinOp (TmArith TmSub)
                                                                  (TmBinOp (TmArith TmMul)
                                                                       (TmBinOp (TmArith TmAdd) (TmLit 3) (TmLit 4))
                                                                       (TmLit 2))
                                                                  (TmBinOp (TmArith TmDiv) (TmLit 5) (TmLit 2)))
-                                                            (TmBinOp (TmArith TmAdd) (TmLit 1) (TmVar "x")))
+                                                            (TmBinOp (TmArith TmAdd) (TmLit 1) (TmRProj TmCtx "x")))
               , ("(x * 2) + (y / 4) >= 3", TmBinOp (TmComp TmGe)
                                              (TmBinOp (TmArith TmAdd)
-                                                  (TmBinOp (TmArith TmMul) (TmVar "x") (TmLit 2))
-                                                  (TmBinOp (TmArith TmDiv) (TmVar "y") (TmLit 4)))
+                                                  (TmBinOp (TmArith TmMul) (TmRProj TmCtx "x") (TmLit 2))
+                                                  (TmBinOp (TmArith TmDiv) (TmRProj TmCtx "y") (TmLit 4)))
                                              (TmLit 3))
-               , ("1 ; (x * 2) + (y / 4) >= 3", TmMrg (TmLit 1) (TmBinOp (TmComp TmGe)
+              , ("1 ;; (x * 2) + (y / 4) >= 3", TmMrg (TmLit 1) (TmBinOp (TmComp TmGe)
                                                                  (TmBinOp (TmArith TmAdd)
-                                                                      (TmBinOp (TmArith TmMul) (TmVar "x") (TmLit 2))
-                                                                      (TmBinOp (TmArith TmDiv) (TmVar "y") (TmLit 4)))
-                                                                 (TmLit 3)))
-          ]
+                                                                      (TmBinOp (TmArith TmMul) (TmRProj TmCtx "x") (TmLit 2))
+                                                                      (TmBinOp (TmArith TmDiv) (TmRProj TmCtx "y") (TmLit 4)))
+                                                                 (TmLit 3)))]
 
-tester :: [(String, Tm)] -> Bool
-tester = foldr (\ x -> (&&) (parseSource (fst x) == Just (snd x))) True
+tester :: [(String, Tm)] -> [Bool]
+tester = foldr (\ x -> (++) ([parseSource (fst x) == Just (snd x)])) []
 
 quit :: IO ()
 quit = print "runCalc failed\n"

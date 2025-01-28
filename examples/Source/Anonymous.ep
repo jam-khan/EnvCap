@@ -5,6 +5,6 @@ def f = \(x: Int, f: Int -> Bool) => {
     } else {
         False
     }
-};
+};;
 
 f(10, (\(x: Int) => { x % 2 == 0 } ) )

@@ -1,0 +1,6 @@
+type newInt = Bool;;
+
+
+def hello = \(x: newInt) => { x && True };;
+
+hello(1 == 1)

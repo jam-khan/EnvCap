@@ -17,20 +17,20 @@ main filePath = do
         Nothing  -> putStrLn $ "Parse Error: " ++ show content ++ "\n"
         Just res -> do
                         putStrLn $ "Parsing:        SUCCESS " ++ show res ++ "\n"
-                        case desugar res of
+                        case translate res of
                             Nothing -> putStrLn $ "Desugar:        FAILED " ++ show res ++ "\n"
-                            Just res' -> do putStrLn $ "Desugar:        SUCCESS " ++ show res' ++ "\n"
-                                            case elaborate res' of
-                                                Just tm     -> do
-                                                                    putStrLn $ "Elaboration:    SUCCESS " ++ show tm ++ "\n"
-                                                                    case infer TUnit tm of
-                                                                        Right ty     -> do
-                                                                                        putStrLn $ "Type Check:     SUCCESS " ++ show ty ++ "\n"
-                                                                                        case eval VUnit tm of
-                                                                                            Just val    -> putStrLn $ "Evaluation:     SUCCESS " ++ show val ++ "\n"
-                                                                                            _           -> putStrLn $ "Evaluation FAILED" ++ "\n"
-                                                                        Left err      -> putStrLn $ "Type Check: FAIL" ++ show err ++ "\n"
-                                                _           -> putStrLn $ "Elaboration:    FAILED  " ++ show res' ++ "\n"
+                            -- Just res' -> do putStrLn $ "Desugar:        SUCCESS " ++ show res' ++ "\n"
+                            --                 case elaborate res' of
+                            Just tm     -> do
+                                                putStrLn $ "Elaboration:    SUCCESS " ++ show tm ++ "\n"
+                                                case infer TUnit tm of
+                                                    Right ty     -> do
+                                                                    putStrLn $ "Type Check:     SUCCESS " ++ show ty ++ "\n"
+                                                                    case eval VUnit tm of
+                                                                        Just val    -> putStrLn $ "Evaluation:     SUCCESS " ++ show val ++ "\n"
+                                                                        _           -> putStrLn $ "Evaluation FAILED" ++ "\n"
+                                                    Left err      -> putStrLn $ "Type Check: FAIL" ++ show err ++ "\n"
+                            -- _           -> putStrLn $ "Elaboration:    FAILED  " ++ show res' ++ "\n"
 
 handleError :: IOError -> IO String
 handleError _ = return "Error: Unable to read file."

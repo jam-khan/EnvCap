@@ -36,15 +36,9 @@ data Tm =   TmCtx                               -- Query
         |   TmSeq       Tm Tm                   -- Sequence (Not sure abt this)
         |   TmVar       String
         |   TmFunc      String Typ Tm
+        |   TmModule    String Typ Typ Tm
+        |   TmAliasTyp  String Typ              -- Typ Alias (it is skipped and types are substituted)
         deriving (Eq, Show)
-
-data TypeVar    = TVar String Typ
-data Module     = Module Import Export [Tm] deriving (Eq, Show)
-
-type Import     = [Typ]
-type Export     = [Typ]
-
-data Header     = Header Import Export deriving (Eq, Show)
 
 -- Types
 data Typ      =     TUnit                  -- Unit type for empty environment
@@ -56,11 +50,16 @@ data Typ      =     TUnit                  -- Unit type for empty environment
                 -- Extensions
                 |   TBool                  -- Boolean type
                 |   TString                -- String type
-                
-                |   TList  Typ             -- Type for built-in list
+                |   TList  Typ             -- Type for built-in list 
                 |   TSum   Typ Typ         -- Type for sums
-                |   TPair  Typ Typ         
+                |   TPair  Typ Typ
+                |   TSig   Typ Typ             -- Sig Type End
+                |   TIden  String          -- Simply an alias
                 deriving (Eq, Show)
+
+{--
+
+--}
 
 -- Operations Definitions
 data TmBinOp   =        TmArith TmArithOp   -- Arithmetic
