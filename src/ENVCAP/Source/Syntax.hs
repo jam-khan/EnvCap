@@ -18,26 +18,27 @@ data Tm =   TmCtx                               -- Query
         |   TmBox       Tm Tm
         -- Extension that require elaboration
         |   TmIf        Tm Tm Tm
-        |   TmLet       String Typ Tm Tm
         |   TmFix       Tm
-        |   TmLetrec    String Typ Tm Tm
+        |   TmPair      Tm Tm
         |   TmFst       Tm
         |   TmSnd       Tm
         |   TmNil       Typ
         |   TmCons      Tm Tm
         |   TmBinOp     TmBinOp Tm Tm
         |   TmUnOp      TmUnaryOp Tm
-        |   TmCase      Tm                      -- This will perform type-directed elaboration to different case in core
+        |   TmCase      Tm
         |   TmInL       Tm
         |   TmInR       Tm
         -- Not sure if tagging is needed at source level -- can be simply added during elaboration to core
+        |   TmAnno      Tm Typ                  -- Tm :: Typ
         |   TmTuple     [Tm]
-        |   TmSwitch    Tm [(Tm, Tm)]           -- Match/Switch
-        |   TmSeq       Tm Tm                   -- Sequence (Not sure abt this)
+        |   TmSwitch    Tm [(Tm, Tm)]
         |   TmVar       String
         |   TmFunc      String Typ Tm
         |   TmModule    String Typ Typ Tm
-        |   TmAliasTyp  String Typ              -- Typ Alias (it is skipped and types are substituted)
+        |   TmAliasTyp  String Typ
+        |   TmLet       String Typ Tm Tm
+        |   TmLetrec    String Typ Tm Tm
         deriving (Eq, Show)
 
 -- Types

@@ -121,12 +121,9 @@ infer ctx (Case e1 e2 e3)       = do
                                             if check (TAnd ctx tb) e3 te2 then Right te2 else Left $ TypeError "Case branches must match"
                                         _ -> Left $ TypeError "Expected a sum type in case expression"
 -- TYP-NIL 
-infer ctx Nil                   = Right TUnit
+infer ctx (Nil typ)             = Right (TList typ)
 -- TYP-CONS 
 infer ctx (Cons te te2)         = case infer ctx te2 of
-                                    Right TUnit                 -> do   res <- infer ctx te
-                                                                        Right $ TList res
-                                            
                                     Right (TList tA)            -> if check ctx te tA 
                                                                         then Right (TList tA)
                                                                         else Left $ TypeError "Type mismatch in list constructor"

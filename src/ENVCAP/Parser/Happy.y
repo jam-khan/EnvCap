@@ -17,6 +17,9 @@ import ENVCAP.Source.Syntax
      'then'         { TokenThen }
      'else'         { TokenElse }
      'def'          { TokenDefine }
+     'let'          { TokenLet }
+     'letrec'       { TokenLetrec }
+     'in'           { TokenIn }
      'False'        { TokenFalse }
      'True'         { TokenTrue }
      'function'     { TokenFunc }
@@ -25,8 +28,10 @@ import ENVCAP.Source.Syntax
      'String'       { TokenTypeString }
      '->'           { TokenTypeArrow }
      '&'            { TokenTypeAnd }
+     '[]'           { TokenEmptyList }
      '['            { TokenOpenSqBracket }
      ']'            { TokenCloseSqBracket }
+     '::'           { TokenCons }
      ','            { TokenComma }
      '+'            { TokenPlus }
      '-'            { TokenMinus }
@@ -48,13 +53,16 @@ import ENVCAP.Source.Syntax
      ':'            { TokenColon }
      '='            { TokenEq }
      '{'            { TokenOpenBracket }
+     '\''           { TokenSingleQuote }
+     '"'            { TokenDoubleQuote }
      '}'            { TokenCloseBracket }
-     '\\('           { TokenLambda }
+     '\\('          { TokenLambda }
      '=>'           { TokenArrow }
 
 
 %right '='
 %right '=>'
+%right '::'
 %left TokenElse
 %left application_prec
 %left '->'
@@ -67,28 +75,47 @@ import ENVCAP.Source.Syntax
 
 
 %%
-Program   : Statements                          { $1 }
+
+Program   : Statements                        { $1 }
           
-Statements     : Term ';;' Statements            { TmMrg $1 $3 }
-               | Term                           { $1 }
+Statements     : Statement ';;' Statements    { TmMrg $1 $3 }
+               | Statement                    { $1 }
+
+Statement      : Function                     { $1 }
+               | Binding                      { $1 }
+               | Term                         { $1 }
           
 Term      : '?'                               { TmCtx }
-          | Function                          { $1 }
           | Application                       { $1 }
           | Bool                              { $1 }
+          | String                            { $1} 
           | int                               { TmLit $1 }
           | var                               { TmRProj TmCtx $1 }
           | ArithmeticOp                      { $1 }
           | ComparisonOp                      { $1 }
           | BooleanOp                         { $1 }
-          | Binding                           { $1 }
           | IfThenElse                        { $1 }
           | TyAlias                           { $1 }
           | Lambda                            { $1 }
+          | Let                               { $1 }
+          | Letrec                            { $1 }
+          | List                              { $1 }
+          | ListCons                          { $1 }
+          | Record                            { $1 }
+          | Tuple                             { $1 }
           | Parens                            { $1 }
           | error                             { parseError [$1] }
 
+String    : '\'' var '\''                    { TmString $2 }
+          | '"' var '"'                      { TmString $2 }
+
+ListCons : Term '::' Term                     { TmCons $1 $3 }
+
 TyAlias   : 'type' var '=' Type               { TmAliasTyp $2 $4 }
+
+Tuple          : '(' TupleElements ')'        { $2 }
+TupleElements  : Term ',' TupleElements       { TmPair $1 $3 }
+               | Term                         { $1 }
 
 Type      : 'Int'                             { TInt }
           | 'Bool'                            { TBool }
@@ -96,14 +123,30 @@ Type      : 'Int'                             { TInt }
           | Type '->' Type                    { TArrow $1 $3 }
           | Type '&'  Type                    { TAnd $1 $3 }
           | '[' Type ']'                      { TList $2 }
-          | '{' var ':' Type '}'              { TRecord $2 $4 }
+          | '{' RecordType '}'                { $2 }
           | var                               { TIden $1 }
-          
+          | '(' Type ')'                      { $2 }
+
+RecordType     : Param ',' RecordType         { TAnd $1 $3 }
+               | Param                        { $1 }
+
+Record    : '{' Records '}'                   { $2 }
+Records   : var '=' Term ',' Records          {TmMrg (TmRec $1 $3) $5}
+          | var '=' Term                      {TmRec $1 $3}
+
 ParamList : Param ',' ParamList               { TAnd $1 $3 }
           | Param                             { $1 }
 
 Param     : var ':' Type                      { TRecord $1 $3 }   
 
+Let       : 'let'    var ':' Type '='   Term   'in' CurlyParens   { TmLet    $2 $4 $6 $8 }
+Letrec    : 'letrec' var ':' Type '='   Term   'in' CurlyParens   { TmLetrec $2 $4 $6 $8 }
+
+List      : '[]' ':' Type                   { TmNil $3 }
+          | '[' Elements ']'                 { $2 }
+
+Elements  : Term ',' Elements                { TmCons $1 $3 }
+          | Term                             { $1 }
 
 ComparisonOp   :  Term    '>='    Term                 { TmBinOp (TmComp  TmGe)   $1 $3 }
                |  Term    '>'     Term                 { TmBinOp (TmComp  TmGt)   $1 $3 }
@@ -140,6 +183,7 @@ Lambda    : '(' Lambda ')' '(' Arguments ')'              { foldl TmApp $2 $5 }
 Binding   : 'def' var '=' Term                         { TmRec $2 $4 }
 
 Parens      : '(' Term ')'                             { $2 }
+
 CurlyParens : '{' Statements '}'                       { $2 }
 
 IfThenElse : 'if' Parens 'then' CurlyParens 'else' CurlyParens { TmIf $2 $4 $6 }
@@ -171,7 +215,7 @@ data Token
      | TokenCB           -- ')'
      | TokenQuery        -- '?'
      | TokenEq           -- '='
-     | TokenSemicolon    -- ';'
+     | TokenSemicolon    -- ';;'
      | TokenIf           -- 'if'
      | TokenThen         -- 'then'
      | TokenElse         -- 'else'
@@ -182,6 +226,9 @@ data Token
      | TokenOpenBracket  -- '{'
      | TokenCloseBracket -- '}'
      | TokenColon        -- ':'
+     | TokenLet          -- 'let'
+     | TokenLetrec       -- 'letrec'
+     | TokenIn           -- 'in'
      | TokenTypeInt      -- 'Int'
      | TokenTypeBool     -- 'Bool'
      | TokenTypeString   -- 'String'
@@ -189,8 +236,12 @@ data Token
      | TokenTypeAnd      -- '&'
      | TokenTyAlias      -- 'type'
      | TokenComma        -- ','
-     | TokenOpenSqBracket  -- '['
-     | TokenCloseSqBracket -- ']'
+     | TokenOpenSqBracket     -- '['
+     | TokenCloseSqBracket    -- ']'
+     | TokenCons              -- '::'
+     | TokenEmptyList         -- '[]'
+     | TokenSingleQuote       -- '
+     | TokenDoubleQuote       -- "
      deriving Show
 
 lexer :: String -> [Token]
@@ -236,13 +287,22 @@ lexer ('<':cs) =
 lexer (';':cs)      = case cs of
                          (';':cs') -> TokenSemicolon : lexer cs'
 lexer (',':cs)      = TokenComma : lexer cs
-lexer (':':cs)      = TokenColon : lexer cs
+lexer (':':cs)      = 
+     case cs of 
+          (':':cs')      ->   TokenCons      : lexer cs'
+          _              ->   TokenColon     : lexer cs 
 lexer ('{':cs)      = TokenOpenBracket : lexer cs
 lexer ('}':cs)      = TokenCloseBracket : lexer cs
-lexer ('[':cs)      = TokenOpenSqBracket : lexer cs
+lexer ('[':cs)      = 
+     case cs of
+          (']':cs') ->   TokenEmptyList     : lexer cs' 
+          _         ->   TokenOpenSqBracket : lexer cs
+
 lexer (']':cs)      = TokenCloseSqBracket : lexer cs
 lexer ('(':cs)      = TokenOB       : lexer cs
 lexer (')':cs)      = TokenCB       : lexer cs
+lexer ('\'':cs)     = TokenSingleQuote : lexer cs
+lexer ('"':cs)      = TokenDoubleQuote : lexer cs
 
 lexNum cs = TokenInt (read num) : lexer rest
      where (num, rest) = span isDigit cs
@@ -254,6 +314,9 @@ lexVar cs =
           ("String",     rest)     -> TokenTypeString  : lexer rest
           ("True",       rest)     -> TokenTrue        : lexer rest
           ("False",      rest)     -> TokenFalse       : lexer rest
+          ("let",        rest)     -> TokenLet         : lexer rest
+          ("letrec",     rest)     -> TokenLetrec      : lexer rest
+          ("in",         rest)     -> TokenIn          : lexer rest
           ("type",       rest)     -> TokenTyAlias     : lexer rest
           ("function",   rest)     -> TokenFunc        : lexer rest
           ("def",        rest)     -> TokenDefine      : lexer rest

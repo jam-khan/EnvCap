@@ -29,7 +29,7 @@ import Data.Maybe (isNothing)
 prop_preservation :: Exp -> Property
 prop_preservation t = counterexample (show t) $
                         case infer TUnit t of
-                            Just ty ->
+                            Right ty ->
                                 case eval VUnit t of
                                     Just v  -> property (getValueTyp TUnit v == Just ty)
                                     _       -> property False
@@ -39,7 +39,7 @@ prop_preservation t = counterexample (show t) $
 prop_progress :: Exp -> Property
 prop_progress t = counterexample (show t) $
     case infer TUnit t of
-        Just ty -> case eval VUnit t of
+        Right ty -> case eval VUnit t of
                     Just v      -> property True
                     _           -> property False
         _       -> discard

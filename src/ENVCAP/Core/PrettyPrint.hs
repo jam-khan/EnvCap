@@ -49,7 +49,7 @@ prettyPrintExp (InR typ e)      = "Right(" ++ prettyPrintTyp typ ++ ", " ++ pret
 prettyPrintExp (Case e1 e2 e3)  = "Case (" ++ prettyPrintExp e1 ++ ") of \n" ++
                                             " inl _ _ => " ++ prettyPrintExp e2 ++ "\n" ++
                                             " inr _ _ => " ++ prettyPrintExp e3 ++ "\n"
-prettyPrintExp Nil              = "List<[nil]>"
+prettyPrintExp (Nil tA)         = "List<[" ++ show tA ++"]>"
 --         |   Cons   Exp Exp           -- Cons for List
 prettyPrintExp (Cons head rest) = "List<[" ++ prettyPrintList (Cons head rest)
 --         |   BinOp  BinaryOp Exp Exp  -- Binary operations
@@ -64,7 +64,7 @@ prettyPrintExp (LCase e1 e2 e3) = "Case (" ++ prettyPrintExp e1 ++ ") of \n" ++
 
 prettyPrintList :: Exp -> String
 prettyPrintList (Cons head rest)    = prettyPrintExp head ++ ", " ++ prettyPrintList rest 
-prettyPrintList Nil                 = "]>"
+prettyPrintList (Nil tA)            = "]>"
 
 prettyPrintVal :: Value -> String
 prettyPrintVal VUnit              = "ε"
@@ -74,7 +74,7 @@ prettyPrintVal (VString s)        = "\'" ++ show s ++ "\'"
 prettyPrintVal (VClos val exp)    = "closure<"  ++ prettyPrintVal val ++ ", "   ++ prettyPrintExp exp ++ ">"
 prettyPrintVal (VRcd label val)   = "{" ++ show label   ++ ": "     ++ prettyPrintVal val ++ "}"
 prettyPrintVal (VMrg v1 v2)       = prettyPrintVal v1   ++ " ,, "   ++ prettyPrintVal v2
-prettyPrintVal VNil               = "List<[nil]>"
+prettyPrintVal (VNil tA)          = "List<[nil]>"
 prettyPrintVal (VCons head rest)  = "List<["    ++ prettyPrintList' (VCons head rest)
 prettyPrintVal (VPair v1 v2)      = "Pair[("    ++ prettyPrintVal v1    ++ ", "     ++ prettyPrintVal v2 ++ ")]"
 prettyPrintVal (VInL typ value)   = "Left("     ++ show typ ++ ", "     ++ prettyPrintVal value ++ ")"
@@ -82,7 +82,7 @@ prettyPrintVal (VInR typ value)   = "Right("    ++ show typ ++ ", "     ++ prett
 
 prettyPrintList' :: Value -> String
 prettyPrintList' (VCons head rest)   = prettyPrintVal head ++ ", " ++ prettyPrintList' rest 
-prettyPrintList' VNil                = "]>"
+prettyPrintList' (VNil tA)           = "]>"
 
 prettyPrintTyp :: Typ -> String
 prettyPrintTyp TUnit                = "TYPE<ε>"
