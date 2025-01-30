@@ -80,7 +80,7 @@ eval env (Case e1 e2 e3)        = case eval env e1 of
                                         Just (VInR t v1) -> eval (VMrg env v1) e3
                                         _                -> Nothing
 -- BSTEP-NIL
-eval env (Nil tA)               = Just (VNil tA)
+eval env (Nil tA)               = Just (VNil tA) 
 -- BSTEP-CONS
 eval env (Cons e1 e2)           = case eval env e1 of
                                         Just v1         -> case eval env e2 of
@@ -89,7 +89,7 @@ eval env (Cons e1 e2)           = case eval env e1 of
                                         _               -> Nothing
 -- BSTEP-LCASE
 eval env (LCase e1 e2 e3)       = case eval env e1 of
-                                        Just (VNil typ)         -> eval env e2
+                                        Just (VNil tA)          -> eval env e2
                                         Just (VCons v1 v2)      -> eval (VMrg (VMrg env v1) v2) e3
                                         _                       -> Nothing
 -- BSTEP-ARITH

@@ -1,0 +1,5 @@
+type newInt = [Bool];;
+
+
+def hello = \(x: newInt) => { x && True };;
+

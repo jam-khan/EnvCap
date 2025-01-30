@@ -80,48 +80,48 @@ main = hspec $ do
           exp1 = Proj (Mrg Unit (Lit 42)) 0
           exp2 = Rec "z" (Lit 42)
 
-      infer ctx exp1 `shouldBe` Just TInt
-      infer ctx exp2 `shouldBe` Just (TRecord "z" TInt)
+      infer ctx exp1 `shouldBe` Right TInt
+      infer ctx exp2 `shouldBe` Right (TRecord "z" TInt)
 
     it "should infer record projections correctly by label" $ do
       let ctx = TAnd (TRecord "z" TInt) (TRecord "y" TUnit)
           exp3 = RProj (Rec "z" (Lit 42)) "z"
-      infer ctx exp3 `shouldBe` Just TInt 
+      infer ctx exp3 `shouldBe` Right TInt 
 
     it "should return Nothing for invalid projections or unrecognized Expessions" $ do
       let ctx = TAnd (TRecord "a" TInt) (TRecord "b" TUnit)
           invalidExp = RProj Ctx ""
-      infer ctx invalidExp `shouldBe` Nothing
+      infer ctx invalidExp `shouldBe` Left "error"
 
     it "should return Nothing for mismatched types" $ do
-        infer ctx (App (Lam TInt (Lit 42)) (Lam TUnit (Lit 1))) `shouldBe` Nothing
-        infer ctx (App (Lam TInt (Lit 42)) (Lit 5)) `shouldBe` Just TInt
+        infer ctx (App (Lam TInt (Lit 42)) (Lam TUnit (Lit 1))) `shouldBe` Left "error"
+        infer ctx (App (Lam TInt (Lit 42)) (Lit 5)) `shouldBe` Right TInt
       
     it "should handle lambda Expessions correctly" $ do
         infer ctx (App 
                         (Lam TInt (Lam TInt Ctx)) 
-                        (Lit 5)) `shouldBe` Just (TArrow TInt (TAnd (TAnd TUnit TInt) TInt))
+                        (Lit 5)) `shouldBe` Right (TArrow TInt (TAnd (TAnd TUnit TInt) TInt))
     
     it "should handle Unit correctly" $ do
         infer ctx (App 
                         (Lam TInt (Lam TInt Unit)) 
-                        (Lit 5)) `shouldBe` Just (TArrow TInt TUnit)
+                        (Lit 5)) `shouldBe` Right (TArrow TInt TUnit)
     
     it "should handle box correctly" $ do
         let e1 = Mrg Unit (Lit 1)
         let e2 = Proj Ctx 0
-        infer ctx (Box e1 e2) `shouldBe` Just TInt
+        infer ctx (Box e1 e2) `shouldBe` Right TInt
 
     it "should handle closures correctly" $ do
         let e1 = Clos (Lit 1) (Lam TInt Unit)
         let e2 = Clos (Lit 1) (Lam TInt (Proj Ctx 2))
         let e3 = Clos (RProj Ctx "x") (Lam TInt (Proj Ctx 2))
-        infer ctx e1 `shouldBe` Just (TArrow TInt TUnit)
-        infer ctx e2 `shouldBe` Nothing
-        infer ctx e3 `shouldBe` Nothing
+        infer ctx e1 `shouldBe` Right (TArrow TInt TUnit)
+        infer ctx e2 `shouldBe` Left "error"
+        infer ctx e3 `shouldBe` Left "error"
     
     it "should return Nothing for invalid application" $ do
         infer ctx (App 
                     (Lam TInt (Lit 42)) 
                     (Mrg (Lit 1) (Lit 2))) 
-            `shouldBe` Nothing
+            `shouldBe` Left "error"

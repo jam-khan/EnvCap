@@ -14,7 +14,7 @@ getValueTyp env VUnit           = Just TUnit
 getValueTyp env (VInt _)        = Just TInt
 getValueTyp env (VBool _)       = Just TBool
 getValueTyp env (VString _)     = Just TString
-getValueTyp env (VNil t)        = Just (TList t)
+getValueTyp env (VNil tA)       = Just (TList tA)
 getValueTyp ev (VClos v (Lam tA e)) 
                                 = case getValueTyp ev v of
                                         Just env    -> (case infer (TAnd env tA) e of

@@ -7,3 +7,4 @@ extra/*
 src/Addition.hs
 .vscode/*
 proofs/core
+src/ENVCAP/Parser/Happy.info

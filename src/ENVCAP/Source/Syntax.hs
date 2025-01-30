@@ -18,33 +18,28 @@ data Tm =   TmCtx                               -- Query
         |   TmBox       Tm Tm
         -- Extension that require elaboration
         |   TmIf        Tm Tm Tm
-        |   TmLet       String Typ Tm Tm
         |   TmFix       Tm
-        |   TmLetrec    String Typ Tm Tm
+        |   TmPair      Tm Tm
         |   TmFst       Tm
         |   TmSnd       Tm
         |   TmNil       Typ
         |   TmCons      Tm Tm
         |   TmBinOp     TmBinOp Tm Tm
         |   TmUnOp      TmUnaryOp Tm
-        |   TmCase      Tm                      -- This will perform type-directed elaboration to different case in core
+        |   TmCase      Tm
         |   TmInL       Tm
         |   TmInR       Tm
         -- Not sure if tagging is needed at source level -- can be simply added during elaboration to core
+        |   TmAnno      Tm Typ                  -- Tm :: Typ
         |   TmTuple     [Tm]
-        |   TmSwitch    Tm [(Tm, Tm)]           -- Match/Switch
-        |   TmSeq       Tm Tm                   -- Sequence (Not sure abt this)
+        |   TmSwitch    Tm [(Tm, Tm)]
         |   TmVar       String
         |   TmFunc      String Typ Tm
+        |   TmModule    String Typ Typ Tm
+        |   TmAliasTyp  String Typ
+        |   TmLet       String Typ Tm Tm
+        |   TmLetrec    String Typ Tm Tm
         deriving (Eq, Show)
-
-data TypeVar    = TVar String Typ
-data Module     = Module Import Export [Tm] deriving (Eq, Show)
-
-type Import     = [Typ]
-type Export     = [Typ]
-
-data Header     = Header Import Export deriving (Eq, Show)
 
 -- Types
 data Typ      =     TUnit                  -- Unit type for empty environment
@@ -56,11 +51,16 @@ data Typ      =     TUnit                  -- Unit type for empty environment
                 -- Extensions
                 |   TBool                  -- Boolean type
                 |   TString                -- String type
-                
-                |   TList  Typ             -- Type for built-in list
+                |   TList  Typ             -- Type for built-in list 
                 |   TSum   Typ Typ         -- Type for sums
-                |   TPair  Typ Typ         
+                |   TPair  Typ Typ
+                |   TSig   Typ Typ             -- Sig Type End
+                |   TIden  String          -- Simply an alias
                 deriving (Eq, Show)
+
+{--
+
+--}
 
 -- Operations Definitions
 data TmBinOp   =        TmArith TmArithOp   -- Arithmetic

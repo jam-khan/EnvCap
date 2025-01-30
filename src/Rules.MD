@@ -106,9 +106,13 @@ The λ<sub>E</sub> has been extended with arithmetic, logic, comparison operatio
             -------------- BSTEP-True               --------------- BSTEP-False                 ----------- BSTEP-STR          
             v |- b => True                          v |- b => False                             v |- s => s                   
 
-                    v |- e => ⟨v1, λA e1⟩                               v |- e1 => v1      v ,, v1 |- e2 => v1
-                ------------------------------- BSTEP-FIX               -------------------------------------- BSTEP-LET
-                v |- Fix e  => ⟨v1, Fix λA. e1⟩                                  v |- let e1 e2 => v1
+                    v |- e => ⟨v1, λA e1⟩                                                   v |- e1 => v1      v ,, v1 |- e2 => v1
+                -------------------------------------------------- BSTEP-FIX               -------------------------------------- BSTEP-LET
+                v |- Fix e  => ⟨v1 ,, <v1, Fix λA. e1>, Fix λA. e1⟩                                 v |- let e1 e2 => v1
+
+                        v |- e1 => <v1, Fix λA. e>      v |- e2 => v2     v1 ,, v2 |- e => v'
+                        --------------------------------------------------------------------- BSTEP-FixApp
+                                                v |- e1 e2 => v
 
                 v |- e1 => True     v |- e2 => v2                         v |- e1 => False     v |- e3 => v3
                 --------------------------------- BSTEP-IF_True           ---------------------------------- BSTEP-IF_False
@@ -165,16 +169,8 @@ Arithmetic, Binary and Logical operations are the standard manipulations.
                                 Γ |- e0 => T1 + T2   Γ & T1 |- e1 => T3   Γ & T2 |- e2 <= T3
                                 ------------------------------------------------------------ TYP-CASE
                                                 Γ |- case e0 e1 e2 => T3
-
-                        Γ |- e0 => List T1      Γ |- e1 => T2    (Γ & T1) & List T1 |- e2 <= T2
-                        ----------------------------------------------------------------------- TYP-LCASE
-                                                Γ |- lcase e0 e1 e2 => T2
                             
-                                                                        Γ |- e2 => List T    Γ |- e1 <= T
-                    -------------------- TYP-Nil                        --------------------------------- TYP-Cons
-                    Γ |- nil T => List T                                   Γ |- cons e1 e2 => List T
-            
-
+                    
                     Γ |- e1 => T1   Γ |- e2 <= T1                           Γ |- e => T
                     ----------------------------- BSTEP-BinaryOp         ------------------- BSTEP-Unaryop
                         Γ |- e1 binop e2 => T1                            Γ |- unaryop e => T
