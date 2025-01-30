@@ -142,7 +142,7 @@ Param     : var ':' Type                      { TRecord $1 $3 }
 Let       : 'let'    var ':' Type '='   Term   'in' CurlyParens   { TmLet    $2 $4 $6 $8 }
 Letrec    : 'letrec' var ':' Type '='   Term   'in' CurlyParens   { TmLetrec $2 $4 $6 $8 }
 
-List      : '[]' ':' Type                   { TmNil $3 }
+List      : '[]' ':' Type                    { TmNil $3 }
           | '[' Elements ']'                 { $2 }
 
 Elements  : Term ',' Elements                { TmCons $1 $3 }

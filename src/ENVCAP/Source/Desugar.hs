@@ -79,8 +79,11 @@ desugar (TmProj tm i)           = case desugar tm of
                                         Just tm' -> Just (TmProj tm' i)
                                         _        -> Nothing
 desugar (TmLam ty tm)           = case ty of
-                                        Source.TAnd t1 t2       -> TmLam t1 <$> desugar (TmLam t2 tm)
-                                        ty                      -> TmLam ty <$> desugar tm
+                                        Source.TAnd t1 t2               -> desugar (TmLam t1 (TmLam t2 tm))
+                                        (Source.TRecord label ty)       -> case debruijnTransform label 0 tm of
+                                                                                Just tm'        -> TmLam ty <$> desugar tm'
+                                                                                _               -> Nothing
+                                        ty                              -> TmLam ty <$> desugar tm
 desugar (TmFunc name ty tm)     = case desugar (TmLam ty tm) of
                                         Just tm'        -> case debruijnTransform name 0 tm' of
                                                                 Just tm''       -> Just $ TmRec name (TmFix tm'')
@@ -168,11 +171,12 @@ elaborate (TmMrg tm1 tm2)               = Mrg  <$> elaborate tm1        <*> elab
 elaborate (TmRec name tm)               = Rec name    <$> elaborate tm
 elaborate (TmProj tm n)                 = Proj <$> elaborate tm <*> Just n               
 elaborate (TmRProj tm name)             = RProj       <$> elaborate tm <*> Just name
-elaborate (TmLam ty tm)                 = case ty of
-                                                (Source.TRecord label ty')        -> Lam <$> elaborateTyp ty' <*> case debruijnTransform label 0 tm of
-                                                                                                                        Just tm'        -> elaborate tm'
-                                                                                                                        _               -> Nothing
-                                                _                                 -> Lam <$> elaborateTyp ty <*> elaborate tm
+elaborate (TmLam ty tm)                 = Lam <$> elaborateTyp ty <*> elaborate tm
+        -- case ty of
+        --                                         (Source.TRecord label ty')        -> Lam <$> elaborateTyp ty' <*> case debruijnTransform label 0 tm of
+        --                                                                                                                 Just tm'        -> elaborate tm'
+        --                                                                                                                 _               -> Nothing
+                                                -- _                                 -> Lam <$> elaborateTyp ty <*> elaborate tm
 elaborate (TmApp tm1 tm2)               = App <$> elaborate tm1 <*> elaborate tm2
 elaborate (TmFix tm)                    = Fix <$> elaborate tm  
 elaborate _                             = Nothing
