@@ -148,22 +148,6 @@ List      : '[]' ':' Type                    { TmNil $3 }
 Elements  : Term ',' Elements                { TmCons $1 $3 }
           | Term                             { $1 }
 
-ComparisonOp   :  Term    '>='    Term                 { TmBinOp (TmComp  TmGe)   $1 $3 }
-               |  Term    '>'     Term                 { TmBinOp (TmComp  TmGt)   $1 $3 }
-               |  Term    '=='    Term                 { TmBinOp (TmComp  TmEql)  $1 $3 }
-               |  Term    '!='    Term                 { TmBinOp (TmComp  TmNeq)  $1 $3 }
-               |  Term    '<'     Term                 { TmBinOp (TmComp  TmLt)   $1 $3 }
-               |  Term    '<='    Term                 { TmBinOp (TmComp  TmLe)   $1 $3 }
-
-BooleanOp      : Term    '&&'    Term                  { TmBinOp (TmLogic TmAnd)  $1 $3 }
-               | Term    '||'    Term                  { TmBinOp (TmLogic TmOr)   $1 $3 }
-          
-ArithmeticOp   :    Term    '+'     Term               { TmBinOp (TmArith TmAdd)  $1 $3 }
-               |    Term    '-'     Term               { TmBinOp (TmArith TmSub)  $1 $3 }
-               |    Term    '*'     Term               { TmBinOp (TmArith TmMul)  $1 $3 }
-               |    Term    '/'     Term               { TmBinOp (TmArith TmDiv)  $1 $3 }
-               |    Term    '%'     Term               { TmBinOp (TmArith TmMod)  $1 $3 }
-
 Arguments      : Term ',' Arguments                         { $1 : $3 }
                | Term                                       { [$1] }
 
@@ -188,6 +172,23 @@ CurlyParens : '{' Statements '}'                       { $2 }
 
 IfThenElse : 'if' Parens 'then' CurlyParens 'else' CurlyParens { TmIf $2 $4 $6 }
            | 'if' Parens 'then' CurlyParens                    { TmIf $2 $4 TmUnit }
+
+ComparisonOp   :  Term    '>='    Term                 { TmBinOp (TmComp  TmGe)   $1 $3 }
+               |  Term    '>'     Term                 { TmBinOp (TmComp  TmGt)   $1 $3 }
+               |  Term    '=='    Term                 { TmBinOp (TmComp  TmEql)  $1 $3 }
+               |  Term    '!='    Term                 { TmBinOp (TmComp  TmNeq)  $1 $3 }
+               |  Term    '<'     Term                 { TmBinOp (TmComp  TmLt)   $1 $3 }
+               |  Term    '<='    Term                 { TmBinOp (TmComp  TmLe)   $1 $3 }
+
+BooleanOp      : Term    '&&'    Term                  { TmBinOp (TmLogic TmAnd)  $1 $3 }
+               | Term    '||'    Term                  { TmBinOp (TmLogic TmOr)   $1 $3 }
+          
+ArithmeticOp   :    Term    '+'     Term               { TmBinOp (TmArith TmAdd)  $1 $3 }
+               |    Term    '-'     Term               { TmBinOp (TmArith TmSub)  $1 $3 }
+               |    Term    '*'     Term               { TmBinOp (TmArith TmMul)  $1 $3 }
+               |    Term    '/'     Term               { TmBinOp (TmArith TmDiv)  $1 $3 }
+               |    Term    '%'     Term               { TmBinOp (TmArith TmMod)  $1 $3 }
+
 
 {
 parseError :: [Token] -> a

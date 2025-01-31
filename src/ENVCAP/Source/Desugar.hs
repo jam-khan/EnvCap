@@ -5,10 +5,12 @@ import ENVCAP.Source.Syntax as Source
 surfaceUnaryToCoreOp :: TmUnaryOp -> UnaryOp
 surfaceUnaryToCoreOp TmNot              = Not
 
-
+-- Add containment
 lookupTyp :: Source.Typ -> String -> Maybe Source.Typ
 lookupTyp (Source.TAnd ty1 (Source.TRecord label' ty2)) label 
-                                        = if label' == label    then Just ty2
+                                        = if label' == label    then case lookupTyp ty1 label of
+                                                                        Just ty1'       -> Nothing
+                                                                        _               -> Just ty2
                                                                 else lookupTyp ty1 label
 lookupTyp _ _                           = Nothing
 
@@ -105,18 +107,19 @@ debruijnTransform x i (TmBinOp op tm1 tm2)      = case (debruijnTransform x i tm
 debruijnTransform x i (TmUnOp op tm)            = case debruijnTransform x i tm of
                                                         (Just tm')      -> Just (TmUnOp op tm')
                                                         _               -> Nothing
-debruijnTransform x i (TmIf tm1 tm2 tm3)        = TmIf <$> debruijnTransform x i tm1 <*> debruijnTransform x i tm2 <*> debruijnTransform x i tm3
-debruijnTransform x i (TmMrg tm1 tm2)           = TmMrg <$> debruijnTransform x i tm1 <*> debruijnTransform x (i + 1) tm2
-debruijnTransform x i (TmRec name tm)           = TmRec name <$> debruijnTransform x i tm
-debruijnTransform x i (TmRProj tm name)         = if name == x  then Just $ TmProj tm i
-                                                                else Just $ TmRProj tm name
-debruijnTransform x i (TmProj tm n)             = TmProj <$> debruijnTransform x i tm <*> Just n
-debruijnTransform x i (TmFix tm)                = TmFix <$> debruijnTransform x i tm
-debruijnTransform x i (TmLam (Source.TRecord label ty) tm)
-                                                = if label == x then Just $ TmLam (Source.TRecord label ty) tm
-                                                                else TmLam (Source.TRecord label ty) <$> debruijnTransform x (i + 1) tm
-debruijnTransform x i (TmLam ty tm)             = TmLam ty <$> debruijnTransform x (i + 1) tm
-debruijnTransform x i (TmApp tm1 tm2)           = TmApp <$> debruijnTransform x i tm1 <*> debruijnTransform x i tm2
+debruijnTransform x i (TmIf tm1 tm2 tm3)        = TmIf          <$> debruijnTransform x i tm1   <*> debruijnTransform x i tm2   <*> debruijnTransform x i tm3
+debruijnTransform x i (TmMrg tm1 tm2)           = TmMrg         <$> debruijnTransform x i tm1   <*> debruijnTransform x (i + 1) tm2
+debruijnTransform x i (TmRec name tm)           = TmRec name    <$> debruijnTransform x i tm
+debruijnTransform x i (TmRProj TmCtx l)         = Just $ if l == x then TmProj TmCtx i else TmRProj TmCtx l
+debruijnTransform x i (TmRProj tm name)         = TmRProj       <$> debruijnTransform x i tm    <*> Just name
+debruijnTransform x i (TmProj tm n)             = TmProj        <$> debruijnTransform x i tm    <*> Just n
+debruijnTransform x i (TmFix tm)                = TmFix         <$> debruijnTransform x i tm
+debruijnTransform x i (TmLam ty tm)             = case ty of
+                                                        (Source.TRecord label ty')      -> 
+                                                                if label == x   then Just $ TmLam ty tm
+                                                                                else TmLam ty    <$> debruijnTransform x (i + 1) tm
+                                                        _                               ->      TmLam ty      <$> debruijnTransform x (i + 1) tm
+debruijnTransform x i (TmApp tm1 tm2)           = TmApp         <$> debruijnTransform x i tm1           <*> debruijnTransform x i tm2
 debruijnTransform _ _ _                         = Nothing
 
 
@@ -172,11 +175,6 @@ elaborate (TmRec name tm)               = Rec name    <$> elaborate tm
 elaborate (TmProj tm n)                 = Proj <$> elaborate tm <*> Just n               
 elaborate (TmRProj tm name)             = RProj       <$> elaborate tm <*> Just name
 elaborate (TmLam ty tm)                 = Lam <$> elaborateTyp ty <*> elaborate tm
-        -- case ty of
-        --                                         (Source.TRecord label ty')        -> Lam <$> elaborateTyp ty' <*> case debruijnTransform label 0 tm of
-        --                                                                                                                 Just tm'        -> elaborate tm'
-        --                                                                                                                 _               -> Nothing
-                                                -- _                                 -> Lam <$> elaborateTyp ty <*> elaborate tm
 elaborate (TmApp tm1 tm2)               = App <$> elaborate tm1 <*> elaborate tm2
 elaborate (TmFix tm)                    = Fix <$> elaborate tm  
 elaborate _                             = Nothing
