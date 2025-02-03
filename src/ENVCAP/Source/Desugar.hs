@@ -2,16 +2,14 @@ module ENVCAP.Source.Desugar where
 import ENVCAP.Core.Syntax as Core
 import ENVCAP.Source.Syntax as Source
 
-surfaceUnaryToCoreOp :: TmUnaryOp -> UnaryOp
-surfaceUnaryToCoreOp TmNot              = Not
-
 -- Add containment
 lookupTyp :: Source.Typ -> String -> Maybe Source.Typ
 lookupTyp (Source.TAnd ty1 (Source.TRecord label' ty2)) label 
-                                        = if label' == label    then case lookupTyp ty1 label of
-                                                                        Just ty1'       -> Nothing
-                                                                        _               -> Just ty2
-                                                                else lookupTyp ty1 label
+                                        = if label' == label    
+                                                then case lookupTyp ty1 label of
+                                                        Just ty1'       -> Nothing
+                                                        _               -> Just ty2
+                                                else lookupTyp ty1 label
 lookupTyp _ _                           = Nothing
 
 expandTyAlias :: Source.Typ -> Source.Typ -> Maybe Source.Typ
@@ -49,15 +47,8 @@ expandAlias tyCtx (TmMrg tm1 tm2)             = case tm1 of
 expandAlias tyCtx (TmRec name tm)             = TmRec name <$> expandAlias tyCtx tm
 expandAlias tyCtx (TmRProj tm name)           = TmRProj <$> expandAlias tyCtx tm <*> Just name
 expandAlias tyCtx (TmProj tm i)               = Just $ TmProj tm i
-expandAlias tyCtx (TmLam ty tm)               = case expandTyAlias tyCtx ty of
-                                                        Just (Source.TAnd t1 t2)     -> TmLam t1 <$> expandAlias tyCtx (TmLam t2 tm)
-                                                        Just ty                      -> TmLam ty <$> expandAlias tyCtx tm
-                                                        _                            -> Nothing
-expandAlias tyCtx (TmFunc name ty tm)         = case expandAlias tyCtx (TmLam ty tm) of
-                                                        Just tm'        -> case debruijnTransform name 0 tm' of
-                                                                                Just tm''       -> Just $ TmRec name (TmFix tm'')
-                                                                                _               -> Nothing 
-                                                        _               -> Nothing
+expandAlias tyCtx (TmLam ty tm)               = TmLam <$> expandTyAlias tyCtx ty <*> expandAlias tyCtx tm
+expandAlias tyCtx (TmFunc name ty tm)         = TmFunc name <$> expandTyAlias tyCtx ty <*> expandAlias tyCtx tm
 expandAlias tyCtx(TmApp tm1 tm2)              = TmApp <$> expandAlias tyCtx tm1 <*> expandAlias tyCtx tm2
 expandAlias _ _                               = Nothing
 
@@ -122,63 +113,3 @@ debruijnTransform x i (TmLam ty tm)             = case ty of
 debruijnTransform x i (TmApp tm1 tm2)           = TmApp         <$> debruijnTransform x i tm1           <*> debruijnTransform x i tm2
 debruijnTransform _ _ _                         = Nothing
 
-
-elaborateBinaryOp :: TmBinOp -> BinaryOp
-elaborateBinaryOp (TmArith arithop)
-        = case arithop of
-                TmAdd   -> Arith Add
-                TmSub   -> Arith Sub
-                TmMul   -> Arith Mul
-                TmDiv   -> Arith Div
-                TmMod   -> Arith Mod
-elaborateBinaryOp (TmComp compop)
-        = case compop of
-                TmEql   -> Comp Eql
-                TmNeq   -> Comp Neq
-                TmLt    -> Comp Lt
-                TmLe    -> Comp Le
-                TmGt    -> Comp Gt
-                TmGe    -> Comp Ge
-elaborateBinaryOp (TmLogic logicop)
-        = case logicop of
-                TmAnd   -> Logic And
-                TmOr    -> Logic Or
-
-
-elaborateTyp :: Source.Typ -> Maybe Core.Typ
-elaborateTyp Source.TUnit               = Just Core.TUnit
-elaborateTyp Source.TInt                = Just Core.TInt
-elaborateTyp Source.TBool               = Just Core.TBool
-elaborateTyp Source.TString             = Just Core.TString
-elaborateTyp (Source.TAnd ty1 ty2)      = Core.TAnd             <$> elaborateTyp ty1 <*> elaborateTyp ty2
-elaborateTyp (Source.TArrow ty1 ty2)    = Core.TArrow           <$> elaborateTyp ty1 <*> elaborateTyp ty2
-elaborateTyp (Source.TRecord label ty)  = Core.TRecord label    <$> elaborateTyp ty
-elaborateTyp (Source.TList ty)          = Core.TList            <$> elaborateTyp ty
-elaborateTyp (Source.TSum ty1 ty2)      = Core.TSum             <$> elaborateTyp ty1 <*> elaborateTyp ty2
-elaborateTyp (Source.TPair ty1 ty2)     = Core.TPair            <$> elaborateTyp ty1 <*> elaborateTyp ty2
-elaborateTyp (Source.TSig tA tB)        = Core.TArrow           <$> elaborateTyp tA  <*> elaborateTyp tB
-elaborateTyp (Source.TIden _)           = Nothing
-
-elaborate :: Tm -> Maybe Exp
-elaborate TmCtx                         = Just Ctx
-elaborate TmUnit                        = Just Unit
-elaborate (TmLit n)                     = Just $ Lit n
-elaborate (TmBool b)                    = Just $ EBool b
-elaborate (TmString s)                  = Just $ EString s
-elaborate (TmBinOp op tm1 tm2)          = case (elaborateBinaryOp op, elaborate tm1, elaborate tm2) of
-                                                (op', Just e1, Just e2) -> Just (BinOp op' e1 e2)
-                                                _                       -> Nothing
-elaborate (TmUnOp op tm)                = UnOp <$> Just (surfaceUnaryToCoreOp op) <*> elaborate tm
-elaborate (TmIf tm1 tm2 tm3)            = If   <$> elaborate tm1        <*> elaborate tm2 <*> elaborate tm3
-elaborate (TmMrg tm1 tm2)               = Mrg  <$> elaborate tm1        <*> elaborate tm2
-elaborate (TmRec name tm)               = Rec name    <$> elaborate tm
-elaborate (TmProj tm n)                 = Proj <$> elaborate tm <*> Just n               
-elaborate (TmRProj tm name)             = RProj       <$> elaborate tm <*> Just name
-elaborate (TmLam ty tm)                 = Lam <$> elaborateTyp ty <*> elaborate tm
-elaborate (TmApp tm1 tm2)               = App <$> elaborate tm1 <*> elaborate tm2
-elaborate (TmFix tm)                    = Fix <$> elaborate tm  
-elaborate _                             = Nothing
-
-
-translate :: Tm -> Maybe Exp
-translate tm    = elaborate =<< desugar =<< expandAlias Source.TUnit tm

@@ -16,6 +16,14 @@ data TypeError = TypeError String deriving Show
 infer :: Typ -> Exp -> Either TypeError Typ
 -- TYP-CTX
 infer ctx Ctx                   = Right ctx
+-- TYP-TOP
+infer ctx Unit                  = Right TUnit
+-- TYP-LIT
+infer ctx (Lit i)               = Right TInt
+-- TYP-BOOL
+infer ctx (EBool _)             = Right TBool
+-- TYP-STRING
+infer ctx (EString _)           = Right TString
 -- TYP-PROJ
 infer ctx (Proj e n)            = do
                                     tB <- infer ctx e
@@ -25,10 +33,6 @@ infer ctx (Proj e n)            = do
                                                                             show n      ++ " failed on type " 
                                                                             ++ show tB  ++ " ctx: " 
                                                                             ++ show ctx
--- TYP-LIT
-infer ctx (Lit i)               = Right TInt
--- TYP-TOP
-infer ctx Unit                  = Right TUnit
 -- TYP-BOX
 infer ctx (Box e1 e2)           = do
                                     ctx1 <- infer ctx e1
@@ -65,10 +69,6 @@ infer ctx (RProj e l)           = do
                                                 then Right tA 
                                                 else Left $ TypeError "Record projection failed due to containment"
                                         Nothing -> Left $ TypeError $ "Field " ++ show l ++ " not found in type " ++ show tB 
--- TYP-BOOL
-infer ctx (EBool _)             = Right TBool
--- TYP-STRING
-infer ctx (EString _)           = Right TString 
 -- TYP-FIX 
 infer ctx (Fix (Lam tA e))      = infer (TAnd ctx (TArrow tA tA)) (Lam tA e)
 -- TYP-LET 

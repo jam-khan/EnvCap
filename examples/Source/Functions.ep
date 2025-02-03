@@ -7,5 +7,5 @@ function fancy ( n : Int ) {
     \(x : Int) => { x + square( \(n: Int) => { n * 2 } , 10 ) }
 };;
 
-def temp = fancy(10);;
+val temp = fancy(10);;
 temp(20)

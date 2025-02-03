@@ -1,7 +1,7 @@
 type newInt = Bool;;
-def hello =  \(x: newInt) => {
+val hello =  \(x: newInt) => {
     \(y: newInt) => { x }
 };;
 
-def temp = hello(1==1);;
+val temp = hello(1==1);;
 temp(1==2)

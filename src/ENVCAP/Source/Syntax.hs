@@ -9,7 +9,7 @@ data Tm =   TmCtx                               -- Query
         |   TmBool      Bool                    -- Boolean Literal
         |   TmString    String                  -- String  Literal
         |   TmLam       Typ Tm                  -- Abstraction with binding
-        |   TmClos      Tm Tm
+        |   TmClos      Tm Typ Tm
         |   TmRec       String Tm
         |   TmRProj     Tm String
         |   TmProj      Tm Int                  -- Projection on Expression
@@ -34,8 +34,9 @@ data Tm =   TmCtx                               -- Query
         |   TmTuple     [Tm]
         |   TmSwitch    Tm [(Tm, Tm)]
         |   TmVar       String
+        |   TmStruct    Typ Tm
         |   TmFunc      String Typ Tm
-        |   TmModule    String Typ Typ Tm
+        |   TmModule    String Typ Tm
         |   TmAliasTyp  String Typ
         |   TmLet       String Typ Tm Tm
         |   TmLetrec    String Typ Tm Tm
