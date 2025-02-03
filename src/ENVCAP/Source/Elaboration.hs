@@ -43,6 +43,12 @@ elaborateTyp (Source.TPair ty1 ty2)     = Core.TPair            <$> elaborateTyp
 elaborateTyp (Source.TSig tA tB)        = Core.TArrow           <$> elaborateTyp tA  <*> elaborateTyp tB
 elaborateTyp (Source.TIden _)           = Nothing
 
+unescape :: String -> String
+unescape [] = []
+unescape ('\\' : 'n' : xs) = '\n' : unescape xs  -- Replace `\n` with newline
+unescape ('\\' : '\\' : xs) = '\\' : unescape xs -- Replace `\\` with `\`
+unescape ('\\' : '\"' : xs) = '\"' : unescape xs -- Replace `\"` with `"`
+unescape (x : xs) = x : unescape xs
 
 type Elab = (Source.Typ, Exp)
 newtype SourceTypeError = STypeError String deriving Show
@@ -54,7 +60,7 @@ type Suggestion = String
 generateError :: Context -> Tm -> Message -> Suggestion -> SourceTypeError
 generateError ctx tm msg sugg =
         STypeError
-                ("Typechecking failed at Source level\n" ++
+                ("Typechecking failed at Source level\n\n" ++
                 "Context: " ++ show ctx ++ "\n" ++
                 "Expression: " ++ show tm ++ "\n" ++
                 msg     ++ "\n" ++
@@ -154,7 +160,7 @@ elaborateInfer ctx (TmLam tA tm)     =
                         Left (STypeError err) -> 
                                 Left $ generateError ctx tm
                                         "Couldn't infer the type of the term inside abstraction."
-                                        ("Check the term inside abstraction. \n-----Further info-----\n" ++ err)
+                                        ("Check the term inside abstraction. \n \n-----Further info-----\n \n" ++ err)
 elaborateInfer ctx (TmClos e1 tA e2) = 
                 case elaborateInfer Source.TUnit e1 of
                         Right (gamma', e1') ->
@@ -166,12 +172,12 @@ elaborateInfer ctx (TmClos e1 tA e2) =
                         Left (STypeError err) -> 
                                 Left $ generateError ctx (TmClos e1 tA e2)
                                         "Couldn't infer the type of closure environment."
-                                        ("Check the environment passed into the closure. \n-----Further info-----\n" ++ err)
+                                        ("Check the environment passed into the closure. \n \n \n-----Further info-----\n \n \n" ++ err)
 
 elaborateInfer ctx (TmRec l tm)     = 
                 case elaborateInfer ctx tm of
                         Right (tA, tm')         -> 
-                                Right (tA, Rec l tm')
+                                Right (Source.TRecord l tA, Rec l tm')
                         Left  (STypeError err)  -> 
                                 Left $ generateError ctx (TmRec l tm) "Typecheck failed at a record/assignment." err
 elaborateInfer ctx (TmRProj tm l)   = 
@@ -195,9 +201,9 @@ elaborateInfer ctx (TmProj tm n)    =
                                                         Nothing  -> Left $ generateError tB tm 
                                                                         "Type error on index lookup failed." 
                                                                         "Make sure the term is present in context."
-                        Left err                -> Left $ generateError ctx tm 
+                        Left (STypeError err)   -> Left $ generateError ctx tm 
                                                                 "Type error on term for projection."
-                                                                ("Make sure that term is correct before projecting\n-----Further info-----\n" ++ show err)
+                                                                ("Make sure that term is correct before projecting\n \n-----Further info-----\n \n" ++ err)
 elaborateInfer ctx (TmApp tm1 tm2)  
                 = case elaborateInfer ctx tm1 of
                         Right (typ, tm1')       
@@ -216,7 +222,7 @@ elaborateInfer ctx (TmApp tm1 tm2)
                         Left (STypeError err) -> 
                                 Left $ generateError ctx tm1 
                                         "Type error on application"
-                                        ("Check the function \n-----Further info-----\n" ++ show err)
+                                        ("Check the function \n \n-----Further info-----\n \n" ++ err)
 elaborateInfer ctx (TmMrg tm1 tm2)  
                 = case elaborateInfer ctx tm1 of
                         Right (ty1, tm1')      -> 
@@ -224,11 +230,11 @@ elaborateInfer ctx (TmMrg tm1 tm2)
                                         Right (ty2, tm2')       -> Right (Source.TAnd ty1 ty2, Mrg tm1' tm2')
                                         Left  (STypeError err)  -> Left $ generateError (Source.TAnd ctx ty1) tm2
                                                                                         "Type error on second term in merge." 
-                                                                                        ("Check if second part of merge is well-defined. \n-----Further info-----\n" ++ show err)
+                                                                                        ("Check if second part of merge is well-defined. \n \n-----Further info-----\n \n" ++ err)
                         Left (STypeError err)   ->
                                 Left $  generateError ctx (TmMrg tm1 tm2) 
                                         "Type error on first-part of merge."
-                                        ("Check if first part of merge is well-defined. \n-----Further info-----\n" ++ show err)
+                                        ("Check if first part of merge is well-defined. \n \n-----Further info-----\n \n" ++ err)
 elaborateInfer ctx (TmBox tm1 tm2)  
                 = case elaborateInfer ctx tm1 of
                         Right (ctx', tm1') -> 
@@ -238,11 +244,11 @@ elaborateInfer ctx (TmBox tm1 tm2)
                                         Left (STypeError err)   -> 
                                                 Left $ generateError ctx' tm2 
                                                         "Type error on the term inside the box."
-                                                        ("Check if the term inside the box is well-defined.\n-----Further info-----\n" ++ show err)
+                                                        ("Check if the term inside the box is well-defined.\n \n-----Further info-----\n \n" ++ err)
                         Left (STypeError err) -> 
                                 Left $ generateError ctx tm1 
                                         "Type error on box construct"
-                                        ("Make sure that the environment for box construct is correct.\n-----Further info-----\n" ++ show err)
+                                        ("Make sure that the environment for box construct is correct.\n \n-----Further info-----\n \n" ++ err)
 elaborateInfer ctx (TmIf tm1 tm2 tm3) 
                 = case elaborateCheck ctx tm1 Source.TBool of
                         Right tm1'      ->
@@ -258,49 +264,93 @@ elaborateInfer ctx (TmIf tm1 tm2 tm3)
                                         Left (STypeError err) ->
                                                 Left $ generateError ctx tm2
                                                         "Type error on the then branch of if statement"
-                                                        ("Make sure that the term inside `then` is well-defined and sound.\n----Further info-----\n" ++ show err)
+                                                        ("Make sure that the term inside `then` is well-defined and sound.\n----Further info-----\n" ++ err)
                         Left (STypeError err)   ->
                                 Left $ generateError ctx tm1
                                                 "Type error on condition: condition must be of type Bool"
-                                                ("Fix the condition and make sure it is of type Bool.\n-----Further info-----\n" ++ show err)   
+                                                ("Fix the condition and make sure it is of type Bool.\n \n-----Further info-----\n \n" ++ err)   
 elaborateInfer ctx (TmFix (TmLam tA tm)) = 
                 case elaborateInfer (Source.TAnd ctx (Source.TArrow tA tA)) (TmLam tA tm) of
-                        Right res       -> Right res
+                        Right (ty, tm')       -> Right (ty, Fix tm')
                         Left (STypeError err)   
                                         -> Left $ generateError ctx (TmFix (TmLam tA tm)) 
                                                 "Type error on fixpoint"
                                                 err
-elaborateInfer ctx (TmBinOp op tm1 tm2) =
-                case elaborateInfer ctx tm1 of
-                        Right (ty, tm1') -> 
-                                case elaborateCheck ctx tm2 ty of
+elaborateInfer ctx (TmBinOp (TmArith op) tm1 tm2) =
+                case elaborateCheck ctx tm1 Source.TInt of
+                        Right tm1' -> 
+                                case elaborateCheck ctx tm2 Source.TInt of
                                         Right tm2'      -> 
-                                                Right (ty, BinOp (elaborateBinaryOp op) tm1' tm2')
+                                                Right (Source.TInt, BinOp (elaborateBinaryOp (TmArith op)) tm1' tm2')
                                         Left (STypeError err) ->
-                                                Left $ generateError ctx (TmBinOp op tm1 tm2)
-                                                        ("Type error on operation `" ++ show op ++ "`. Types on both sides don't match.")
-                                                        ("Make sure that types of both operands are same.\n-----Further info-----\n" ++ show err)
+                                                Left $ generateError ctx (TmBinOp (TmArith op) tm1 tm2)
+                                                        ("Type error on arithmetic operation `" ++ show op ++ "`. Types on both sides must be Int.")
+                                                        ("Make sure that types of both operands are Int.\n \n-----Further info-----\n \n" ++ err)
                         Left err ->
                                 Left $ generateError ctx tm1 
                                         ("Type error on first operand of the operator" ++ show op)
-                                        ("First operand has type error.\n-----Further info-----\n" ++ show err)
-elaborateInfer ctx (TmUnOp op tm)     =
+                                        ("First operand has type error.\n \n-----Further info-----\n \n" ++ show err)
+elaborateInfer ctx (TmBinOp (TmComp op) tm1 tm2) =
+                case elaborateInfer ctx tm1 of
+                        Right (Source.TInt, tm1') -> 
+                                case elaborateCheck ctx tm2 Source.TInt of
+                                        Right tm2'      -> 
+                                                Right (Source.TBool, BinOp (elaborateBinaryOp (TmComp op)) tm1' tm2')
+                                        Left (STypeError err) ->
+                                                Left $ generateError ctx (TmBinOp (TmComp op) tm1 tm2)
+                                                        ("Type error on comparsion operation `" ++ show op ++ "`. Types on both sides must be Int.")
+                                                        ("Make sure that types of both operands are Int.\n \n-----Further info-----\n \n" ++ err ++ "\n")
+                        Right (Source.TBool, tm1') ->
+                                case elaborateCheck ctx tm2 Source.TBool of
+                                        Right tm2'      -> 
+                                                Right (Source.TBool, BinOp (elaborateBinaryOp (TmComp op)) tm1' tm2')
+                                        Left (STypeError err) ->
+                                                Left $ generateError ctx (TmBinOp (TmComp op) tm1 tm2)
+                                                        ("Type error on comparsion operation `" ++ show op ++ "`. Types on both sides must be Bool.")
+                                                        ("Make sure that types of both operands are Bool.\n \n-----Further info-----\n \n" ++ err)
+                        Right (Source.TString, tm1') ->
+                                case elaborateCheck ctx tm2 Source.TString of
+                                        Right tm2'      -> 
+                                                Right (Source.TBool, BinOp (elaborateBinaryOp (TmComp op)) tm1' tm2')
+                                        Left (STypeError err) ->
+                                                Left $ generateError ctx (TmBinOp (TmComp op) tm1 tm2)
+                                                        ("Type error on comparsion operation `" ++ show op ++ "`. Types on both sides must be String.")
+                                                        ("Make sure that types of both operands are String.\n \n-----Further info-----\n \n" ++ err)
+                        Left (STypeError err) ->
+                                Left $ generateError ctx tm1 
+                                        ("Type error on first operand of the comparison operator" ++ show op)
+                                        ("First operand has type error.\n \n-----Further info-----\n \n" ++ err)
+elaborateInfer ctx (TmBinOp (TmLogic op) tm1 tm2) =
+                case elaborateCheck ctx tm1 Source.TBool of
+                        Right tm1' ->
+                                case elaborateCheck ctx tm2 Source.TBool of
+                                        Right tm2'      -> 
+                                                Right (Source.TBool, BinOp (elaborateBinaryOp (TmLogic op)) tm1' tm2')
+                                        Left (STypeError err) ->
+                                                Left $ generateError ctx (TmBinOp (TmLogic op) tm1 tm2)
+                                                        ("Type error on logic operation `" ++ show op ++ "`. Types on both sides must be Bool.")
+                                                        ("Make sure that types of both operands are Bool.\n \n-----Further info-----\n \n" ++ err)
+                        Left (STypeError err) ->
+                                Left $ generateError ctx tm1 
+                                        ("Type error on first operand of the logic operator" ++ show op)
+                                        ("First operand has type error.\n \n-----Further info-----\n \n" ++ err)
+
+elaborateInfer ctx (TmUnOp TmNot tm)     =
                 case elaborateInfer ctx tm of
-                        Right (ty, tm')         -> Right (ty, UnOp (surfaceUnaryToCoreOp op) tm')
+                        Right (ty, tm')         -> Right (ty, UnOp Not tm')
                         Left err                -> Left err
 
 
 elaborateCheck :: Source.Typ -> Tm -> Source.Typ -> Either SourceTypeError Exp
 elaborateCheck ctx tm typ       
         = case elaborateInfer ctx tm of
-                Right (typ', e')  ->
+                Right (typ', e') ->
                         if typ == typ'
                                 then Right e'
-                                else 
-                                        Left  $ generateError ctx tm
-                                                        ("Couldn't match expected type \'" ++ show typ ++ "\' with actual type \'" ++ show typ' ++ "\'")
-                                                        "Please check your code."
-                Left err     -> Left err
+                                else Left  $ generateError ctx tm
+                                                ("Couldn't match expected type \'" ++ show typ ++ "\' with actual type \'" ++ show typ' ++ "\'")
+                                                "Please check your code."
+                Left err        -> Left err
 
 elaborate :: Tm -> Maybe Exp
 elaborate TmCtx                         = Just Ctx

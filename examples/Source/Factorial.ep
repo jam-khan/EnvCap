@@ -1,10 +1,8 @@
-val dec = \(n : Int) => { n - 1 };;
-
 function factorial(n: Int) {
     if (n == 0) then {
         1
     } else {
-        n * factorial( dec(n) )
+        n * factorial(n - 1)
     }
 };;
 

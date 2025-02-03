@@ -16,7 +16,7 @@ prettyPrintExp (EString s)      = show s
 --         |   Lam    Typ Exp           -- Lambda Abstraction
 prettyPrintExp (Lam typ exp)    = "Lambda " ++ prettyPrintTyp typ ++  " { " ++ prettyPrintExp exp ++ " }"
 --         |   Proj   Exp Int           -- Projection
-prettyPrintExp (Proj e n)       = "(" ++ prettyPrintExp e ++ ")." ++ show n
+prettyPrintExp (Proj e n)       = prettyPrintExp e ++ "." ++ show n
 --         |   Clos   Exp Exp           -- Closure
 prettyPrintExp (Clos e1 e2)     = "Clos<" ++ prettyPrintExp e1 ++ ", " ++ prettyPrintExp e2 ++ ">"
 --         |   Rec    String Exp        -- Single-Field Record
@@ -24,13 +24,13 @@ prettyPrintExp (Rec name exp)   = "{ " ++ show name ++ " : " ++ prettyPrintExp e
 --         |   RProj  Exp String        -- Record Projection by Label
 prettyPrintExp (RProj e l)      = "(" ++ prettyPrintExp e ++ ")." ++ show l
 --         |   App    Exp Exp           -- Application
-prettyPrintExp (App e1 e2)      = "App[(" ++ prettyPrintExp e1 ++ ") " ++ show e1 ++ "]"
+prettyPrintExp (App e1 e2)      = "App[(" ++ prettyPrintExp e1 ++ ") " ++ prettyPrintExp e2 ++ "]"
 --         |   Mrg    Exp Exp           -- Merge
-prettyPrintExp (Mrg e1 e2)      = prettyPrintExp e1 ++ " ,, " ++ prettyPrintExp e2
+prettyPrintExp (Mrg e1 e2)      = prettyPrintExp e1 ++ "\n ,, \n" ++ prettyPrintExp e2
 --         |   Box    Exp Exp           -- Box
 prettyPrintExp (Box e1 e2)      = "Box[(" ++ prettyPrintExp e1 ++ " ▷ " ++ prettyPrintExp e2 ++ ")]"
 --         |   If     Exp Exp Exp       -- Conditionals
-prettyPrintExp (If e1 e2 e3)    = "If (" ++ prettyPrintExp e1 ++ ") then {\n" ++ prettyPrintExp e2 ++ " } else {\n" ++ prettyPrintExp e3 ++ "\n"
+prettyPrintExp (If e1 e2 e3)    = "If (" ++ prettyPrintExp e1 ++ ") then {" ++ prettyPrintExp e2 ++ " } else {" ++ prettyPrintExp e3 ++ "}"
 --         |   Let    Exp Exp           -- Let Bindings
 prettyPrintExp (Let e1 e2)      = "Let (" ++ prettyPrintExp e1 ++ ") in {\n" ++ prettyPrintExp e2 ++ " }"
 --         |   Fix    Exp               -- Recursion
