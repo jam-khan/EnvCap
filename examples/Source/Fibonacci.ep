@@ -1,4 +1,4 @@
-function inc(i : Int) { i + 1 };
+function inc(i : Int) { i + 1 };;
 
 function fibonacci(n: Int) {
     if (n == 0 || n == 1) then {
@@ -6,6 +6,6 @@ function fibonacci(n: Int) {
     } else {
         fibonacci(n - 1) + fibonacci(n - 2)
     }
-};
+};;
 
 fibonacci(inc(10))

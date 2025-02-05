@@ -9,7 +9,7 @@ data Exp =  Ctx                      -- Context
         |   Lit    Integer           -- Integer literal
         |   Lam    Typ Exp           -- Lambda Abstraction
         |   Proj   Exp Int           -- Projection
-        |   Clos   Exp Exp           -- Closure
+        |   Clos   Exp  Exp           -- Closure
         |   Rec    String Exp        -- Single-Field Record
         |   RProj  Exp String        -- Record Projection by Label
         |   App    Exp Exp           -- Application

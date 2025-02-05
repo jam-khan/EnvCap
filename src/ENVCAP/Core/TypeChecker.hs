@@ -16,6 +16,14 @@ data TypeError = TypeError String deriving Show
 infer :: Typ -> Exp -> Either TypeError Typ
 -- TYP-CTX
 infer ctx Ctx                   = Right ctx
+-- TYP-TOP
+infer ctx Unit                  = Right TUnit
+-- TYP-LIT
+infer ctx (Lit i)               = Right TInt
+-- TYP-BOOL
+infer ctx (EBool _)             = Right TBool
+-- TYP-STRING
+infer ctx (EString _)           = Right TString
 -- TYP-PROJ
 infer ctx (Proj e n)            = do
                                     tB <- infer ctx e
@@ -25,10 +33,6 @@ infer ctx (Proj e n)            = do
                                                                             show n      ++ " failed on type " 
                                                                             ++ show tB  ++ " ctx: " 
                                                                             ++ show ctx
--- TYP-LIT
-infer ctx (Lit i)               = Right TInt
--- TYP-TOP
-infer ctx Unit                  = Right TUnit
 -- TYP-BOX
 infer ctx (Box e1 e2)           = do
                                     ctx1 <- infer ctx e1
@@ -40,10 +44,12 @@ infer ctx (Mrg e1 e2)           = do
                                     Right (TAnd tA tB)
 -- TYP-APP
 infer ctx (App e1 e2)           = do
-                                    tE1 <- infer ctx e1
-                                    case tE1 of
-                                        TArrow tA tB -> if check ctx e2 tA then Right tB else Left $ TypeError ("Type mismatch in application: Context:" ++ show ctx)
-                                        _            -> Left $ TypeError ("Expected a function type in application \t Function Type: " ++ show tE1 ++ "\t Function: " ++ show e1)
+                                    ty1 <- infer ctx e1
+                                    case ty1 of
+                                        TArrow tA tB -> if check ctx e2 tA  then 
+                                                                Right tB    else 
+                                                                Left $ TypeError ("Type mismatch in application: Context:" ++ show ctx)
+                                        _            -> Left $ TypeError ("Expected a function type in application Function Type: " ++ show ty1 ++ " Function: " ++ show e1)
 -- TYP-LAM
 infer ctx (Lam tA e)            = do
                                     tB <- infer (TAnd ctx tA) e
@@ -65,10 +71,6 @@ infer ctx (RProj e l)           = do
                                                 then Right tA 
                                                 else Left $ TypeError "Record projection failed due to containment"
                                         Nothing -> Left $ TypeError $ "Field " ++ show l ++ " not found in type " ++ show tB 
--- TYP-BOOL
-infer ctx (EBool _)             = Right TBool
--- TYP-STRING
-infer ctx (EString _)           = Right TString 
 -- TYP-FIX 
 infer ctx (Fix (Lam tA e))      = infer (TAnd ctx (TArrow tA tA)) (Lam tA e)
 -- TYP-LET 
@@ -150,14 +152,9 @@ infer ctx (BinOp (Arith _) e1 e2)
 infer ctx (BinOp (Comp _) e1 e2) 
                                 = do   
                                     ti <- infer ctx e1   
-                                    case ti of   
-                                        TInt    ->  if check ctx e2 TInt 
-                                                        then Right TBool 
-                                                        else Left $ TypeError "Type mismatch in comparison operation"   
-                                        TBool   ->  if check ctx e2 TBool 
-                                                        then Right TBool 
-                                                        else Left $ TypeError "Type mismatch in comparison operation"   
-                                        _       ->  Left $ TypeError "Expected an integer or boolean for comparison"   
+                                    if check ctx e2 ti
+                                        then Right TBool 
+                                        else Left $ TypeError "Type mismatch in comparison operation. Expected an integer, boolean, or string for comparison" 
 -- TYP-LOGIC   
 infer ctx (BinOp (Logic _) e1 e2) 
                                 = do   

@@ -6,59 +6,61 @@ import ENVCAP.Source.Syntax
 }
 
 %name sourceParser
-%tokentype { Token }
-%error { parseError }
+%tokentype     { Token        }
+%error         { parseError   }
 
 %token
-     int            { TokenInt $$ }
-     var            { TokenVar $$ }
-     'if'           { TokenIf }
-     'type'         { TokenTyAlias }
-     'then'         { TokenThen }
-     'else'         { TokenElse }
-     'def'          { TokenDefine }
-     'let'          { TokenLet }
-     'letrec'       { TokenLetrec }
-     'in'           { TokenIn }
-     'False'        { TokenFalse }
-     'True'         { TokenTrue }
-     'function'     { TokenFunc }
-     'Int'          { TokenTypeInt }
-     'Bool'         { TokenTypeBool }
-     'String'       { TokenTypeString }
-     '->'           { TokenTypeArrow }
-     '&'            { TokenTypeAnd }
-     '[]'           { TokenEmptyList }
+     int            { TokenInt $$       }
+     var            { TokenVar $$       }
+     'Sig'          { TokenSig          }          
+     'Int'          { TokenTypeInt      }
+     'Bool'         { TokenTypeBool     }
+     'String'       { TokenTypeString   }
+     '->'           { TokenTypeArrow    }
+     '&'            { TokenTypeAnd      }
+     'False'        { TokenFalse        }
+     'True'         { TokenTrue         }
+     'if'           { TokenIf           }
+     'type'         { TokenTyAlias      }
+     'then'         { TokenThen         }
+     'else'         { TokenElse         }
+     'val'          { TokenValDef       }
+     'let'          { TokenLet          }
+     'letrec'       { TokenLetrec       }
+     'in'           { TokenIn           }
+     'function'     { TokenFunc         }
+     'struct'       { TokenStruct       }
+     'module'       { TokenModule       }
+     '[]'           { TokenEmptyList    }
      '['            { TokenOpenSqBracket }
      ']'            { TokenCloseSqBracket }
-     '::'           { TokenCons }
-     ','            { TokenComma }
-     '+'            { TokenPlus }
-     '-'            { TokenMinus }
-     '*'            { TokenTimes }
-     '/'            { TokenDiv }
-     '%'            { TokenMod }
-     '('            { TokenOB }
-     ')'            { TokenCB }
-     '?'            { TokenQuery }
-     '>='           { TokenGe }
-     '>'            { TokenGt }
-     '=='           { TokenEql }
-     '!='           { TokenNeq }
-     '<'            { TokenLt }
-     '<='           { TokenLe }
-     '&&'           { TokenAnd }
-     '||'           { TokenOr }
-     ';;'           { TokenSemicolon }
-     ':'            { TokenColon }
-     '='            { TokenEq }
-     '{'            { TokenOpenBracket }
-     '\''           { TokenSingleQuote }
-     '"'            { TokenDoubleQuote }
+     '::'           { TokenCons         }
+     ','            { TokenComma        }
+     '+'            { TokenPlus         }
+     '-'            { TokenMinus        }
+     '*'            { TokenTimes        }
+     '/'            { TokenDiv          }
+     '%'            { TokenMod          }
+     '('            { TokenOB           }
+     ')'            { TokenCB           }
+     '?'            { TokenQuery        }
+     '>='           { TokenGe           }
+     '>'            { TokenGt           }
+     '=='           { TokenEql          }
+     '!='           { TokenNeq          }
+     '<'            { TokenLt           }
+     '<='           { TokenLe           }
+     '&&'           { TokenAnd          }
+     '||'           { TokenOr           }
+     ';;'           { TokenSemicolon    }
+     ':'            { TokenColon        }
+     '='            { TokenEq           }
+     '{'            { TokenOpenBracket  }
+     '\''           { TokenSingleQuote  }
+     '"'            { TokenDoubleQuote  }
      '}'            { TokenCloseBracket }
-     '\\('          { TokenLambda }
-     '=>'           { TokenArrow }
-
+     '\\('          { TokenLambda       }
+     '=>'           { TokenArrow        }
 
 %right '='
 %right '=>'
@@ -73,80 +75,111 @@ import ENVCAP.Source.Syntax
 %left '+' '-'
 %left '*' '/' '%'
 
-
 %%
 
-Program   : Statements                        { $1 }
-          
+Program        : Statements                   { $1 }
+
 Statements     : Statement ';;' Statements    { TmMrg $1 $3 }
                | Statement                    { $1 }
 
 Statement      : Function                     { $1 }
+               | Module                       { $1 }
                | Binding                      { $1 }
                | Term                         { $1 }
-          
-Term      : '?'                               { TmCtx }
-          | Application                       { $1 }
-          | Bool                              { $1 }
-          | String                            { $1} 
-          | int                               { TmLit $1 }
-          | var                               { TmRProj TmCtx $1 }
-          | ArithmeticOp                      { $1 }
-          | ComparisonOp                      { $1 }
-          | BooleanOp                         { $1 }
-          | IfThenElse                        { $1 }
-          | TyAlias                           { $1 }
-          | Lambda                            { $1 }
-          | Let                               { $1 }
-          | Letrec                            { $1 }
-          | List                              { $1 }
-          | ListCons                          { $1 }
-          | Record                            { $1 }
-          | Tuple                             { $1 }
-          | Parens                            { $1 }
-          | error                             { parseError [$1] }
 
-String    : '\'' var '\''                    { TmString $2 }
-          | '"' var '"'                      { TmString $2 }
+Term           : '?'                               { TmCtx }
+               | Application                       { $1 }
+               | Bool                              { $1 }
+               | String                            { $1} 
+               | int                               { TmLit $1 }
+               | var                               { TmRProj TmCtx $1 }
+               | ArithmeticOp                      { $1 }
+               | ComparisonOp                      { $1 }
+               | BooleanOp                         { $1 }
+               | IfThenElse                        { $1 }
+               | TyAlias                           { $1 }
+               | Lambda                            { $1 }
+               | Struct                            { $1 }
+               | Let                               { $1 }
+               | Letrec                            { $1 }
+               | List                              { $1 }
+               | ListCons                          { $1 }
+               | Record                            { $1 }
+               | Tuple                             { $1 }
+               | Parens                            { $1 }
+               | error                             { parseError [$1] }
 
-ListCons : Term '::' Term                     { TmCons $1 $3 }
+Type           : 'Int'                             { TInt }
+               | 'Bool'                            { TBool }
+               | 'String'                          { TString }
+               | Type '->' Type                    { TArrow $1 $3 }
+               | Type '&'  Type                    { TAnd $1 $3 }
+               | '[' Type ']'                      { TList $2 }
+               | '{' RecordType '}'                { $2 }
+               | var                               { TIden $1 }
+               | Signature                         { $1 }
+               | '(' Type ')'                      { $2 }
 
-TyAlias   : 'type' var '=' Type               { TmAliasTyp $2 $4 }
+Signature      : 'Sig' '[' Type ',' Type ']'       { TSig $3 $5 }
 
-Tuple          : '(' TupleElements ')'        { $2 }
-TupleElements  : Term ',' TupleElements       { TmPair $1 $3 }
-               | Term                         { $1 }
+Application    : FunctionApplication               %prec application_prec { $1 }
 
-Type      : 'Int'                             { TInt }
-          | 'Bool'                            { TBool }
-          | 'String'                          { TString }
-          | Type '->' Type                    { TArrow $1 $3 }
-          | Type '&'  Type                    { TAnd $1 $3 }
-          | '[' Type ']'                      { TList $2 }
-          | '{' RecordType '}'                { $2 }
-          | var                               { TIden $1 }
-          | '(' Type ')'                      { $2 }
+FunctionApplication : var '(' Arguments ')'        { foldl TmApp (TmRProj TmCtx $1) $3 }
 
-RecordType     : Param ',' RecordType         { TAnd $1 $3 }
-               | Param                        { $1 }
+Bool           : 'False'                                { TmBool False }
+               | 'True'                                 { TmBool True }
 
-Record    : '{' Records '}'                   { $2 }
-Records   : var '=' Term ',' Records          {TmMrg (TmRec $1 $3) $5}
-          | var '=' Term                      {TmRec $1 $3}
+Function       : 'function' var '(' ParamList ')' '{' Term '}'        { TmFunc $2 $4 $7 }
 
-ParamList : Param ',' ParamList               { TAnd $1 $3 }
-          | Param                             { $1 }
+Lambda         : '(' Lambda ')' '(' Arguments ')'                     { foldl TmApp $2 $5 }
+               | '\\(' ParamList ')' '=>' '{' Statements '}'          { TmLam $2 $6 }
 
-Param     : var ':' Type                      { TRecord $1 $3 }   
+Binding        : 'val' var '=' Term                                   { TmRec $2 $4 }
 
-Let       : 'let'    var ':' Type '='   Term   'in' CurlyParens   { TmLet    $2 $4 $6 $8 }
-Letrec    : 'letrec' var ':' Type '='   Term   'in' CurlyParens   { TmLetrec $2 $4 $6 $8 }
+Module         : 'module' var '(' ParamList ')' '{' Statements '}'    { TmModule $2 $4 $7 }
+Struct         : 'struct'     '(' ParamList ')' '{' Statements '}'    { TmStruct $3 $6 }
 
-List      : '[]' ':' Type                   { TmNil $3 }
-          | '[' Elements ']'                 { $2 }
+String         : '\'' var '\''                         { TmString $2 }
+               | '"' var '"'                           { TmString $2 }
 
-Elements  : Term ',' Elements                { TmCons $1 $3 }
-          | Term                             { $1 }
+ListCons       : Term '::' Term                        { TmCons $1 $3 }
+
+TyAlias        : 'type' var '=' Type                   { TmAliasTyp $2 $4 }
+
+Tuple          : '(' TupleElements ')'            { $2 }
+TupleElements  : Term ',' TupleElements           { TmPair $1 $3 }
+               | Term                             { $1 }
+
+RecordType     : Param ',' RecordType             { TAnd $1 $3 }
+               | Param                            { $1 }
+
+Record         : '{' Records '}'                       { $2 }
+Records        : var '=' Term ',' Records              { TmMrg (TmRec $1 $3) $5 }
+               | var '=' Term                          { TmRec $1 $3 }
+
+ParamList      : Param ',' ParamList                   { TAnd $1 $3 }
+               | Param                                 { $1 }
+
+Param          : var ':' Type                          { TRecord $1 $3 }   
+
+Let            : 'let'    var ':' Type '='   Term   'in' CurlyParens   { TmLet    $2 $4 $6 $8 }
+Letrec         : 'letrec' var ':' Type '='   Term   'in' CurlyParens   { TmLetrec $2 $4 $6 $8 }
+
+List           : '[]' ':' Type                         { TmNil $3 }
+               | '[' Elements ']'                      { $2 }
+
+Elements       : Term ',' Elements                     { TmCons $1 $3 }
+               | Term                                  { $1 }
+
+Arguments      : Term ',' Arguments               { $1 : $3 }
+               | Term                             { [$1] }
+
+Parens      : '(' Term ')'                        { $2 }
+
+CurlyParens : '{' Statements '}'                  { $2 }
+
+IfThenElse : 'if' Parens 'then' CurlyParens 'else' CurlyParens { TmIf $2 $4 $6 }
+           | 'if' Parens 'then' CurlyParens                    { TmIf $2 $4 TmUnit }
 
 ComparisonOp   :  Term    '>='    Term                 { TmBinOp (TmComp  TmGe)   $1 $3 }
                |  Term    '>'     Term                 { TmBinOp (TmComp  TmGt)   $1 $3 }
@@ -164,85 +197,63 @@ ArithmeticOp   :    Term    '+'     Term               { TmBinOp (TmArith TmAdd)
                |    Term    '/'     Term               { TmBinOp (TmArith TmDiv)  $1 $3 }
                |    Term    '%'     Term               { TmBinOp (TmArith TmMod)  $1 $3 }
 
-Arguments      : Term ',' Arguments                         { $1 : $3 }
-               | Term                                       { [$1] }
-
-Application    : FunctionApplication                   %prec application_prec { $1 }
-               
-
-FunctionApplication : var '(' Arguments ')'            { foldl TmApp (TmRProj TmCtx $1) $3 }
-
-Bool      : 'False'                                    { TmBool False }
-          | 'True'                                     { TmBool True }
-
-Function  : 'function' var '(' ParamList ')' '{' Statements '}'            { TmFunc $2 $4 $7 }
-
-Lambda    : '(' Lambda ')' '(' Arguments ')'              { foldl TmApp $2 $5 }
-          | '\\(' ParamList ')' '=>' '{' Statements '}'   { TmLam $2 $6 }           
-
-Binding   : 'def' var '=' Term                         { TmRec $2 $4 }
-
-Parens      : '(' Term ')'                             { $2 }
-
-CurlyParens : '{' Statements '}'                       { $2 }
-
-IfThenElse : 'if' Parens 'then' CurlyParens 'else' CurlyParens { TmIf $2 $4 $6 }
-           | 'if' Parens 'then' CurlyParens                    { TmIf $2 $4 TmUnit }
 
 {
 parseError :: [Token] -> a
 parseError _ = error "Parse error"
 
-data Token
-     = TokenInt Integer  -- Lit i
-     | TokenVar String   -- x
-     | TokenLambda       -- '\'
-     | TokenArrow        -- = >
-     | TokenPlus         -- '+'
-     | TokenMinus        -- '-'
-     | TokenTimes        -- '*'
-     | TokenDiv          -- '/'
-     | TokenMod          -- '%'
-     | TokenEql          -- '=='
-     | TokenNeq          -- '!='
-     | TokenGe           -- '>='
-     | TokenGt           -- '>'
-     | TokenLe           -- '<='
-     | TokenLt           -- '<'
-     | TokenAnd          -- '&&'
-     | TokenOr           -- '||'
-     | TokenOB           -- '('
-     | TokenCB           -- ')'
-     | TokenQuery        -- '?'
-     | TokenEq           -- '='
-     | TokenSemicolon    -- ';;'
-     | TokenIf           -- 'if'
-     | TokenThen         -- 'then'
-     | TokenElse         -- 'else'
-     | TokenDefine       -- 'def'
-     | TokenTrue         -- 'True'
-     | TokenFalse        -- 'False'
-     | TokenFunc         -- 'function'
-     | TokenOpenBracket  -- '{'
-     | TokenCloseBracket -- '}'
-     | TokenColon        -- ':'
-     | TokenLet          -- 'let'
-     | TokenLetrec       -- 'letrec'
-     | TokenIn           -- 'in'
-     | TokenTypeInt      -- 'Int'
-     | TokenTypeBool     -- 'Bool'
-     | TokenTypeString   -- 'String'
-     | TokenTypeArrow    -- '->'
-     | TokenTypeAnd      -- '&'
-     | TokenTyAlias      -- 'type'
-     | TokenComma        -- ','
-     | TokenOpenSqBracket     -- '['
-     | TokenCloseSqBracket    -- ']'
-     | TokenCons              -- '::'
-     | TokenEmptyList         -- '[]'
-     | TokenSingleQuote       -- '
-     | TokenDoubleQuote       -- "
-     deriving Show
+data Token =   TokenInt Integer       -- Lit i
+          |    TokenVar String        -- x
+          |    TokenLambda            -- '\'
+          |    TokenArrow             -- = >
+          |    TokenPlus              -- '+'
+          |    TokenMinus             -- '-'
+          |    TokenTimes             -- '*'
+          |    TokenDiv               -- '/'
+          |    TokenMod               -- '%'
+          |    TokenEql               -- '=='
+          |    TokenNeq               -- '!='
+          |    TokenGe                -- '>='
+          |    TokenGt                -- '>'
+          |    TokenLe                -- '<='
+          |    TokenLt                -- '<'
+          |    TokenAnd               -- '&&'
+          |    TokenOr                -- '||'
+          |    TokenOB                -- '('
+          |    TokenCB                -- ')'
+          |    TokenQuery             -- '?'
+          |    TokenEq                -- '='
+          |    TokenSemicolon         -- ';;'
+          |    TokenIf                -- 'if'
+          |    TokenThen              -- 'then'
+          |    TokenElse              -- 'else'
+          |    TokenValDef            -- 'val'
+          |    TokenTrue              -- 'True'
+          |    TokenFalse             -- 'False'
+          |    TokenFunc              -- 'function'
+          |    TokenModule            -- 'module'
+          |    TokenStruct            -- 'struct'
+          |    TokenOpenBracket       -- '{'
+          |    TokenCloseBracket      -- '}'
+          |    TokenColon             -- ':'
+          |    TokenLet               -- 'let'
+          |    TokenLetrec            -- 'letrec'
+          |    TokenIn                -- 'in'
+          |    TokenSig               -- 'Sig'
+          |    TokenTypeInt           -- 'Int'
+          |    TokenTypeBool          -- 'Bool'
+          |    TokenTypeString        -- 'String'
+          |    TokenTypeArrow         -- '->'
+          |    TokenTypeAnd           -- '&'
+          |    TokenTyAlias           -- 'type'
+          |    TokenComma             -- ','
+          |    TokenOpenSqBracket     -- '['
+          |    TokenCloseSqBracket    -- ']'
+          |    TokenCons              -- '::'
+          |    TokenEmptyList         -- '[]'
+          |    TokenSingleQuote       -- '
+          |    TokenDoubleQuote       -- "
+          deriving Show
 
 lexer :: String -> [Token]
 lexer [] = []
@@ -261,43 +272,34 @@ lexer ('/':cs)      = TokenDiv      : lexer cs
 lexer ('%':cs)      = TokenMod      : lexer cs
 lexer ('\\':cs)     = case cs of 
                          ('(':cs') -> TokenLambda   : lexer cs' 
-lexer ('=':cs)      = 
-     case cs of
-          ('>':cs') -> TokenArrow  : lexer cs'
-          ('=':cs') -> TokenEql    : lexer cs'
-          _         -> TokenEq     : lexer cs
-lexer ('!':cs) = 
-     case cs of
-          ('=':cs') -> TokenNeq : lexer cs'
-lexer ('&':cs) =
-     case cs of
-          ('&':cs') -> TokenAnd         : lexer cs'
-          _         -> TokenTypeAnd     : lexer cs
-lexer ('|':cs) =
-     case cs of
-          ('|':cs') -> TokenOr  : lexer cs'
-lexer ('>':cs) =
-     case cs of
-          ('=':cs') -> TokenGe  : lexer cs'
-          _         -> TokenGt  : lexer cs
-lexer ('<':cs) =
-     case cs of
-          ('=':cs') -> TokenLe  : lexer cs'
-          _         -> TokenLt  : lexer cs
+lexer ('=':cs)      = case cs of
+                         ('>':cs') -> TokenArrow  : lexer cs'
+                         ('=':cs') -> TokenEql    : lexer cs'
+                         _         -> TokenEq     : lexer cs
+lexer ('!':cs)      = case cs of
+                         ('=':cs') -> TokenNeq : lexer cs'
+lexer ('&':cs)      = case cs of
+                         ('&':cs') -> TokenAnd         : lexer cs'
+                         _         -> TokenTypeAnd     : lexer cs
+lexer ('|':cs)      = case cs of
+                         ('|':cs') -> TokenOr  : lexer cs'
+lexer ('>':cs)      = case cs of
+                         ('=':cs') -> TokenGe  : lexer cs'
+                         _         -> TokenGt  : lexer cs
+lexer ('<':cs)      = case cs of
+                         ('=':cs') -> TokenLe  : lexer cs'
+                         _         -> TokenLt  : lexer cs
 lexer (';':cs)      = case cs of
                          (';':cs') -> TokenSemicolon : lexer cs'
 lexer (',':cs)      = TokenComma : lexer cs
-lexer (':':cs)      = 
-     case cs of 
-          (':':cs')      ->   TokenCons      : lexer cs'
-          _              ->   TokenColon     : lexer cs 
+lexer (':':cs)      = case cs of 
+                         (':':cs')      ->   TokenCons      : lexer cs'
+                         _              ->   TokenColon     : lexer cs 
 lexer ('{':cs)      = TokenOpenBracket : lexer cs
 lexer ('}':cs)      = TokenCloseBracket : lexer cs
-lexer ('[':cs)      = 
-     case cs of
-          (']':cs') ->   TokenEmptyList     : lexer cs' 
-          _         ->   TokenOpenSqBracket : lexer cs
-
+lexer ('[':cs)      = case cs of
+                         (']':cs') ->   TokenEmptyList     : lexer cs' 
+                         _         ->   TokenOpenSqBracket : lexer cs
 lexer (']':cs)      = TokenCloseSqBracket : lexer cs
 lexer ('(':cs)      = TokenOB       : lexer cs
 lexer (')':cs)      = TokenCB       : lexer cs
@@ -305,25 +307,26 @@ lexer ('\'':cs)     = TokenSingleQuote : lexer cs
 lexer ('"':cs)      = TokenDoubleQuote : lexer cs
 
 lexNum cs = TokenInt (read num) : lexer rest
-     where (num, rest) = span isDigit cs
-
-lexVar cs = 
-     case span isAlpha cs of
-          ("Int",        rest)     -> TokenTypeInt     : lexer rest
-          ("Bool",       rest)     -> TokenTypeBool    : lexer rest
-          ("String",     rest)     -> TokenTypeString  : lexer rest
-          ("True",       rest)     -> TokenTrue        : lexer rest
-          ("False",      rest)     -> TokenFalse       : lexer rest
-          ("let",        rest)     -> TokenLet         : lexer rest
-          ("letrec",     rest)     -> TokenLetrec      : lexer rest
-          ("in",         rest)     -> TokenIn          : lexer rest
-          ("type",       rest)     -> TokenTyAlias     : lexer rest
-          ("function",   rest)     -> TokenFunc        : lexer rest
-          ("def",        rest)     -> TokenDefine      : lexer rest
-          ("if",         rest)     -> TokenIf          : lexer rest
-          ("then",       rest)     -> TokenThen        : lexer rest
-          ("else",       rest)     -> TokenElse        : lexer rest
-          (var,          rest)     -> TokenVar var     : lexer rest
+                    where (num, rest) = span isDigit cs
+lexVar cs = case span isAlpha cs of
+               ("Int",        rest)     -> TokenTypeInt     : lexer rest
+               ("Bool",       rest)     -> TokenTypeBool    : lexer rest
+               ("Sig",        rest)     -> TokenSig         : lexer rest
+               ("String",     rest)     -> TokenTypeString  : lexer rest
+               ("True",       rest)     -> TokenTrue        : lexer rest
+               ("False",      rest)     -> TokenFalse       : lexer rest
+               ("let",        rest)     -> TokenLet         : lexer rest
+               ("letrec",     rest)     -> TokenLetrec      : lexer rest
+               ("in",         rest)     -> TokenIn          : lexer rest
+               ("type",       rest)     -> TokenTyAlias     : lexer rest
+               ("function",   rest)     -> TokenFunc        : lexer rest
+               ("module",     rest)     -> TokenModule      : lexer rest
+               ("struct",     rest)     -> TokenStruct      : lexer rest
+               ("val",        rest)     -> TokenValDef      : lexer rest
+               ("if",         rest)     -> TokenIf          : lexer rest
+               ("then",       rest)     -> TokenThen        : lexer rest
+               ("else",       rest)     -> TokenElse        : lexer rest
+               (var,          rest)     -> TokenVar var     : lexer rest
 
 parseSource :: String -> Maybe Tm
 parseSource input = case sourceParser (lexer input) of

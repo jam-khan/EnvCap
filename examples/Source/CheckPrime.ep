@@ -1,4 +1,4 @@
-def n = 11;;
+val n = 11;;
 
 function isPrime(i : Int) {
     if (n < 2) 
