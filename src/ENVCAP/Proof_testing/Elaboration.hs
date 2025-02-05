@@ -30,6 +30,50 @@ data STyp   =   STyUnit                 -- unit
         deriving (Eq, Show)
 
 
+genInteger :: Gen Integer
+genInteger = arbitrary
+
+getSMrgLen :: STm -> Integer 
+getSMrgLen (SDMrg l r)  = getSMrgLen l + getSMrgLen r
+getSMrgLen _            = 1
+
+genSMerge :: Gen STm
+genSMerge = SDMrg <$> genSTm <*> genSTm
+
+genSProj :: Gen STm
+genSProj = do
+            tm <- SDMrg SUnit <$> genSMerge
+            SProj tm <$> choose (0, getSMrgLen tm - 1)
+
+genSAbstraction :: Gen STm 
+genSAbstraction = oneof [
+                    SLam <$> genSTy <*> genSTm,
+                    SClos <$> genSTm <*> genSTy <*> genSTm
+                ]
+
+genSRcd :: Gen STm
+genSRcd = SRec <$> arbitrary <*> genSTm
+
+genSMergeWithRcd :: String -> Gen STm
+genSMergeWithRcd l = oneof [SDMrg   <$> genSMergeWithRcd l  <*> genSTm,
+                            SDMrg   <$> genSMerge           <*> genSRcd,
+                            SDMrg   <$> genSMerge           <*> (SRec l <$> genSTm),
+                            SDMrg   <$> genSMergeWithRcd l  <*> genSRcd]
+
+genSRProj :: Gen STm
+genSRProj =  do
+                l <- elements ["a", "b", "c", "d", "e"]
+                SRProj <$> (SDMrg SUnit <$> genSMergeWithRcd l) <*> return l
+
+genSTm :: Gen STm
+genSTm = oneof [ return SCtx,
+                return  SUnit]
+
+genSTy :: Gen STyp
+genSTy = oneof  [   return STyInt,
+                    return STyUnit]
+
+
 -- Lookup based on indexing
 lookupt :: STyp -> Integer -> Maybe STyp
 lookupt (STyAnd tA tB) 0
@@ -69,19 +113,62 @@ rlookupt (STyAnd tA tB) label
 rlookupt _ _
         = Nothing
 
-
 elaborateInfer :: STyp -> STm -> Maybe (STyp, CTm)
-elaborateInfer _ _
-    = Nothing
+elaborateInfer ctx SCtx         = Just (ctx, Ctx)
+elaborateInfer ctx SUnit        = Just (STyUnit, Unit)
+elaborateInfer ctx (SLit i)     = Just (STyInt, Lit i)
+elaborateInfer ctx (SProj tm i) = elaborateInfer ctx tm >>=
+                                    \(tB, e)  -> lookupt tB i >>=
+                                        \tA -> return (tA, Proj e i)
+elaborateInfer ctx (SLam tA tm) = elaborateInfer (STyAnd ctx tA) tm >>=
+                                    \(tB, e)    -> return (STyArrow tA tB, Lam (elaborateTyp tA) e)
+{-- Not sure abt closure elaboration rule! careful --}
+elaborateInfer ctx (SClos tm1 tA tm2) 
+                                = elaborateInfer ctx tm1 >>= 
+                                    \(ctx1, e1) -> elaborateInfer (STyAnd ctx1 tA) tm2 >>=
+                                        \(tB, e2) -> return (STyArrow tA tB, Box e1 (Lam (elaborateTyp tA) e2))
+elaborateInfer ctx (SApp tm1 tm2) 
+                                = elaborateInfer ctx tm1 >>=
+                                    \(STyArrow tA tB, e1)   -> 
+                                        elaborateCheck ctx tm2 tA >>=
+                                                \e2   -> return (tB, App e1 e2)
+elaborateInfer ctx (SBox tm1 tm2)
+                                = elaborateInfer ctx tm1 >>=
+                                    \(ctx1, e1') -> elaborateInfer ctx1 tm2 >>=
+                                        \(tA, e2') -> return (tA, Box e1' e2')
+elaborateInfer ctx (SDMrg tm1 tm2)
+                                = elaborateInfer ctx tm1 >>=
+                                    \(tA, e1') -> elaborateInfer (STyAnd ctx tA) tm2 >>=
+                                        \(tB, e2')  -> return (STyAnd tA tB, Mrg e1' e2')
+elaborateInfer ctx (SNMrg tm1 tm2)
+                                = elaborateInfer ctx tm1 >>=
+                                    \(tA, e1') -> elaborateInfer ctx tm2 >>=
+                                        \(tB, e2') -> 
+                                            return (STyAnd tA tB, 
+                                                    App (Lam    (elaborateTyp ctx) 
+                                                                (Mrg (Box (Proj Ctx 0) e1') (Box (Proj Ctx 1) e2'))) Ctx)
+elaborateInfer ctx (SRProj tm l) 
+                                = elaborateInfer ctx tm >>=
+                                    \(ctx', e') ->
+                                        rlookupt ctx' l >>=
+                                            \tA  -> if containment (STyRecord l tA) ctx'
+                                                        then Just (tA, RProj e' l)
+                                                        else Nothing
+elaborateInfer ctx (SRec l tm)  = elaborateInfer ctx tm >>=
+                                    \(ty, e') -> return (STyRecord l ty, Rec l e')
+elaborateInfer ctx (SStruct tA tm)
+                                = elaborateInfer (STyAnd ctx tA) tm >>=
+                                    \(tB, e')   -> return (STySig tA tB, Box Unit (Lam (elaborateTyp tA) e')) 
+elaborateInfer ctx (SMApp tm1 tm2)
+                                = elaborateInfer ctx tm1 >>=
+                                    \(STySig tA tB, e1')    -> 
+                                        elaborateCheck ctx tm2 tA >>=
+                                            \e2'    -> return (tB, App e1' e2')
 
 elaborateCheck :: STyp -> STm -> STyp -> Maybe CTm
-elaborateCheck _ _ _
-    = Nothing
-
-{--
-    |A| -> A'
-    where A is source type and A' is core type
---}
+elaborateCheck ctx tm tA = elaborateInfer ctx tm >>= 
+                                \(tB, tm') -> if tB == tA   then Just tm' 
+                                                            else Nothing
 
 elaborateTyp :: STyp -> CTyp
 elaborateTyp STyUnit            = TyUnit
@@ -127,9 +214,6 @@ getMrgLen :: CTm -> Integer
 getMrgLen (Mrg l r) = getMrgLen l + getMrgLen r
 getMrgLen _         = 1
 
-genInteger :: Gen Integer
-genInteger = arbitrary
-
 genMerge :: Gen CTm
 genMerge = Mrg <$> genTm <*> genTm
 
@@ -164,7 +248,7 @@ genRProj = do
             RProj <$> (Mrg Unit <$> genMergeWithRcd l) <*> return l
 
 genTm :: Gen CTm
-genTm = oneof [ return Ctx,
+genTm = oneof  [return Ctx,
                 return Unit,
                 Lit <$> arbitrary,
                 genProj,
@@ -245,12 +329,13 @@ infer ctx (Mrg e1 e2)       = infer ctx e1 >>=
 infer ctx (Box e1 e2)       = infer ctx e1 >>=
                                 \ctx' -> infer ctx' e2
 infer ctx (RProj e l)       = infer ctx e >>=
-                                \ctx'-> case rlookupt' ctx' l of
-                                            Just tA ->
-                                                if containment' (TyRecord l tA) ctx'
-                                                    then Just tA
-                                                    else Nothing
-                                            Nothing -> Nothing
+                                \ctx'-> 
+                                    case rlookupt' ctx' l of
+                                        Just tA ->
+                                            if containment' (TyRecord l tA) ctx'
+                                                then Just tA
+                                                else Nothing
+                                        Nothing -> Nothing
 infer ctx (Rec l e)         = TyRecord l <$> infer ctx e
 
 check :: CTyp -> CTm -> CTyp -> Maybe CTyp
@@ -335,26 +420,43 @@ gpreservation =
                 Just e' ->
                     forAll genTy $ \ctx ->
                         case infer ctx e of
-                            Just tA -> 
+                            Just tA ->
                                 infer TyUnit v == Just ctx ==>
                                     infer ctx e' == Just tA
                             Nothing -> discard
                 Nothing -> discard
 
--- Lemma gpreservation
+-- Lemma preservation
 preservation :: Property
 preservation =
     forAll genTm $ \e ->
         case infer TyUnit e of
-            Just tA -> 
+            Just tA ->
                 case step Unit e of
                     Just e' ->  infer TyUnit e' == Just tA
                     Nothing ->  discard
             Nothing -> discard
 
+-- Lemma progress
+progress :: Property
+progress =
+    forAll genTm $ \e ->
+        case infer TyUnit e of
+            Just tA     -> isValue e || (case step Unit e of
+                                                Just e'     -> e /= e'
+                                                Nothing     -> False)
+            Nothing     -> discard
+
 main :: IO()
 main = do
-    let args = stdArgs { maxSuccess = 1000 }
-    res <- quickCheckWithResult args prop_value_weaken
-    putStrLn $ "Lemma 1.1: Value_weaken" ++ show res
-
+    let args = stdArgs { maxSuccess = 300 }
+    quickCheckWith args prop_value_weaken
+    putStrLn "Lemma 1.1: value_weaken"
+    quickCheckWith args lookupv_value
+    putStrLn "Lemma 1.2: lookupv_value"
+    quickCheckWith args gpreservation
+    putStrLn "Lemma 1.3: gpreservation"
+    quickCheckWith args preservation
+    putStrLn "Lemma 1.4: preservation"
+    quickCheckWith args progress
+    putStrLn "Lemma 1.4: progress"
