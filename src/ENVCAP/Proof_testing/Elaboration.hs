@@ -66,13 +66,30 @@ genSRProj =  do
                 SRProj <$> (SDMrg SUnit <$> genSMergeWithRcd l) <*> return l
 
 genSTm :: Gen STm
-genSTm = oneof [ return SCtx,
-                return  SUnit]
+genSTm = oneof [return SCtx,
+                return  SUnit,
+                SLit    <$> arbitrary,
+                SProj   <$> genSTm <*> arbitrary,
+                SLam    <$> genSTy <*> genSTm,
+                SClos   <$> genSTm <*> genSTy <*> genSTm,
+                SApp    <$> genSTm <*> genSTm,
+                SBox    <$> genSTm <*> genSTm,
+                SDMrg   <$> genSTm <*> genSTm,
+                SNMrg   <$> genSTm <*> genSTm,
+                SRProj  <$> genSTm <*> arbitrary,
+                SRec    <$> arbitrary <*> genSTm,
+                SStruct <$> genSTy <*> genSTm,
+                SMApp   <$> genSTm <*> genSTm]
 
 genSTy :: Gen STyp
-genSTy = oneof  [   return STyInt,
-                    return STyUnit]
-
+genSTy = oneof  [   
+                    return  STyUnit,
+                    return  STyInt,
+                    STyAnd      <$> genSTy      <*> genSTy,
+                    STyArrow    <$> genSTy      <*> genSTy,
+                    STyRecord   <$> arbitrary   <*> genSTy,
+                    STySig      <$> genSTy      <*> genSTy
+                ]
 
 -- Lookup based on indexing
 lookupt :: STyp -> Integer -> Maybe STyp
@@ -181,7 +198,33 @@ elaborateTyp (STyArrow tyA tyB) =
 elaborateTyp (STySig tyA tyB)   =
                 TyAnd   (elaborateTyp tyA) (elaborateTyp tyB)
 
-{-- CORE LEVEL TYPE CHECKER --}
+isSValue :: STm -> Bool
+isSValue SUnit                = True
+isSValue (SLit _)             = True
+isSValue (SClos e1 ty e2)     = isSValue e1
+isSValue (SDMrg e1 e2)        = isSValue e1 && isSValue e2
+isSValue (SNMrg e1 e2)        = isSValue e1 && isSValue e2
+isSValue (SRec l e)           = isSValue e
+isSValue _                    = False
+
+genSValue :: Gen STm
+genSValue = oneof [
+                    return SUnit,
+                    SLit    <$> arbitrary,
+                    SClos   <$> genSValue <*> genSTy <*> genSTm,
+                    SDMrg   <$> genSValue <*> genSValue,
+                    SNMrg   <$> genSValue <*> genSValue,
+                    SRec    <$> arbitrary <*> genSValue
+                ]
+
+coherence :: Property
+coherence =
+    forAll genSTy $ \ctx ->
+        forAll genSTm $ \sE ->
+            case elaborateInfer ctx sE of
+                Just (tA, cE)   -> infer (elaborateTyp ctx) cE == Just (elaborateTyp tA)
+                Nothing         -> discard
+
 
 data CTm    =   Ctx                     -- ?
             |   Unit                    -- unit
