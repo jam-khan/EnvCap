@@ -49,7 +49,8 @@ expandAlias tyCtx (TmRProj tm name)           = TmRProj <$> expandAlias tyCtx tm
 expandAlias tyCtx (TmProj tm i)               = Just $ TmProj tm i
 expandAlias tyCtx (TmLam ty tm)               = TmLam <$> expandTyAlias tyCtx ty <*> expandAlias tyCtx tm
 expandAlias tyCtx (TmFunc name ty tm)         = TmFunc name <$> expandTyAlias tyCtx ty <*> expandAlias tyCtx tm
-expandAlias tyCtx(TmApp tm1 tm2)              = TmApp <$> expandAlias tyCtx tm1 <*> expandAlias tyCtx tm2
+expandAlias tyCtx (TmApp tm1 tm2)             = TmApp <$> expandAlias tyCtx tm1 <*> expandAlias tyCtx tm2
+expandAlias tyCtx (TmModule name ty tm)       = TmModule name <$> expandTyAlias tyCtx ty <*> expandAlias tyCtx tm
 expandAlias _ _                               = Nothing
 
 desugar :: Tm -> Maybe Tm

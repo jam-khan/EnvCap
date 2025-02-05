@@ -42,4 +42,4 @@ getValueTyp env (VInR t1 v2)    = case getValueTyp env v2 of
                                         _       -> Nothing
 getValueTyp env (VCons v1 v2)   = if (TList <$> getValueTyp env v1) == getValueTyp env v2
                                     then TList <$> getValueTyp env v1
-                                    else Nothing     
+                                    else Nothing
