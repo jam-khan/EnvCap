@@ -1,6 +1,8 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use camelCase" #-}
+{-# LANGUAGE LambdaCase #-}
+-- {-# HLINT ignore "Use lambda-case" #-}
 module ENVCAP.Proof_testing.Elaboration where
 import Test.QuickCheck
 import Data.Maybe (isNothing)
@@ -38,7 +40,10 @@ getSMrgLen (SDMrg l r)  = getSMrgLen l + getSMrgLen r
 getSMrgLen _            = 1
 
 genSMerge :: Gen STm
-genSMerge = SDMrg <$> genSTm <*> genSTm
+genSMerge = oneof [
+                SDMrg <$> genSTm <*> genSTm,
+                SNMrg <$> genSTm <*> genSTm
+            ]
 
 genSProj :: Gen STm
 genSProj = do
@@ -52,34 +57,45 @@ genSAbstraction = oneof [
                 ]
 
 genSRcd :: Gen STm
-genSRcd = SRec <$> arbitrary <*> genSTm
+genSRcd = SRec <$> elements["a", "b", "c", "e", "e"] <*> genSTm
 
-genSMergeWithRcd :: String -> Gen STm
-genSMergeWithRcd l = oneof [SDMrg   <$> genSMergeWithRcd l  <*> genSTm,
+genSDMergeWithRcd :: String -> Gen STm
+genSDMergeWithRcd l = oneof [SDMrg  <$> genSDMergeWithRcd l <*> genSTm,
                             SDMrg   <$> genSMerge           <*> genSRcd,
                             SDMrg   <$> genSMerge           <*> (SRec l <$> genSTm),
-                            SDMrg   <$> genSMergeWithRcd l  <*> genSRcd]
+                            SDMrg   <$> genSDMergeWithRcd l <*> genSRcd]
 
 genSRProj :: Gen STm
 genSRProj =  do
                 l <- elements ["a", "b", "c", "d", "e"]
-                SRProj <$> (SDMrg SUnit <$> genSMergeWithRcd l) <*> return l
+                SRProj <$> (SDMrg SUnit <$> genSDMergeWithRcd l) <*> return l
+
+
+genModule :: Gen STm
+genModule = SStruct <$> genSTy <*> genSTm
 
 genSTm :: Gen STm
-genSTm = oneof [return SCtx,
+genSTm = oneof [
+                return SCtx,
                 return  SUnit,
                 SLit    <$> arbitrary,
-                SProj   <$> genSTm <*> arbitrary,
-                SLam    <$> genSTy <*> genSTm,
-                SClos   <$> genSTm <*> genSTy <*> genSTm,
-                SApp    <$> genSTm <*> genSTm,
+                genSProj,
+                genSAbstraction,
+                SApp    <$> genSAbstraction <*> genSTm,
                 SBox    <$> genSTm <*> genSTm,
-                SDMrg   <$> genSTm <*> genSTm,
-                SNMrg   <$> genSTm <*> genSTm,
-                SRProj  <$> genSTm <*> arbitrary,
-                SRec    <$> arbitrary <*> genSTm,
-                SStruct <$> genSTy <*> genSTm,
-                SMApp   <$> genSTm <*> genSTm]
+                genSMerge,
+                genSRProj,
+                genSRcd,
+                genModule,
+                SMApp   <$> genModule <*> genSTm
+                ]
+
+genCtx :: Gen STyp
+genCtx = oneof [
+        return STyUnit,
+        return STyInt,
+        STyAnd <$> genCtx <*> genSTy
+    ]
 
 genSTy :: Gen STyp
 genSTy = oneof  [   
@@ -146,9 +162,11 @@ elaborateInfer ctx (SClos tm1 tA tm2)
                                         \(tB, e2) -> return (STyArrow tA tB, Box e1 (Lam (elaborateTyp tA) e2))
 elaborateInfer ctx (SApp tm1 tm2) 
                                 = elaborateInfer ctx tm1 >>=
-                                    \(STyArrow tA tB, e1)   -> 
-                                        elaborateCheck ctx tm2 tA >>=
-                                                \e2   -> return (tB, App e1 e2)
+                                    \case
+                                        (STyArrow tA tB, e1)   -> 
+                                            elaborateCheck ctx tm2 tA >>=
+                                                    \e2   -> return (tB, App e1 e2)
+                                        _                       -> Nothing
 elaborateInfer ctx (SBox tm1 tm2)
                                 = elaborateInfer ctx tm1 >>=
                                     \(ctx1, e1') -> elaborateInfer ctx1 tm2 >>=
@@ -174,13 +192,15 @@ elaborateInfer ctx (SRProj tm l)
 elaborateInfer ctx (SRec l tm)  = elaborateInfer ctx tm >>=
                                     \(ty, e') -> return (STyRecord l ty, Rec l e')
 elaborateInfer ctx (SStruct tA tm)
-                                = elaborateInfer (STyAnd ctx tA) tm >>=
+                                = elaborateInfer (STyAnd STyUnit tA) tm >>=
                                     \(tB, e')   -> return (STySig tA tB, Box Unit (Lam (elaborateTyp tA) e')) 
 elaborateInfer ctx (SMApp tm1 tm2)
                                 = elaborateInfer ctx tm1 >>=
-                                    \(STySig tA tB, e1')    -> 
-                                        elaborateCheck ctx tm2 tA >>=
-                                            \e2'    -> return (tB, App e1' e2')
+                                    \case
+                                            (STySig tA tB, e1')    -> 
+                                                elaborateCheck ctx tm2 tA >>=
+                                                    \e2'    -> return (tB, App e1' e2')
+                                            _   -> Nothing
 
 elaborateCheck :: STyp -> STm -> STyp -> Maybe CTm
 elaborateCheck ctx tm tA = elaborateInfer ctx tm >>= 
@@ -196,7 +216,7 @@ elaborateTyp (STyAnd tyA tyB)   =
 elaborateTyp (STyArrow tyA tyB) =
                 TyArrow (elaborateTyp tyA) (elaborateTyp tyB)
 elaborateTyp (STySig tyA tyB)   =
-                TyAnd   (elaborateTyp tyA) (elaborateTyp tyB)
+                TyArrow   (elaborateTyp tyA) (elaborateTyp tyB)
 
 isSValue :: STm -> Bool
 isSValue SUnit                = True
@@ -217,14 +237,27 @@ genSValue = oneof [
                     SRec    <$> arbitrary <*> genSValue
                 ]
 
-coherence :: Property
-coherence =
-    forAll genSTy $ \ctx ->
+typeSafeTranslation :: Property
+typeSafeTranslation =
+    forAll genCtx $ \ctx ->
         forAll genSTm $ \sE ->
             case elaborateInfer ctx sE of
-                Just (tA, cE)   -> infer (elaborateTyp ctx) cE == Just (elaborateTyp tA)
+                Just (tA, cE)   -> 
+                    case check (elaborateTyp ctx) cE (elaborateTyp tA) of
+                        Just tA'    -> True
+                        Nothing     -> False
                 Nothing         -> discard
 
+-- Lemma value_weaken
+prop_value_weaken1 :: Property
+prop_value_weaken1 =
+    forAll genSValue $ \v ->
+        forAll genSTy $ \e ->
+            forAll genSTy $ \e' ->
+                isSValue v ==>
+                    case (elaborateInfer e v, elaborateInfer e' v) of
+                        (Just (t, c), Just (t',c')) -> t == t'
+                        _                           -> discard
 
 data CTm    =   Ctx                     -- ?
             |   Unit                    -- unit
@@ -503,3 +536,16 @@ main = do
     putStrLn "Lemma 1.4: preservation"
     quickCheckWith args progress
     putStrLn "Lemma 1.4: progress"
+
+
+
+-- Good test:
+{--
+    STyUnit
+    SStruct (STySig STyInt (STySig STyInt STyUnit)) (SLit 0)
+
+    STySig (STySig STyInt (STySig STyInt STyUnit)) STyInt
+    ~~~~> TyAnd (TyAnd TyInt (TyAnd TyInt TyUnit)) TyInt
+
+    Box Unit (Lam (TyAnd TyInt (TyAnd TyInt TyUnit)) (Lit 0))) 
+--}
