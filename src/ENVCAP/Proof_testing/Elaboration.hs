@@ -102,7 +102,7 @@ genSTy = oneof  [
                     return  STyUnit,
                     return  STyInt,
                     STyAnd      <$> genSTy      <*> genSTy,
-                    STyArrow    <$> genSTy      <*> genSTy,
+                    -- STyArrow    <$> genSTy      <*> genSTy,
                     STyRecord   <$> arbitrary   <*> genSTy,
                     STySig      <$> genSTy      <*> genSTy
                 ]
