@@ -14,15 +14,19 @@ Inductive styp :=
   | Srcd : string -> styp -> styp
   | Ssig : styp -> styp -> styp.
 
-Inductive sop := Sapp.
+Inductive sop := Sapp | Sbox | SDmrg | SNmrg | SMapp.
 
 Inductive sexp :=
   | Sctx        : sexp  
   | Sunit       : sexp
   | Slit        : nat   -> sexp
-  | Sproj       : sexp  -> nat  -> sexp
   | Sbinop      : sop   -> sexp -> sexp -> sexp
-  | Slam        : styp  -> sexp -> sexp.
+  | Slam        : styp  -> sexp -> sexp
+  | Sproj       : sexp  -> nat  -> sexp
+  | SClos       : sexp  -> styp -> sexp -> sexp
+  | SStruct     : styp  -> sexp -> sexp
+  | Srec        : string -> sexp -> sexp
+  | Srproj      : sexp -> string -> sexp.
 
 Inductive typ :=
   | int : typ
@@ -62,6 +66,28 @@ Inductive Slookup : styp -> nat -> styp -> Prop :=
       Slookup A n C -> 
       Slookup (Sand A B) (S n) C.
 
+
+Inductive Slin: string -> styp -> Prop :=
+  | Slin_rcd: forall A l, Slin l (Srcd l A)
+  | Slin_andl: forall A B l,
+      Slin l A ->
+      Slin l (Sand A B)
+  | Slin_andr: forall A B l,
+     Slin l B ->
+     Slin l (Sand A B).
+
+Inductive Srlookup : styp -> string -> styp -> Prop :=
+  | Srlzero : forall l B, 
+      Srlookup (Srcd l B) l B
+  | Slandl : forall A B C l, 
+      Srlookup A l C ->
+      ~ Slin l B ->
+      Srlookup (Sand A B) l C
+  | Slandr : forall A B C l, 
+      Srlookup B l C ->
+      ~ Slin l A ->
+      Srlookup (Sand A B) l C.
+
 Inductive elaborate_sexp : styp -> sexp -> styp -> exp -> Prop :=
   | infctx: forall E,
         elaborate_sexp E Sctx E ctx
@@ -76,10 +102,45 @@ Inductive elaborate_sexp : styp -> sexp -> styp -> exp -> Prop :=
   | inflam: forall E A Se e B,
       elaborate_sexp (Sand E A) Se B e ->
       elaborate_sexp E (Slam A Se) (Sarr A B) (lam (elaborate_typ A) e)
+  | infbox: forall E E' A Se1 Se2 e1 e2,
+      elaborate_sexp E Se1 E' e1 ->
+      elaborate_sexp E' Se2 A e2 ->
+      elaborate_sexp E (Sbinop Sbox Se1 Se2) A (binop box e1 e2)
+  | infclos: forall E E' A B Se1 Se2 e1 e2,
+      elaborate_sexp E Se1 E' e1 ->
+      elaborate_sexp (Sand E' A) Se2 B e2 ->
+      elaborate_sexp E (SClos Se1 A Se2) (Sarr A B) (binop box e1 (lam (elaborate_typ A) e2))
   | infapp: forall E A B sE1 sE2 cE1 cE2,
       elaborate_sexp E sE1 (Sarr A B) cE1 ->
       elaborate_sexp E sE2 A cE2 ->
-      elaborate_sexp E (Sbinop Sapp sE1 sE2) B (binop app cE1 cE2).
+      elaborate_sexp E (Sbinop Sapp sE1 sE2) B (binop app cE1 cE2)
+  | infdmrg: forall E A1 A2 sE1 sE2 e1 e2, 
+      elaborate_sexp E sE1 A1 e1 ->
+      elaborate_sexp (Sand E A1) sE2 A2 e2 ->
+      elaborate_sexp E (Sbinop SDmrg sE1 sE2) (Sand A1 A2) (binop mrg e1 e2)
+  | infnmrg: forall E A1 A2 sE1 sE2 e1 e2,
+      elaborate_sexp E sE1 A1 e1 ->
+      elaborate_sexp E sE2 A2 e2 ->
+      elaborate_sexp E  (Sbinop SNmrg sE1 sE2)
+                        (Sand A1 A2)
+                        (binop app (lam (elaborate_typ E)
+                                        (binop mrg 
+                                               (binop box (proj ctx 0) e1)
+                                               (binop box (proj ctx 1) e2))) ctx)
+  | infstruct: forall E A B sE cE,
+      elaborate_sexp (Sand Stop A) sE B cE ->
+      elaborate_sexp E (SStruct A sE) (Ssig A B) (binop box unit (lam (elaborate_typ A) cE))
+  | infmodapp: forall E A B sE1 sE2 e1 e2,
+      elaborate_sexp E sE1 (Ssig A B) e1  ->
+      elaborate_sexp E sE2 A e2           ->
+      elaborate_sexp E (Sbinop SMapp sE1 sE2) B (binop app e1 e2)
+  | infrcd: forall E A Se l e,
+      elaborate_sexp E Se A e ->
+      elaborate_sexp E (Srec l Se) (Srcd l A) (rec l e)
+  | infrproj: forall E A B Se e l,
+      elaborate_sexp E Se B e ->
+      Srlookup B l A ->
+      elaborate_sexp E (Srproj Se l) A (rproj e l).
 
 Inductive lookup : typ -> nat -> typ -> Prop :=
   | lzero : forall A B, 
@@ -251,6 +312,29 @@ Proof.
     assumption.
 Qed.
 
+Lemma type_safe_lin : forall l B,
+    ~ Slin l B ->
+    ~ lin l (elaborate_typ B).
+Admitted.
+
+Lemma type_safe_rlookup : forall A l B,
+  Srlookup A l B ->
+  rlookup (elaborate_typ A) l (elaborate_typ B).
+Proof.
+  intros.
+  induction H.
+  + simpl.
+    apply rlzero.
+  + simpl.
+    apply landl.
+    ++ assumption.
+    ++ apply type_safe_lin; assumption.
+  + simpl.
+    apply landr.
+    ++ assumption.
+    ++ apply type_safe_lin; assumption.
+Qed.
+
 (* ---------------------------------------------------- *)
 (* Elaboration *)
 Lemma type_safe_translation : forall E SE A CE,
@@ -270,7 +354,48 @@ Proof.
     simpl in IHelaborate_sexp. assumption.
   + simpl in IHelaborate_sexp1.
     simpl in IHelaborate_sexp2.
+    apply tbox with (E1 := (elaborate_typ E')); try assumption.
+  + simpl. 
+    apply tbox with (E1 := (elaborate_typ E')).
+    ++ assumption.
+    ++ simpl in IHelaborate_sexp2. apply tlam. assumption.
+  + simpl in IHelaborate_sexp1.
+    simpl in IHelaborate_sexp2.
     apply tapp with (A := (elaborate_typ A)).
     ++ assumption.
     ++ assumption.
+  + simpl in IHelaborate_sexp1.
+    simpl in IHelaborate_sexp2.
+    apply tmrg; try assumption.
+  + simpl.
+    apply tapp with (A := (elaborate_typ E)).
+    ++ apply tlam.
+       apply tmrg.
+       - apply tbox with (E1 := (elaborate_typ E)).
+         -- apply tproj with (A := and (elaborate_typ E) (elaborate_typ E)).
+            * apply tctx.
+            * apply lzero.
+         -- assumption.
+      - apply tbox with (E1 := (elaborate_typ E)).
+        -- apply tproj with (A := (and (and (elaborate_typ E) (elaborate_typ E)) (elaborate_typ A1))).
+            * apply tctx.
+            * apply lsucc. apply lzero.
+        -- assumption.
+    ++ apply tctx.
+  + simpl.
+    simpl in IHelaborate_sexp.
+    apply tbox with (E1:= top).
+    - apply tunit.
+    - apply tlam; assumption.
+  + simpl.
+    simpl in IHelaborate_sexp1.
+    simpl in IHelaborate_sexp2.
+    apply tapp with (A := elaborate_typ A); try assumption.
+  + simpl.
+    apply trcd. assumption.
+  + simpl.
+    apply trproj with (elaborate_typ B). 
+    ++ assumption.
+    ++ apply type_safe_rlookup in H0; assumption.
 Qed.
+
