@@ -31,6 +31,7 @@ Inductive typ :=
   | and : typ -> typ -> typ
   | rcd : string -> typ -> typ.
 
+(*
 Inductive elaborate_typ : styp -> typ -> Prop :=
   | elint : elaborate_typ Sint int
   | eltop : elaborate_typ Stop top
@@ -48,7 +49,17 @@ Inductive elaborate_typ : styp -> typ -> Prop :=
   | elsig : forall A A' B B',
             elaborate_typ A A' ->
             elaborate_typ B B' ->
-            elaborate_typ (Ssig A B) (arr A' B').
+            elaborate_typ (Ssig A B) (arr A' B'). 
+*)
+Fixpoint elaborate_typ (s : styp) : typ :=
+  match s with
+  | Sint       => int
+  | Stop       => top
+  | Sarr A B   => arr (elaborate_typ A) (elaborate_typ B)
+  | Sand A B   => and (elaborate_typ A) (elaborate_typ B)
+  | Srcd l A   => rcd l (elaborate_typ A)
+  | Ssig A B   => arr (elaborate_typ A) (elaborate_typ B)
+  end.
 
 Inductive op := app | box | mrg.
 
@@ -64,21 +75,18 @@ Inductive exp :=
   | rproj       : exp -> string -> exp.
 
 Inductive elaborate_sexp : styp -> sexp -> styp -> exp -> Prop :=
-  | infctx: forall E, 
+  | infctx: forall E,
         elaborate_sexp E Sctx E ctx
   | infint: forall E n,
         elaborate_sexp E (Slit n) Sint (lit n)
   | infunit: forall E,
         elaborate_sexp E Sunit Stop unit
-  | inflam: forall E A A' Se e B,
-      elaborate_typ A A' ->
+  | inflam: forall E A Se e B,
       elaborate_sexp (Sand E A) Se B e ->
-      elaborate_sexp E (Slam A Se) (Sarr A B) (lam A' e)
-(*  | tapp : forall E A B e1 e2,
-      has_type E e1 (arr A B) -> has_type E e2 A -> has_type E (binop app e1 e2) B *)
+      elaborate_sexp E (Slam A Se) (Sarr A B) (lam (elaborate_typ A) e)
   | infapp: forall E A B sE1 sE2 cE1 cE2,
-      elaborate_sexp E sE2 A cE2 ->
       elaborate_sexp E sE1 (Sarr A B) cE1 ->
+      elaborate_sexp E sE2 A cE2 ->
       elaborate_sexp E (Sbinop Sapp sE1 sE2) B (binop app cE1 cE2).
   
 Inductive lookup : typ -> nat -> typ -> Prop :=
@@ -222,14 +230,14 @@ Inductive step : exp -> exp -> exp -> Prop :=
       step v (rproj v1 l) v2.
 
 #[export]
-Hint Constructors typ op exp lookup lookupv lin rlookup styp sop sexp elaborate_typ elaborate_sexp has_type value rlookupv step : core.
+Hint Constructors typ op exp lookup lookupv lin rlookup styp sop sexp elaborate_sexp has_type value rlookupv step : core.
 
 
 Require Import Program.Equality.
 
 Lemma type_elaboration_unique : forall E E' E'',
-  elaborate_typ E E' ->
-  elaborate_typ E E'' ->
+  elaborate_typ E = E' ->
+  elaborate_typ E = E'' ->
   E' = E''.
 Proof.
   intros E E' E'' H1 H2.
@@ -238,26 +246,25 @@ Proof.
     try ( apply IHelaborate_typ1 in H1;
           apply IHelaborate_typ2 in H4;
           rewrite H1; rewrite H4; reflexivity).
-  + apply IHelaborate_typ in H4.
-    rewrite H4. reflexivity.
 Qed.
 
 (* ---------------------------------------------------- *)
 (* Elaboration *)
-Lemma type_safe_translation : forall E E' SE A A' CE,
-  elaborate_typ E E' ->
-  elaborate_typ A A' ->
+Lemma type_safe_translation : forall E SE A CE,
   elaborate_sexp E SE A CE ->
-  has_type E' CE A'.
+  has_type (elaborate_typ E) CE (elaborate_typ A).
 Proof.
-  intros E E' SE A A' CE HA HE H.
-  generalize dependent A'.
-  generalize dependent E'.
+  intros E SE A CE H.
   induction H.
-  
-  induction H; subst; exists; intros HE HA.
   + apply tctx.
   + apply tint.
   + apply tunit.
-  + apply tlam.
+  + simpl.
+    apply tlam.
+    simpl in IHelaborate_sexp. assumption.
+  + simpl in IHelaborate_sexp1.
+    simpl in IHelaborate_sexp2.
+    apply tapp with (A := (elaborate_typ A)).
+    ++ assumption.
+    ++ assumption.
 Qed.
