@@ -378,9 +378,9 @@ Proof.
     ++ apply neg_type_safe_lin; assumption.
 Qed.
 
-(* ---------------------------------------------------- *)
-(* Elaboration *)
-Theorem type_safe_translation : forall E SE A CE,
+(* -------------------------Elaboration--------------------------- *)
+(*  Type Preservation *)
+Theorem type_preservation : forall E SE A CE,
   elaborate_sexp E SE A CE ->
   has_type (elaborate_typ E) CE (elaborate_typ A).
 Proof.
@@ -442,3 +442,123 @@ Proof.
     ++ apply type_safe_rlookup in H0; assumption.
 Qed.
 
+(* Uniqueness of look-up *)
+Lemma uniqueness_of_Slookup : forall E n A1 A2,
+  Slookup E n A1 ->
+  Slookup E n A2 ->
+  A1 = A2.
+Proof.
+  intros E n A1 A2 H1 H2.
+  generalize dependent A2.
+  induction H1; intros; inversion H2; subst; eauto.
+Qed.
+
+Lemma uniqueness_of_Srlookup : forall E l A1 A2,
+  Srlookup E l A1 ->
+  Srlookup E l A2 ->
+  A1 = A2.
+Admitted.
+(*
+Proof.
+  intros E n A1 A2 H1 H2.
+  generalize dependent A2.
+  induction H1; intros; inversion H2; subst; eauto.
+Qed.
+*)
+
+(* Uniqueness of type-inference *)
+Theorem uniqueness_of_inference : forall E SE A1 A2 CE1 CE2,
+  elaborate_sexp E SE A1 CE1 ->
+  elaborate_sexp E SE A2 CE2 ->
+  A1 = A2.
+Proof.
+  intros E SE A1 A2 CE1 CE2 H1 H2.
+  generalize dependent A2.
+  generalize dependent CE2.
+  induction H1; intros; inversion H2; subst; eauto.
+  + apply IHelaborate_sexp in H5.
+    rewrite H5 in H.
+    apply uniqueness_of_Slookup with B0 n; try assumption.
+  + apply IHelaborate_sexp in H6. rewrite H6; reflexivity.
+  + apply IHelaborate_sexp1 in H3.
+    symmetry in H3. rewrite H3 in H6.
+    apply IHelaborate_sexp2 in H6; assumption.
+  + apply IHelaborate_sexp1 in H6. symmetry in H6. rewrite H6 in H7.
+    apply IHelaborate_sexp2 in H7. rewrite H7. reflexivity.
+  + apply IHelaborate_sexp2 in H6. symmetry in H6. rewrite H6 in H3.
+    apply IHelaborate_sexp1 in H3. inversion H3; subst; reflexivity.
+  + apply IHelaborate_sexp1 in H3.
+    symmetry in H3. rewrite H3 in H6.
+    apply IHelaborate_sexp2 in H6.
+    rewrite H3. rewrite H6. reflexivity.
+  + apply IHelaborate_sexp1 in H3. rewrite H3.
+    rewrite H3 in IHelaborate_sexp1.
+    inversion H3; subst.
+    inversion H2; subst. apply IHelaborate_sexp2 in H10. rewrite H10.
+    reflexivity.
+  + apply IHelaborate_sexp in H6. rewrite H6. reflexivity.
+  + apply IHelaborate_sexp2 in H6.
+    apply IHelaborate_sexp1 in H3.
+    subst. inversion H3; subst; eauto.
+  + apply IHelaborate_sexp in H6; subst; eauto.
+  + apply IHelaborate_sexp in H5; subst; eauto.
+    apply uniqueness_of_Srlookup with B0 l; try assumption.
+Qed.
+
+(* Uniqueness of Elaboration *)
+Theorem uniqueness_of_elaboration : forall E SE A1 A2 CE1 CE2,
+  elaborate_sexp E SE A1 CE1 ->
+  elaborate_sexp E SE A2 CE2 ->
+  CE1 = CE2.
+Admitted.
+(*
+Proof.
+  intros E SE A CE1 CE2 H1 H2.
+  generalize dependent CE2.
+  induction H1; intros CE2 H2; subst; eauto.
+  + inversion H2; subst; eauto.
+  + inversion H2; subst; eauto.
+  + inversion H2; subst; eauto.
+  + apply IHelaborate_sexp in H1.
+    induction H2; subst.
+    inversion H2; subst.
+    inversion H1.
+ inversion H2; subst.
+
+ 
+  + inversion H2; subst; eauto. 
+  + inversion H2; subst; eauto. 
+  + inversion H2; subst; eauto.
+    apply 
+
+induction H2; subst; eauto.
+    ++ generalize dependent e. inversion H2; subst.
+inversion H2; subst; eauto.
+  +  inversion IHelaborate_sexp.
+  generalize dependent E.
+  generalize dependent SE.
+  induction SE; intros.
+  + inversion H1; inversion H2; eauto.
+  + inversion H1; inversion H2; eauto.
+  + inversion H1; inversion H2; eauto.
+  + induction s; subst.
+    ++ inversion H1; inversion H2; subst.
+
+ inversion H1; subst.
+induction s; subst.
+    - inversion H1; inversion H2; subst. 
+
+*)
+
+
+
+
+
+
+
+
+
+
+
+
+ 
