@@ -259,6 +259,50 @@ prop_value_weaken1 =
                         (Just (t, c), Just (t',c')) -> t == t'
                         _                           -> discard
 
+{--
+
+    We need a lemma:
+    Lemma 1.1:
+        forall B n A, if lookup(B, n) = A -> lookup(|B|, n) = |A|
+    Proof.
+        Induction on n:
+        Base case: n = 0
+            lookup(B, 0)    = B,
+                so lookup(|B|, 0) = |B|
+            Hence, base case holds s.t A = B
+        
+        Inductive case: Let it be true for n - 1
+        I.H: lookup(B, n - 1) = A -> lookup(|B|, n - 1) = |A|
+
+    Admitted. Shouldn't be too hard.
+
+
+    Theorem 1: Type-safe Translation
+        if Gamma |- E => A ~~~> e, then |Gamma| |- e => |A|
+    Proof.
+        Structural induction on judgement Gamma |- E => A
+
+        Case 1: Gamma |- ? => Gamma ~~~~> ?.
+            We need to show that |Gamma| |- ? => |Gamma|,
+            apply TYP-CTX.
+
+        Case 2: Gamma |- E.n => A ~~~~> e.n
+            We need to prove that |Gamma| |- e.n => |A|.
+            In order to prove, we need to show the following:
+            There exists some B, s.t.
+                1) |Gamma| |- e => B
+                2) lookup(B, n)  = |A|
+            Since Gamma |- E.n => A, so the following must hold:
+            i.  Gamma |- E => B' ~~~> e
+            ii. lookup(B', n) = A
+
+            Let B = |B'|, so
+                |Gamma| |- e => |B'| (holds by I.H)
+                lookup(|B'|, n) = |A| (holds by lemma 1.1)
+
+
+--}
+
 data CTm    =   Ctx                     -- ?
             |   Unit                    -- unit
             |   Lit Integer             -- lit
