@@ -20,9 +20,9 @@ Inductive sexp :=
   | Sctx        : sexp  
   | Sunit       : sexp
   | Slit        : nat   -> sexp
+  | Sproj       : sexp  -> nat  -> sexp
   | Sbinop      : sop   -> sexp -> sexp -> sexp
   | Slam        : styp  -> sexp -> sexp.
-
 
 Inductive typ :=
   | int : typ
@@ -31,26 +31,6 @@ Inductive typ :=
   | and : typ -> typ -> typ
   | rcd : string -> typ -> typ.
 
-(*
-Inductive elaborate_typ : styp -> typ -> Prop :=
-  | elint : elaborate_typ Sint int
-  | eltop : elaborate_typ Stop top
-  | elarr : forall A A' B B',
-            elaborate_typ A A' ->
-            elaborate_typ B B' ->
-            elaborate_typ (Sarr A B) (arr A' B')
-  | eland : forall A A' B B',
-            elaborate_typ A A' ->
-            elaborate_typ B B' ->
-            elaborate_typ (Sand A B) (and A' B')
-  | elrcd : forall l A A',
-            elaborate_typ A A' ->
-            elaborate_typ (Srcd l A) (rcd l A')
-  | elsig : forall A A' B B',
-            elaborate_typ A A' ->
-            elaborate_typ B B' ->
-            elaborate_typ (Ssig A B) (arr A' B'). 
-*)
 Fixpoint elaborate_typ (s : styp) : typ :=
   match s with
   | Sint       => int
@@ -74,6 +54,14 @@ Inductive exp :=
   | rec         : string -> exp -> exp
   | rproj       : exp -> string -> exp.
 
+
+Inductive Slookup : styp -> nat -> styp -> Prop :=
+  | Slzero : forall A B, 
+      Slookup (Sand A B) 0 B
+  | Slsucc : forall A B n C, 
+      Slookup A n C -> 
+      Slookup (Sand A B) (S n) C.
+
 Inductive elaborate_sexp : styp -> sexp -> styp -> exp -> Prop :=
   | infctx: forall E,
         elaborate_sexp E Sctx E ctx
@@ -81,6 +69,10 @@ Inductive elaborate_sexp : styp -> sexp -> styp -> exp -> Prop :=
         elaborate_sexp E (Slit n) Sint (lit n)
   | infunit: forall E,
         elaborate_sexp E Sunit Stop unit
+  | infproj: forall E n Se e A B,
+      elaborate_sexp E Se B e ->
+      Slookup B n A ->
+      elaborate_sexp E (Sproj Se n) A (proj e n)
   | inflam: forall E A Se e B,
       elaborate_sexp (Sand E A) Se B e ->
       elaborate_sexp E (Slam A Se) (Sarr A B) (lam (elaborate_typ A) e)
@@ -88,7 +80,7 @@ Inductive elaborate_sexp : styp -> sexp -> styp -> exp -> Prop :=
       elaborate_sexp E sE1 (Sarr A B) cE1 ->
       elaborate_sexp E sE2 A cE2 ->
       elaborate_sexp E (Sbinop Sapp sE1 sE2) B (binop app cE1 cE2).
-  
+
 Inductive lookup : typ -> nat -> typ -> Prop :=
   | lzero : forall A B, 
       lookup (and A B) 0 B
@@ -230,7 +222,7 @@ Inductive step : exp -> exp -> exp -> Prop :=
       step v (rproj v1 l) v2.
 
 #[export]
-Hint Constructors typ op exp lookup lookupv lin rlookup styp sop sexp elaborate_sexp has_type value rlookupv step : core.
+Hint Constructors typ op exp lookup lookupv lin rlookup Slookup styp sop sexp elaborate_sexp has_type value rlookupv step : core.
 
 
 Require Import Program.Equality.
@@ -248,6 +240,17 @@ Proof.
           rewrite H1; rewrite H4; reflexivity).
 Qed.
 
+Lemma type_safe_lookup : forall A n B,
+  Slookup A n B ->
+  lookup (elaborate_typ A) n (elaborate_typ B).
+Proof.
+  intros.
+  induction H.
+  + apply lzero.
+  + simpl. apply lsucc.
+    assumption.
+Qed.
+
 (* ---------------------------------------------------- *)
 (* Elaboration *)
 Lemma type_safe_translation : forall E SE A CE,
@@ -259,6 +262,9 @@ Proof.
   + apply tctx.
   + apply tint.
   + apply tunit.
+  + apply tproj with (A := (elaborate_typ B)).
+    - assumption.
+    - apply type_safe_lookup in H0. assumption.
   + simpl.
     apply tlam.
     simpl in IHelaborate_sexp. assumption.
