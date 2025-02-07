@@ -313,9 +313,52 @@ Proof.
 Qed.
 
 Lemma type_safe_lin : forall l B,
+    Slin l B ->
+    lin l (elaborate_typ B).
+Proof.
+  intros l B H.
+  induction H.
+  ++ simpl. apply lin_rcd.
+  ++ simpl. apply lin_andl; assumption.
+  ++ simpl. apply lin_andr; assumption.
+Qed.
+
+Lemma type_safe_lin1 : forall l B,
+  lin l (elaborate_typ B) -> 
+    Slin l B.
+Proof.
+  intros l B H.
+  induction B.
+  + simpl in H. inversion H.
+  + simpl in H. inversion H.
+  + simpl in H. inversion H.
+  + simpl in H. inversion H; subst.
+    ++ apply Slin_andl. apply IHB1. assumption.
+    ++ apply Slin_andr. apply IHB2. assumption.
+  + simpl in H. inversion H; subst.
+    apply Slin_rcd.
+  + simpl in H. inversion H; subst.
+Qed.
+
+Lemma type_safe_lin_equivalence : forall l B,
+  Slin l B <-> lin l (elaborate_typ B).
+Proof.
+  split.
+  apply type_safe_lin.
+  apply type_safe_lin1.
+Qed.
+
+Lemma neg_type_safe_lin : forall l B,
     ~ Slin l B ->
     ~ lin l (elaborate_typ B).
-Admitted.
+Proof.
+  intros l B H.
+  unfold not.
+  unfold not in H.
+  intros.
+  apply type_safe_lin1 in H0.
+  apply H; assumption.
+Qed.
 
 Lemma type_safe_rlookup : forall A l B,
   Srlookup A l B ->
@@ -328,16 +371,16 @@ Proof.
   + simpl.
     apply landl.
     ++ assumption.
-    ++ apply type_safe_lin; assumption.
+    ++ apply neg_type_safe_lin; assumption.
   + simpl.
     apply landr.
     ++ assumption.
-    ++ apply type_safe_lin; assumption.
+    ++ apply neg_type_safe_lin; assumption.
 Qed.
 
 (* ---------------------------------------------------- *)
 (* Elaboration *)
-Lemma type_safe_translation : forall E SE A CE,
+Theorem type_safe_translation : forall E SE A CE,
   elaborate_sexp E SE A CE ->
   has_type (elaborate_typ E) CE (elaborate_typ A).
 Proof.
