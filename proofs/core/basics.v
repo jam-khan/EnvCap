@@ -453,18 +453,11 @@ Proof.
   induction H1; intros; inversion H2; subst; eauto.
 Qed.
 
-Lemma uniqueness_of_Srlookup : forall E l A1 A2,
-  Srlookup E l A1 ->
+Lemma uniqueness_of_Srlookup : forall E l A1,
+  Srlookup E l A1 -> forall A2,
   Srlookup E l A2 ->
   A1 = A2.
 Admitted.
-(*
-Proof.
-  intros E n A1 A2 H1 H2.
-  generalize dependent A2.
-  induction H1; intros; inversion H2; subst; eauto.
-Qed.
-*)
 
 (* Uniqueness of type-inference *)
 Theorem uniqueness_of_inference : forall E SE A1 A2 CE1 CE2,
@@ -510,55 +503,31 @@ Theorem uniqueness_of_elaboration : forall E SE A1 A2 CE1 CE2,
   elaborate_sexp E SE A1 CE1 ->
   elaborate_sexp E SE A2 CE2 ->
   CE1 = CE2.
-Admitted.
-(*
 Proof.
-  intros E SE A CE1 CE2 H1 H2.
+  intros E SE A1 A2 CE1 CE2 H1 H2.
+  generalize dependent A2.
   generalize dependent CE2.
-  induction H1; intros CE2 H2; subst; eauto.
-  + inversion H2; subst; eauto.
-  + inversion H2; subst; eauto.
-  + inversion H2; subst; eauto.
-  + apply IHelaborate_sexp in H1.
-    induction H2; subst.
-    inversion H2; subst.
-    inversion H1.
- inversion H2; subst.
-
- 
-  + inversion H2; subst; eauto. 
-  + inversion H2; subst; eauto. 
-  + inversion H2; subst; eauto.
-    apply 
-
-induction H2; subst; eauto.
-    ++ generalize dependent e. inversion H2; subst.
-inversion H2; subst; eauto.
-  +  inversion IHelaborate_sexp.
-  generalize dependent E.
-  generalize dependent SE.
-  induction SE; intros.
-  + inversion H1; inversion H2; eauto.
-  + inversion H1; inversion H2; eauto.
-  + inversion H1; inversion H2; eauto.
-  + induction s; subst.
-    ++ inversion H1; inversion H2; subst.
-
- inversion H1; subst.
-induction s; subst.
-    - inversion H1; inversion H2; subst. 
-
-*)
-
-
-
-
-
-
-
-
-
-
-
-
- 
+  induction H1; intros; inversion H2; subst; eauto; 
+  try ( apply IHelaborate_sexp in H6; subst; reflexivity );
+  try ( apply IHelaborate_sexp in H5; subst; reflexivity );
+  try ( apply IHelaborate_sexp1 in H3; subst;
+        apply IHelaborate_sexp2 in H6; subst; reflexivity ).
+  + assert ( Eq : E' = E'0 ). 
+    {
+     apply uniqueness_of_inference with (E := E) (SE := Se1) (CE1 := e1) (CE2 := e0); 
+     try assumption; 
+     subst. 
+    }
+    apply IHelaborate_sexp1 in H3; subst.
+    apply IHelaborate_sexp2 in H6; subst; reflexivity.
+  + assert ( Eq : E' = E'0 ). 
+    {apply uniqueness_of_inference with (E := E) (SE := Se1) (CE1 := e1) (CE2 := e0); 
+     try assumption; 
+     subst. }
+    apply IHelaborate_sexp1 in H6; subst.
+    apply IHelaborate_sexp2 in H7; subst; reflexivity.
+  + assert ( Eq : A1 = A3 ).
+    { apply uniqueness_of_inference with E sE1 e1 e0; try assumption; subst. }
+    apply IHelaborate_sexp1 in H3; subst.
+    apply IHelaborate_sexp2 in H6; subst; reflexivity.
+Qed.
