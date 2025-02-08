@@ -81,11 +81,11 @@ Inductive Srlookup : styp -> string -> styp -> Prop :=
       Srlookup (Srcd l B) l B
   | Slandl : forall A B C l, 
       Srlookup A l C ->
-      ~ Slin l B ->
+      Slin l A /\ ~ Slin l B ->
       Srlookup (Sand A B) l C
   | Slandr : forall A B C l, 
       Srlookup B l C ->
-      ~ Slin l A ->
+      ~ Slin l A /\ Slin l B ->
       Srlookup (Sand A B) l C.
 
 Inductive elaborate_sexp : styp -> sexp -> styp -> exp -> Prop :=
@@ -371,11 +371,11 @@ Proof.
   + simpl.
     apply landl.
     ++ assumption.
-    ++ apply neg_type_safe_lin; assumption.
+    ++ apply neg_type_safe_lin. destruct H0. assumption.
   + simpl.
     apply landr.
     ++ assumption.
-    ++ apply neg_type_safe_lin; assumption.
+    ++ apply neg_type_safe_lin. destruct H0. assumption.
 Qed.
 
 (* -------------------------Elaboration--------------------------- *)
@@ -442,6 +442,7 @@ Proof.
     ++ apply type_safe_rlookup in H0; assumption.
 Qed.
 
+
 (* Uniqueness of look-up *)
 Lemma uniqueness_of_Slookup : forall E n A1 A2,
   Slookup E n A1 ->
@@ -453,11 +454,25 @@ Proof.
   induction H1; intros; inversion H2; subst; eauto.
 Qed.
 
-Lemma uniqueness_of_Srlookup : forall E l A1,
-  Srlookup E l A1 -> forall A2,
+Lemma uniqueness_of_Srlookup : forall E l A1 A2,
+  Srlookup E l A1 ->
   Srlookup E l A2 ->
   A1 = A2.
-Admitted.
+Proof.
+  intros E l A1 A2 H1 H2.
+  generalize dependent A2.
+  induction H1; intros.
+  + inversion H2; subst; reflexivity.
+  + inversion H2; subst. 
+    - apply IHSrlookup; assumption.
+    - destruct H. destruct H7.
+      exfalso. apply H0. assumption.
+  + inversion H2; subst.
+    - apply IHSrlookup.
+      destruct H7; destruct H.
+      exfalso. apply H3. assumption.
+    - apply IHSrlookup; assumption.
+Qed.
 
 (* Uniqueness of type-inference *)
 Theorem uniqueness_of_inference : forall E SE A1 A2 CE1 CE2,
