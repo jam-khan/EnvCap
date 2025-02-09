@@ -14,7 +14,7 @@ arithOp Mod v1 v2 = if v2 == 0 then Nothing else Just (v1 `Prelude.mod` v2)
 lookupv :: Value -> Int -> Maybe Value
 lookupv (VMrg v1 v2) 0 = Just v2
 lookupv (VMrg v1 v2) n = lookupv v1 (n - 1)
-lookupv _ _                 = Nothing
+lookupv _ _            = Nothing
 
 rlookupv :: Value -> String -> Maybe Value
 rlookupv (VRcd l v) label

@@ -19,8 +19,7 @@ data Exp =  Ctx                      -- Context
         |   EBool   Bool             -- Boolean Term
         |   EString String           -- String Term
         |   If     Exp Exp Exp       -- Conditionals
-        |   Let    Exp Exp           -- Let Bindings
-        |   Fix    Exp               -- Recursion
+        |   Fix    Typ Exp               -- Recursion
         -- Pairs
         |   Pair   Exp Exp           -- Pair
         |   Fst    Exp               -- First Projection
@@ -125,8 +124,7 @@ instance Arbitrary Exp where
                       , EBool   <$> arbitrary
                       , EString <$> arbitrary
                       , If      <$> arbitrary <*> arbitrary <*> arbitrary
-                      , Let     <$> arbitrary <*> arbitrary
-                      , Fix     <$> arbitrary
+                      , Fix     <$> arbitrary <*> arbitrary
                       , Pair    <$> arbitrary <*> arbitrary
                       , Fst     <$> arbitrary
                       , Snd     <$> arbitrary

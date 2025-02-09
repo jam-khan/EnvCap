@@ -31,10 +31,8 @@ prettyPrintExp (Mrg e1 e2)      = prettyPrintExp e1 ++ "\n ,, \n" ++ prettyPrint
 prettyPrintExp (Box e1 e2)      = "Box[(" ++ prettyPrintExp e1 ++ " ▷ " ++ prettyPrintExp e2 ++ ")]"
 --         |   If     Exp Exp Exp       -- Conditionals
 prettyPrintExp (If e1 e2 e3)    = "If (" ++ prettyPrintExp e1 ++ ") then {" ++ prettyPrintExp e2 ++ " } else {" ++ prettyPrintExp e3 ++ "}"
---         |   Let    Exp Exp           -- Let Bindings
-prettyPrintExp (Let e1 e2)      = "Let (" ++ prettyPrintExp e1 ++ ") in {\n" ++ prettyPrintExp e2 ++ " }"
 --         |   Fix    Exp               -- Recursion
-prettyPrintExp (Fix e)          = "Fix (\n" ++ prettyPrintExp e ++ "\n)"
+prettyPrintExp (Fix ty e)       = "Fix (" ++ prettyPrintTyp ty ++ ") (\n" ++ prettyPrintExp e ++ "\n)"
 --         |   Pair   Exp Exp           -- Pair
 prettyPrintExp (Pair e1 e2)     = "(" ++ prettyPrintExp e1 ++ ", " ++ prettyPrintExp e2 ++ ")"
 --         |   Fst    Exp               -- First Projection

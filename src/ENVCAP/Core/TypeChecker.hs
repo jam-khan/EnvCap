@@ -72,11 +72,7 @@ infer ctx (RProj e l)           = do
                                                 else Left $ TypeError "Record projection failed due to containment"
                                         Nothing -> Left $ TypeError $ "Field " ++ show l ++ " not found in type " ++ show tB 
 -- TYP-FIX 
-infer ctx (Fix (Lam tA e))      = infer (TAnd ctx (TArrow tA tA)) (Lam tA e)
--- TYP-LET 
-infer ctx (Let e1 e2)           = do 
-                                    tA <- infer ctx e1 
-                                    infer (TAnd ctx tA) e2 
+infer ctx (Fix tA e)            = if check (TAnd ctx tA) e tA then Right tA else Left $ TypeError "Fixpoint type check failed"
 -- TYP-IF 
 infer ctx (If cond e1 e2)       = do 
                                     if check ctx cond TBool 

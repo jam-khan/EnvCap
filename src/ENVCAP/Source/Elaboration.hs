@@ -334,7 +334,6 @@ elaborateInfer ctx (TmBinOp (TmLogic op) tm1 tm2) =
                                 Left $ generateError ctx tm1 
                                         ("Type error on first operand of the logic operator" ++ show op)
                                         ("First operand has type error.\n \n-----Further info-----\n \n" ++ err)
-
 elaborateInfer ctx (TmUnOp TmNot tm)     =
                 case elaborateInfer ctx tm of
                         Right (ty, tm')         -> Right (ty, UnOp Not tm')
