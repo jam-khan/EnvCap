@@ -3,6 +3,20 @@ module ENVCAP.Core.GeneralizedBoxes.Evaluator where
 import ENVCAP.Core.GeneralizedBoxes.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), LogicOp(..), Typ (..))
 import Data.Maybe (fromMaybe)
 
+-- lookupv :: Value -> Int -> Maybe Value
+-- lookupv (VMrg v1 v2) 0 = Just v2
+-- lookupv (VMrg v1 v2) n = lookupv v1 (n - 1)
+-- lookupv _ _                 = Nothing
+
+-- rlookupv :: Value -> String -> Maybe Value
+-- rlookupv (VRcd l v) label
+--     | l == label = Just v
+-- rlookupv (VMrg v1 v2) label =
+--     case (rlookupv v1 label, rlookupv v2 label) of
+--         (Just vL, Nothing)      -> Just vL
+--         (Nothing, Just vR)      -> Just vR
+--         (_, _)                  -> Nothing
+-- rlookupv _ _ = Nothing
 
 eval :: Value -> Exp -> Maybe Value
 -- BSTEP-CTX
@@ -46,7 +60,7 @@ eval env (Mrg e1 e2)            = Just (VMrg v1 v2)
 eval env (Box e1 e2)            = eval v1 e2
                                     where Just v1 = eval env e1
 -- BSTEP-Bool
-eval env (EBool b)           = VBool <$> Just b
+eval env (EBool b)              = VBool <$> Just b
 -- BSTEP-STR
 eval env (EString s)            = VString <$> Just s
 -- BSTEP-FIX

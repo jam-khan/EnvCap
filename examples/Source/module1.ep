@@ -1,0 +1,8 @@
+val x = 1;;
+
+module example (x: Int) {
+    val y   = x + 1;;
+    val inc = 10
+};;
+
+example(x + 1)
