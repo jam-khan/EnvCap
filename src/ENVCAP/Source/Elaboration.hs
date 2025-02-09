@@ -271,7 +271,14 @@ elaborateInfer ctx (TmIf tm1 tm2 tm3)
                                                 ("Fix the condition and make sure it is of type Bool.\n \n-----Further info-----\n \n" ++ err)   
 elaborateInfer ctx (TmFix (TmLam tA tm)) = 
                 case elaborateInfer (Source.TAnd ctx (Source.TArrow tA tA)) (TmLam tA tm) of
-                        Right (ty, tm')       -> Right (ty, Fix tm')
+                        -- IMPORTANT
+                        -- This is not the right way to handle it (Add annotations on surface level)
+                        -- Temporary fix for testing purposes
+                        Right (ty, tm')       -> case elaborateTyp (Source.TArrow ty ty) of
+                                                        Just (Core.TArrow t1 t2)  -> Right (ty, Fix t1 tm')
+                                                        _       -> Left $ generateError ctx (TmFix (TmLam tA tm)) 
+                                                                                "Type error on fixpoint"
+                                                                                "Make sure fixpoint error is correct"
                         Left (STypeError err)   
                                         -> Left $ generateError ctx (TmFix (TmLam tA tm)) 
                                                 "Type error on fixpoint"
@@ -350,23 +357,3 @@ elaborateCheck ctx tm typ
                                                 ("Couldn't match expected type \'" ++ show typ ++ "\' with actual type \'" ++ show typ' ++ "\'")
                                                 "Please check your code."
                 Left err        -> Left err
-
-elaborate :: Tm -> Maybe Exp
-elaborate TmCtx                         = Just Ctx
-elaborate TmUnit                        = Just Unit
-elaborate (TmLit n)                     = Just $ Lit n
-elaborate (TmBool b)                    = Just $ EBool b
-elaborate (TmString s)                  = Just $ EString s
-elaborate (TmBinOp op tm1 tm2)          = case (elaborateBinaryOp op, elaborate tm1, elaborate tm2) of
-                                                (op', Just e1, Just e2) -> Just (BinOp op' e1 e2)
-                                                _                       -> Nothing
-elaborate (TmUnOp op tm)                = UnOp <$> Just (surfaceUnaryToCoreOp op) <*> elaborate tm
-elaborate (TmIf tm1 tm2 tm3)            = If   <$> elaborate tm1        <*> elaborate tm2 <*> elaborate tm3
-elaborate (TmMrg tm1 tm2)               = Mrg  <$> elaborate tm1        <*> elaborate tm2
-elaborate (TmRec name tm)               = Rec name    <$> elaborate tm
-elaborate (TmProj tm n)                 = Proj <$> elaborate tm <*> Just n               
-elaborate (TmRProj tm name)             = RProj       <$> elaborate tm <*> Just name
-elaborate (TmLam ty tm)                 = Lam <$> elaborateTyp ty <*> elaborate tm
-elaborate (TmApp tm1 tm2)               = App <$> elaborate tm1 <*> elaborate tm2
-elaborate (TmFix tm)                    = Fix <$> elaborate tm  
-elaborate _                             = Nothing

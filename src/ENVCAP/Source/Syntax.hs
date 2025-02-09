@@ -3,6 +3,62 @@
 
 module ENVCAP.Source.Syntax where
 
+data Surface 
+        =   SCtx                               -- Query
+        |   SUnit                              -- Unit
+        |   SLit       Integer                 -- Integer Literal
+        |   SBool      Bool                    -- Boolean Literal
+        |   SString    String                  -- String  Literal
+        |   SLam       Typ Surface             -- Abstraction with binding
+        |   SClos      Surface Surface Surface
+        |   SRec       String Surface
+        |   SRProj     Surface String
+        |   SProj      Surface Int             -- Projection on Expression
+        |   SApp       Surface Surface
+        |   SMrg       Surface Surface
+        |   SBox       Surface Surface
+        -- Extension that require elaboration
+        |   SIf        Surface Surface Surface
+        |   SFix       Surface
+        |   SPair      Surface Surface
+        |   SFst       Surface
+        |   SSnd       Surface
+        |   SNil       STyp
+        |   SCons      Surface Surface
+        |   SBinOp     TmBinOp Surface Surface
+        |   SUnOp      TmUnaryOp Surface
+        |   SCase      Surface
+        |   SInL       Surface
+        |   SInR       Surface
+        |   SAnno      Surface STyp  
+        |   STuple     [Surface]
+        |   SSwitch    Surface [(Surface, Surface)]
+        |   SVar       String
+        |   SStruct    STyp Surface
+        |   SFunc      String STyp Surface
+        |   SModule    String STyp Surface
+        |   SAliasTyp  String STyp
+        |   SLet       String STyp Surface Surface
+        |   SLetrec    String STyp Surface Surface
+        deriving (Eq, Show)
+
+-- Types
+data STyp =  STUnit                  -- Unit type for empty environment
+        |    STInt                   -- Integer type
+        -- Can be used for pair
+        |   STAnd STyp STyp           -- Intersection type
+        |   STArrow STyp STyp         -- Arrow type, e.g. A -> B
+        |   STRecord String STyp     -- Single-Field Record Type
+        -- Extensions
+        |   STBool                  -- Boolean type
+        |   STString                -- String type
+        |   STList  STyp             -- Type for built-in list 
+        |   STSum   STyp STyp         -- Type for sums
+        |   STPair  STyp STyp
+        |   STSig   STyp STyp             -- Sig Type End
+        |   STIden  String          -- Simply an alias
+        deriving (Eq, Show)
+
 data Tm =   TmCtx                               -- Query
         |   TmUnit                              -- Unit
         |   TmLit       Integer                 -- Integer Literal
