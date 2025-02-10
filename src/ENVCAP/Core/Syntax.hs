@@ -1,15 +1,14 @@
 {-# LANGUAGE InstanceSigs #-}
 module ENVCAP.Core.Syntax where
 
-import Test.QuickCheck (Property, property, quickCheck, Arbitrary(arbitrary), Gen, elements, oneof )
-
+import Test.QuickCheck ( Arbitrary(arbitrary), oneof, Gen)
 
 data Exp =  Ctx                      -- Context
         |   Unit                     -- Unit
         |   Lit    Integer           -- Integer literal
         |   Lam    Typ Exp           -- Lambda Abstraction
         |   Proj   Exp Int           -- Projection
-        |   Clos   Exp  Exp           -- Closure
+        |   Clos   Exp  Exp          -- Closure
         |   Rec    String Exp        -- Single-Field Record
         |   RProj  Exp String        -- Record Projection by Label
         |   App    Exp Exp           -- Application
@@ -19,30 +18,20 @@ data Exp =  Ctx                      -- Context
         |   EBool   Bool             -- Boolean Term
         |   EString String           -- String Term
         |   If     Exp Exp Exp       -- Conditionals
-        |   Fix    Typ Exp               -- Recursion
-        -- Pairs
+        |   Fix    Typ Exp           -- Recursion
         |   Pair   Exp Exp           -- Pair
         |   Fst    Exp               -- First Projection
         |   Snd    Exp               -- Second Projection
-        -- Sums
         |   InL    Typ Exp           -- Tagging Left
         |   InR    Typ Exp           -- Tagging Right
         |   Case   Exp Exp Exp       -- Case of Sums
-        -- Built-in Lists
         |   Nil    Typ               -- Nil typ, e.g. [] of Int
         |   Cons   Exp Exp           -- Cons for List
         |   LCase  Exp Exp Exp       -- Case of List
-        -- Operations
         |   BinOp  BinaryOp Exp Exp  -- Binary operations
         |   UnOp   UnaryOp Exp       -- Unary operations
         deriving (Eq, Show)
 
-{--
-        Maintaining a different AST for Value for Big Step operational semantics.
-        Potentially, utilize small step for step-wise debugging later!
---}
-
--- Values
 data Value =    VUnit                      -- Unit value
         |       VInt    Integer            -- Integer value
         |       VClos   Value Exp          -- Closure
@@ -51,20 +40,15 @@ data Value =    VUnit                      -- Unit value
         -- Extensions
         |       VBool   Bool               -- Boolean Value
         |       VString String             -- String Value
-        -- Pair extension
         |       VPair   Value Value        -- Pair value
-        -- Sums extension
         |       VInL    Typ Value          -- tagged value (left)
         |       VInR    Typ Value          -- tagged value (right)
-        -- Lists extension
-        |       VNil    Typ
+        |       VNil    Typ                -- nil list
         |       VCons   Value Value        -- List
         deriving (Eq, Show)
 
--- Types
 data Typ =  TUnit                       -- Unit type for empty environment
         |   TInt                        -- Integer type
-        -- Can be used for pair
         |   TAnd        Typ Typ         -- Intersection type
         |   TArrow      Typ Typ         -- Arrow type, e.g. A -> B
         |   TRecord     String Typ      -- Single-Field Record Type
@@ -79,7 +63,6 @@ data Typ =  TUnit                       -- Unit type for empty environment
 data UnaryOp    =       Not
         deriving (Eq, Show)
 
--- Operations Definitions
 data BinaryOp  =        Arith ArithOp   -- Arithmetic
                 |       Comp  CompOp    -- CompOp
                 |       Logic LogicOp   -- Boolean Logic
