@@ -2,9 +2,24 @@ module ENVCAP.Source.Elaboration where
 import ENVCAP.Core.Syntax as Core
 import ENVCAP.Source.Syntax as Source
 
+{--
 
-surfaceUnaryToCoreOp :: TmUnaryOp -> UnaryOp
-surfaceUnaryToCoreOp TmNot              = Not
+-- Operations Definitions
+data TmBinOp   =        TmArith TmArithOp   -- Arithmetic
+                |       TmComp  TmCompOp    -- CompOp
+                |       TmLogic TmLogicOp   -- Boolean Logic
+        deriving  (Show)
+
+data TmUnaryOp  = TmNeg | TmNot | TmTypeOf | TmIndex Int
+                                                deriving (Eq, Show)
+data TmArithOp   = TmAdd | TmSub | TmMul | TmDiv | TmMod | TmExp
+                                                deriving (Eq, Show)
+data TmCompOp    = TmEql | TmNeq | TmLt | TmLe | TmGt | TmGe
+                                                deriving (Eq, Show)
+data TmLogicOp   = TmAnd | TmOr         deriving (Eq, Show)
+
+--}
+
 
 elaborateBinaryOp :: TmBinOp -> BinaryOp
 elaborateBinaryOp (TmArith arithop)
@@ -323,6 +338,10 @@ elaborateInfer ctx (TmBinOp (TmComp op) tm1 tm2) =
                                                 Left $ generateError ctx (TmBinOp (TmComp op) tm1 tm2)
                                                         ("Type error on comparsion operation `" ++ show op ++ "`. Types on both sides must be String.")
                                                         ("Make sure that types of both operands are String.\n \n-----Further info-----\n \n" ++ err)
+                        Right (ty, tm') ->
+                                        Left $ generateError ctx (TmBinOp (TmComp op) tm1 tm2)
+                                                        ("Type error on comparsion operation `" ++ show op ++ "`. Types on both sides must be String.")
+                                                        "Make sure that types of both operands are of same type.\n \n-----Further info-----\n \n"
                         Left (STypeError err) ->
                                 Left $ generateError ctx tm1 
                                         ("Type error on first operand of the comparison operator" ++ show op)

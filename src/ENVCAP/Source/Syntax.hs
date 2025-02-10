@@ -9,7 +9,7 @@ data Surface
         |   SLit       Integer                 -- Integer Literal
         |   SBool      Bool                    -- Boolean Literal
         |   SString    String                  -- String  Literal
-        |   SLam       Typ Surface             -- Abstraction with binding
+        |   SLam       STyp Surface             -- Abstraction with binding
         |   SClos      Surface Surface Surface
         |   SRec       String Surface
         |   SRProj     Surface String
@@ -127,7 +127,7 @@ data TmBinOp   =        TmArith TmArithOp   -- Arithmetic
 
 data TmUnaryOp  = TmNeg | TmNot | TmTypeOf | TmIndex Int
                                                 deriving (Eq, Show)
-data TmArithOp   = TmAdd | TmSub | TmMul | TmDiv | TmMod | TmExp
+data TmArithOp   = TmAdd | TmSub | TmMul | TmDiv | TmMod
                                                 deriving (Eq, Show)
 data TmCompOp    = TmEql | TmNeq | TmLt | TmLe | TmGt | TmGe
                                                 deriving (Eq, Show)

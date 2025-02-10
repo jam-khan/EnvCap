@@ -14,13 +14,13 @@ prettyPrintExp (EBool b)        = show b
 --         |   EString String           -- String Term
 prettyPrintExp (EString s)      = show s
 --         |   Lam    Typ Exp           -- Lambda Abstraction
-prettyPrintExp (Lam typ exp)    = "Lambda " ++ prettyPrintTyp typ ++  " { " ++ prettyPrintExp exp ++ " }"
+prettyPrintExp (Lam typ e)    = "Lambda " ++ prettyPrintTyp typ ++  " { " ++ prettyPrintExp e ++ " }"
 --         |   Proj   Exp Int           -- Projection
 prettyPrintExp (Proj e n)       = prettyPrintExp e ++ "." ++ show n
 --         |   Clos   Exp Exp           -- Closure
 prettyPrintExp (Clos e1 e2)     = "Clos<" ++ prettyPrintExp e1 ++ ", " ++ prettyPrintExp e2 ++ ">"
 --         |   Rec    String Exp        -- Single-Field Record
-prettyPrintExp (Rec name exp)   = "{ " ++ show name ++ " : " ++ prettyPrintExp exp ++ " }"
+prettyPrintExp (Rec name e)   = "{ " ++ show name ++ " : " ++ prettyPrintExp e ++ " }"
 --         |   RProj  Exp String        -- Record Projection by Label
 prettyPrintExp (RProj e l)      = "(" ++ prettyPrintExp e ++ ")." ++ show l
 --         |   App    Exp Exp           -- Application
@@ -49,7 +49,7 @@ prettyPrintExp (Case e1 e2 e3)  = "Case (" ++ prettyPrintExp e1 ++ ") of \n" ++
                                             " inr _ _ => " ++ prettyPrintExp e3 ++ "\n"
 prettyPrintExp (Nil tA)         = "List<[" ++ show tA ++"]>"
 --         |   Cons   Exp Exp           -- Cons for List
-prettyPrintExp (Cons head rest) = "List<[" ++ prettyPrintList (Cons head rest)
+prettyPrintExp (Cons h rest)       = "List<[" ++ prettyPrintList (Cons h rest)
 --         |   BinOp  BinaryOp Exp Exp  -- Binary operations
 prettyPrintExp (BinOp op e1 e2) = "(" ++ prettyPrintExp e1 ++ " " ++ show op ++ " " ++ prettyPrintExp e2 ++ ")"
 --         |   UnOp   UnaryOp Exp       -- Unary operations
@@ -61,26 +61,28 @@ prettyPrintExp (LCase e1 e2 e3) = "Case (" ++ prettyPrintExp e1 ++ ") of \n" ++
 
 
 prettyPrintList :: Exp -> String
-prettyPrintList (Cons head rest)    = prettyPrintExp head ++ ", " ++ prettyPrintList rest 
-prettyPrintList (Nil tA)            = "]>"
+prettyPrintList (Cons h rest) = prettyPrintExp h ++ ", " ++ prettyPrintList rest 
+prettyPrintList (Nil _)       = "]>"
+prettyPrintList _             = error "Shouldn't print anything except list"
 
 prettyPrintVal :: Value -> String
 prettyPrintVal VUnit              = "ε"
 prettyPrintVal (VInt i)           = show i
 prettyPrintVal (VBool b)          = show b
 prettyPrintVal (VString s)        = "\'" ++ show s ++ "\'"
-prettyPrintVal (VClos val exp)    = "closure<"  ++ prettyPrintVal val ++ ", "   ++ prettyPrintExp exp ++ ">"
+prettyPrintVal (VClos val e)    = "closure<"  ++ prettyPrintVal val ++ ", "   ++ prettyPrintExp e ++ ">"
 prettyPrintVal (VRcd label val)   = "{" ++ show label   ++ ": "     ++ prettyPrintVal val ++ "}"
 prettyPrintVal (VMrg v1 v2)       = prettyPrintVal v1   ++ " ,, "   ++ prettyPrintVal v2
-prettyPrintVal (VNil tA)          = "List<[nil]>"
-prettyPrintVal (VCons head rest)  = "List<["    ++ prettyPrintList' (VCons head rest)
+prettyPrintVal (VNil _)          = "List<[nil]>"
+prettyPrintVal (VCons h rest)  = "List<["    ++ prettyPrintList' (VCons h rest)
 prettyPrintVal (VPair v1 v2)      = "Pair[("    ++ prettyPrintVal v1    ++ ", "     ++ prettyPrintVal v2 ++ ")]"
 prettyPrintVal (VInL typ value)   = "Left("     ++ show typ ++ ", "     ++ prettyPrintVal value ++ ")"
 prettyPrintVal (VInR typ value)   = "Right("    ++ show typ ++ ", "     ++ prettyPrintVal value ++ ")"
 
 prettyPrintList' :: Value -> String
-prettyPrintList' (VCons head rest)   = prettyPrintVal head ++ ", " ++ prettyPrintList' rest 
-prettyPrintList' (VNil tA)           = "]>"
+prettyPrintList' (VCons h rest)   = prettyPrintVal h ++ ", " ++ prettyPrintList' rest 
+prettyPrintList' (VNil _)           = "]>"
+prettyPrintList' _                   = error "Shouldn't print anything except list"
 
 prettyPrintTyp :: Typ -> String
 prettyPrintTyp TUnit                = "TYPE<ε>"
