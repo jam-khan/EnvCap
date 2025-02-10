@@ -1,14 +1,13 @@
 module ENVCAP.Parser.Util where
 
-import Text.Parsec (ParseError, many1, string, try, anyChar, notFollowedBy)
+import Text.Parsec (ParseError, try)
 import Text.Parsec.String (Parser)
 import Text.Parsec.Prim (parse)
 import Text.Parsec.Char
 import Text.Parsec.Combinator
-import Data.Char
-import Control.Applicative ((<$>), (<*>), (<*), (*>), (<|>), many)
+import Control.Applicative ((<|>), many)
 import Control.Monad (void)
-import ENVCAP.Source.Syntax 
+import ENVCAP.Syntax 
 
 -- We want to comments to be considered as whitespace.
 whitespace :: Parser ()
@@ -52,10 +51,10 @@ identifierToken     = lexeme ((:) <$> firstChar <*> many nonFirstChar)
                             firstChar       = letter <|> char '_'
                             nonFirstChar    = digit  <|> firstChar
 
-intersections :: [Typ] -> Typ
-intersections []  = TUnit
+intersections :: [TypS] -> TypS
+intersections []  = TySUnit
 intersections [x] = x
-intersections (x:xs) = TAnd x $ intersections xs
+intersections (x:xs) = TySAnd x $ intersections xs
 
 merges :: [Tm] -> Tm
 merges [] = TmUnit

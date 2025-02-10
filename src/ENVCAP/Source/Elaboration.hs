@@ -1,62 +1,19 @@
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 module ENVCAP.Source.Elaboration where
-import ENVCAP.Core.Syntax as Core
-import ENVCAP.Source.Syntax as Source
+import ENVCAP.Syntax
 
-{--
-
--- Operations Definitions
-data TmBinOp   =        TmArith TmArithOp   -- Arithmetic
-                |       TmComp  TmCompOp    -- CompOp
-                |       TmLogic TmLogicOp   -- Boolean Logic
-        deriving  (Show)
-
-data TmUnaryOp  = TmNeg | TmNot | TmTypeOf | TmIndex Int
-                                                deriving (Eq, Show)
-data TmArithOp   = TmAdd | TmSub | TmMul | TmDiv | TmMod | TmExp
-                                                deriving (Eq, Show)
-data TmCompOp    = TmEql | TmNeq | TmLt | TmLe | TmGt | TmGe
-                                                deriving (Eq, Show)
-data TmLogicOp   = TmAnd | TmOr         deriving (Eq, Show)
-
---}
-
-
-elaborateBinaryOp :: TmBinOp -> BinaryOp
-elaborateBinaryOp (TmArith arithop)
-        = case arithop of
-                TmAdd   -> Arith Add
-                TmSub   -> Arith Sub
-                TmMul   -> Arith Mul
-                TmDiv   -> Arith Div
-                TmMod   -> Arith Mod
-elaborateBinaryOp (TmComp compop)
-        = case compop of
-                TmEql   -> Comp Eql
-                TmNeq   -> Comp Neq
-                TmLt    -> Comp Lt
-                TmLe    -> Comp Le
-                TmGt    -> Comp Gt
-                TmGe    -> Comp Ge
-elaborateBinaryOp (TmLogic logicop)
-        = case logicop of
-                TmAnd   -> Logic And
-                TmOr    -> Logic Or
-
-
-
-elaborateTyp :: Source.Typ -> Maybe Core.Typ
-elaborateTyp Source.TUnit               = Just Core.TUnit
-elaborateTyp Source.TInt                = Just Core.TInt
-elaborateTyp Source.TBool               = Just Core.TBool
-elaborateTyp Source.TString             = Just Core.TString
-elaborateTyp (Source.TAnd ty1 ty2)      = Core.TAnd             <$> elaborateTyp ty1 <*> elaborateTyp ty2
-elaborateTyp (Source.TArrow ty1 ty2)    = Core.TArrow           <$> elaborateTyp ty1 <*> elaborateTyp ty2
-elaborateTyp (Source.TRecord label ty)  = Core.TRecord label    <$> elaborateTyp ty
-elaborateTyp (Source.TList ty)          = Core.TList            <$> elaborateTyp ty
-elaborateTyp (Source.TSum ty1 ty2)      = Core.TSum             <$> elaborateTyp ty1 <*> elaborateTyp ty2
-elaborateTyp (Source.TPair ty1 ty2)     = Core.TPair            <$> elaborateTyp ty1 <*> elaborateTyp ty2
-elaborateTyp (Source.TSig tA tB)        = Core.TArrow           <$> elaborateTyp tA  <*> elaborateTyp tB
-elaborateTyp (Source.TIden _)           = Nothing
+elaborateTyp :: TypS -> TypC
+elaborateTyp TySUnit               = TyCUnit
+elaborateTyp TySInt                = TyCInt
+elaborateTyp TySBool               = TyCBool
+elaborateTyp TySString             = TyCString
+elaborateTyp (TySAnd ty1 ty2)      = TyCAnd (elaborateTyp ty1) (elaborateTyp ty2)
+elaborateTyp (TySArrow ty1 ty2)    = TyCArrow (elaborateTyp ty1) (elaborateTyp ty2)
+elaborateTyp (TySRecord label ty)  = TyCRecord label (elaborateTyp ty)
+elaborateTyp (TySList ty)          = TyCList (elaborateTyp ty)
+elaborateTyp (TySSum ty1 ty2)      = TyCSum  (elaborateTyp ty1) (elaborateTyp ty2)
+elaborateTyp (TySPair ty1 ty2)     = TyCPair (elaborateTyp ty1) (elaborateTyp ty2)
+elaborateTyp (TySSig tA tB)        = TyCArrow (elaborateTyp tA) (elaborateTyp tB)
 
 unescape :: String -> String
 unescape [] = []
@@ -65,10 +22,10 @@ unescape ('\\' : '\\' : xs) = '\\' : unescape xs -- Replace `\\` with `\`
 unescape ('\\' : '\"' : xs) = '\"' : unescape xs -- Replace `\"` with `"`
 unescape (x : xs) = x : unescape xs
 
-type Elab = (Source.Typ, Exp)
+type Elab = (TypS, Exp)
 newtype SourceTypeError = STypeError String deriving Show
 
-type Context    = Source.Typ
+type Context    = TypS
 type Message    = String
 type Suggestion = String
 
@@ -82,107 +39,55 @@ generateError ctx tm msg sugg =
                 sugg    ++ "\n")
 
 -- Lookup based on indexing
-lookupt :: Source.Typ -> Int -> Maybe Source.Typ
-lookupt (Source.TAnd tA tB) 0          = Just tB
-lookupt (Source.TAnd tA tB) n          = lookupt tA (n - 1)
-lookupt _ _                            = Nothing
+lookupt :: TypS -> Int -> Maybe TypS
+lookupt (TySAnd _ tB) 0          = Just tB
+lookupt (TySAnd tA _) n          = lookupt tA (n - 1)
+lookupt _ _                       = Nothing
 
 -- checks if l is a label in the typing context
-isLabel :: String -> Source.Typ -> Bool
-isLabel l (Source.TRecord label _)     = l == label
-isLabel l (Source.TAnd tA tB)          = isLabel l tA || isLabel l tB
-isLabel _ _                             = False
+isLabel :: String -> TypS -> Bool
+isLabel l (TySRecord label _)     = l == label
+isLabel l (TySAnd tA tB)          = isLabel l tA || isLabel l tB
+isLabel _ _                       = False
 
 -- containment
-containment :: Source.Typ -> Source.Typ -> Bool
-containment (Source.TRecord l tA) (Source.TRecord label typ ) 
+containment :: TypS -> TypS -> Bool
+containment (TySRecord l tA) (TySRecord label typ ) 
                                 = l == label && tA == typ
-containment (Source.TRecord l tA) (Source.TAnd tB tC) 
-                                =   (containment (Source.TRecord l tA) tB && not (isLabel l tC)) ||
-                                    (containment (Source.TRecord l tA) tC && not (isLabel l tB))
+containment (TySRecord l tA) (TySAnd tB tC) 
+                                =   (containment (TySRecord l tA) tB && not (isLabel l tC)) ||
+                                    (containment (TySRecord l tA) tC && not (isLabel l tB))
 containment _ _                 = False
 
 -- Lookup based on label
-rlookupt :: Source.Typ -> String -> Maybe Source.Typ
-rlookupt (Source.TRecord l t) label
+rlookupt :: TypS -> String -> Maybe TypS
+rlookupt (TySRecord l t) label
     | l == label = Just t
-rlookupt (Source.TAnd tA tB) label 
+rlookupt (TySAnd tA tB) label 
                         = case rlookupt tB label of
                                 Just t    -> Just t
                                 Nothing   -> rlookupt tA label
 rlookupt _ _            = Nothing
 
-{--
-        |   TmFix       Tm
-        |   TmBinOp     TmBinOp Tm Tm
-        |   TmUnOp      TmUnaryOp Tm
-        
-        |   TmPair      Tm Tm
-        |   TmFst       Tm
-        |   TmSnd       Tm
-        |   TmNil       Typ
-        |   TmCons      Tm Tm
-        |   TmCase      Tm
-        |   TmInL       Tm
-        |   TmInR       Tm
-        -- Not sure if tagging is needed at source level -- can be simply added during elaboration to core
-        |   TmAnno      Tm Typ                  -- Tm :: Typ
-        |   TmTuple     [Tm]
-        |   TmSwitch    Tm [(Tm, Tm)]
-        |   TmVar       String
-        |   TmStruct    Typ Tm
-        |   TmFunc      String Typ Tm
-        |   TmModule    String Typ Tm
-        |   TmAliasTyp  String Typ
-        |   TmLet       String Typ Tm Tm
-        |   TmLetrec    String Typ Tm Tm
-        deriving (Eq, Show)
-
--- Types
-data Typ      =     TUnit                  -- Unit type for empty environment
-                |   TInt                   -- Integer type
-                -- Can be used for pair
-                |   TAnd Typ Typ           -- Intersection type
-                |   TArrow Typ Typ         -- Arrow type, e.g. A -> B
-                |   TRecord String Typ     -- Single-Field Record Type
-                -- Extensions
-                |   TBool                  -- Boolean type
-                |   TString                -- String type
-                |   TList  Typ             -- Type for built-in list 
-                |   TSum   Typ Typ         -- Type for sums
-                |   TPair  Typ Typ
-                |   TSig   Typ Typ             -- Sig Type End
-                |   TIden  String          -- Simply an alias
-                deriving (Eq, Show)
-
---}
-
-elaborateInfer :: Source.Typ -> Tm -> Either SourceTypeError Elab
+elaborateInfer :: TypS -> Tm -> Either SourceTypeError Elab
 elaborateInfer ctx TmCtx             = Right (ctx, Ctx)
-elaborateInfer ctx TmUnit            = Right (Source.TUnit, Unit)
-elaborateInfer ctx (TmLit i)         = Right (Source.TInt, Lit i)
-elaborateInfer ctx (TmBool b)        = Right (Source.TBool, EBool b)
-elaborateInfer ctx (TmString s)      = Right (Source.TString, EString s)
+elaborateInfer _ TmUnit            = Right (TySUnit, Unit)
+elaborateInfer _ (TmLit i)         = Right (TySInt, Lit i)
+elaborateInfer _ (TmBool b)        = Right (TySBool, EBool b)
+elaborateInfer _ (TmString s)      = Right (TySString, EString s)
 elaborateInfer ctx (TmLam tA tm)     = 
-                case elaborateInfer (Source.TAnd ctx tA) tm of
-                        Right (tB, tm') ->
-                                case elaborateTyp tA of
-                                        Just tA' -> Right (Source.TArrow tA tB, Lam tA' tm')
-                                        _        -> 
-                                                Left $  generateError ctx (TmLam tA tm)
-                                                        ("Couldn't translate the type \'" ++ show tA ++ "\' to the core.")
-                                                        "Please check the input type of the abstraction or function."
+                case elaborateInfer (TySAnd ctx tA) tm of
+                        Right (tB, tm') -> Right (TySArrow tA tB, Lam (elaborateTyp tA) tm')
                         Left (STypeError err) -> 
                                 Left $ generateError ctx tm
                                         "Couldn't infer the type of the term inside abstraction."
                                         ("Check the term inside abstraction. \n \n-----Further info-----\n \n" ++ err)
 elaborateInfer ctx (TmClos e1 tA e2) = 
-                case elaborateInfer Source.TUnit e1 of
+                case elaborateInfer TySUnit e1 of
                         Right (gamma', e1') ->
-                                case elaborateInfer (Source.TAnd gamma' tA) e2 of
+                                case elaborateInfer (TySAnd gamma' tA) e2 of
                                         Right (tB, e2') -> Right 
-                                                (Source.TArrow tA tB, Box e1' (Lam tA' e2'))
-                                                        where Just tA' = elaborateTyp tA
+                                                (TySArrow tA tB, Box e1' (Lam (elaborateTyp tA) e2'))
                                         Left err        -> Left err
                         Left (STypeError err) -> 
                                 Left $ generateError ctx (TmClos e1 tA e2)
@@ -192,7 +97,7 @@ elaborateInfer ctx (TmClos e1 tA e2) =
 elaborateInfer ctx (TmRec l tm)     = 
                 case elaborateInfer ctx tm of
                         Right (tA, tm')         -> 
-                                Right (Source.TRecord l tA, Rec l tm')
+                                Right (TySRecord l tA, Rec l tm')
                         Left  (STypeError err)  -> 
                                 Left $ generateError ctx (TmRec l tm) "Typecheck failed at a record/assignment." err
 elaborateInfer ctx (TmRProj tm l)   = 
@@ -200,7 +105,7 @@ elaborateInfer ctx (TmRProj tm l)   =
                         Right (tB, tm') -> 
                                 case rlookupt tB l of
                                         Just tA -> 
-                                                if containment (Source.TRecord l tA) tB
+                                                if containment (TySRecord l tA) tB
                                                         then Right (tA, RProj tm' l)
                                                         else Left $ generateError ctx tm 
                                                                 "Containment failed for labeled lookup." 
@@ -223,7 +128,7 @@ elaborateInfer ctx (TmApp tm1 tm2)
                 = case elaborateInfer ctx tm1 of
                         Right (typ, tm1')       
                                 -> case typ of
-                                        (Source.TArrow tA tB)   
+                                        (TySArrow tA tB)   
                                                 -> case elaborateCheck ctx tm2 tA of
                                                         Right tm2'      -> Right (tB, App tm1' tm2')
                                                         Left (STypeError err)
@@ -241,9 +146,9 @@ elaborateInfer ctx (TmApp tm1 tm2)
 elaborateInfer ctx (TmMrg tm1 tm2)  
                 = case elaborateInfer ctx tm1 of
                         Right (ty1, tm1')      -> 
-                                case elaborateInfer (Source.TAnd ctx ty1) tm2 of
-                                        Right (ty2, tm2')       -> Right (Source.TAnd ty1 ty2, Mrg tm1' tm2')
-                                        Left  (STypeError err)  -> Left $ generateError (Source.TAnd ctx ty1) tm2
+                                case elaborateInfer (TySAnd ctx ty1) tm2 of
+                                        Right (ty2, tm2')       -> Right (TySAnd ty1 ty2, Mrg tm1' tm2')
+                                        Left  (STypeError err)  -> Left $ generateError (TySAnd ctx ty1) tm2
                                                                                         "Type error on second term in merge." 
                                                                                         ("Check if second part of merge is well-defined. \n \n-----Further info-----\n \n" ++ err)
                         Left (STypeError err)   ->
@@ -265,14 +170,14 @@ elaborateInfer ctx (TmBox tm1 tm2)
                                         "Type error on box construct"
                                         ("Make sure that the environment for box construct is correct.\n \n-----Further info-----\n \n" ++ err)
 elaborateInfer ctx (TmIf tm1 tm2 tm3) 
-                = case elaborateCheck ctx tm1 Source.TBool of
+                = case elaborateCheck ctx tm1 TySBool of
                         Right tm1'      ->
                                 case elaborateInfer ctx tm2 of
                                         Right (ty2, tm2') -> 
                                                 case elaborateCheck ctx tm3 ty2 of
                                                         Right tm3'      -> 
                                                                 Right (ty2, If tm1' tm2' tm3')
-                                                        Left (STypeError err) -> 
+                                                        Left (STypeError _err) -> 
                                                                 Left $ generateError ctx tm3
                                                                         "Type error on the if statement: types don't match of then and else branch."
                                                                         "Make sure that the types of both branches are same"
@@ -285,88 +190,88 @@ elaborateInfer ctx (TmIf tm1 tm2 tm3)
                                                 "Type error on condition: condition must be of type Bool"
                                                 ("Fix the condition and make sure it is of type Bool.\n \n-----Further info-----\n \n" ++ err)   
 elaborateInfer ctx (TmFix (TmLam tA tm)) = 
-                case elaborateInfer (Source.TAnd ctx (Source.TArrow tA tA)) (TmLam tA tm) of
+                case elaborateInfer (TySAnd ctx (TySArrow tA tA)) (TmLam tA tm) of
                         -- IMPORTANT
                         -- This is not the right way to handle it (Add annotations on surface level)
                         -- Temporary fix for testing purposes
-                        Right (ty, tm')       -> case elaborateTyp (Source.TArrow ty ty) of
-                                                        Just (Core.TArrow t1 t2)  -> Right (ty, Fix t1 tm')
-                                                        _       -> Left $ generateError ctx (TmFix (TmLam tA tm)) 
+                        Right (ty, tm')       -> case elaborateTyp (TySArrow ty ty) of
+                                                        (TyCArrow t1 _) -> Right (ty, Fix t1 tm')
+                                                        _               -> Left $ generateError ctx (TmFix (TmLam tA tm)) 
                                                                                 "Type error on fixpoint"
                                                                                 "Make sure fixpoint error is correct"
                         Left (STypeError err)   
                                         -> Left $ generateError ctx (TmFix (TmLam tA tm)) 
                                                 "Type error on fixpoint"
                                                 err
-elaborateInfer ctx (TmBinOp (TmArith op) tm1 tm2) =
-                case elaborateCheck ctx tm1 Source.TInt of
+elaborateInfer ctx (TmBinOp (Arith op) tm1 tm2) =
+                case elaborateCheck ctx tm1 TySInt of
                         Right tm1' -> 
-                                case elaborateCheck ctx tm2 Source.TInt of
+                                case elaborateCheck ctx tm2 TySInt of
                                         Right tm2'      -> 
-                                                Right (Source.TInt, BinOp (elaborateBinaryOp (TmArith op)) tm1' tm2')
+                                                Right (TySInt, BinOp (Arith op) tm1' tm2')
                                         Left (STypeError err) ->
-                                                Left $ generateError ctx (TmBinOp (TmArith op) tm1 tm2)
+                                                Left $ generateError ctx (TmBinOp (Arith op) tm1 tm2)
                                                         ("Type error on arithmetic operation `" ++ show op ++ "`. Types on both sides must be Int.")
                                                         ("Make sure that types of both operands are Int.\n \n-----Further info-----\n \n" ++ err)
                         Left err ->
                                 Left $ generateError ctx tm1 
                                         ("Type error on first operand of the operator" ++ show op)
                                         ("First operand has type error.\n \n-----Further info-----\n \n" ++ show err)
-elaborateInfer ctx (TmBinOp (TmComp op) tm1 tm2) =
+elaborateInfer ctx (TmBinOp (Comp op) tm1 tm2) =
                 case elaborateInfer ctx tm1 of
-                        Right (Source.TInt, tm1') -> 
-                                case elaborateCheck ctx tm2 Source.TInt of
+                        Right (TySInt, tm1') -> 
+                                case elaborateCheck ctx tm2 TySInt of
                                         Right tm2'      -> 
-                                                Right (Source.TBool, BinOp (elaborateBinaryOp (TmComp op)) tm1' tm2')
+                                                Right (TySBool, BinOp (Comp op) tm1' tm2')
                                         Left (STypeError err) ->
-                                                Left $ generateError ctx (TmBinOp (TmComp op) tm1 tm2)
+                                                Left $ generateError ctx (TmBinOp (Comp op) tm1 tm2)
                                                         ("Type error on comparsion operation `" ++ show op ++ "`. Types on both sides must be Int.")
                                                         ("Make sure that types of both operands are Int.\n \n-----Further info-----\n \n" ++ err ++ "\n")
-                        Right (Source.TBool, tm1') ->
-                                case elaborateCheck ctx tm2 Source.TBool of
+                        Right (TySBool, tm1') ->
+                                case elaborateCheck ctx tm2 TySBool of
                                         Right tm2'      -> 
-                                                Right (Source.TBool, BinOp (elaborateBinaryOp (TmComp op)) tm1' tm2')
+                                                Right (TySBool, BinOp (Comp op) tm1' tm2')
                                         Left (STypeError err) ->
-                                                Left $ generateError ctx (TmBinOp (TmComp op) tm1 tm2)
+                                                Left $ generateError ctx (TmBinOp (Comp op) tm1 tm2)
                                                         ("Type error on comparsion operation `" ++ show op ++ "`. Types on both sides must be Bool.")
                                                         ("Make sure that types of both operands are Bool.\n \n-----Further info-----\n \n" ++ err)
-                        Right (Source.TString, tm1') ->
-                                case elaborateCheck ctx tm2 Source.TString of
+                        Right (TySString, tm1') ->
+                                case elaborateCheck ctx tm2 TySString of
                                         Right tm2'      -> 
-                                                Right (Source.TBool, BinOp (elaborateBinaryOp (TmComp op)) tm1' tm2')
+                                                Right (TySBool, BinOp (Comp op) tm1' tm2')
                                         Left (STypeError err) ->
-                                                Left $ generateError ctx (TmBinOp (TmComp op) tm1 tm2)
+                                                Left $ generateError ctx (TmBinOp (Comp op) tm1 tm2)
                                                         ("Type error on comparsion operation `" ++ show op ++ "`. Types on both sides must be String.")
                                                         ("Make sure that types of both operands are String.\n \n-----Further info-----\n \n" ++ err)
-                        Right (ty, tm') ->
-                                        Left $ generateError ctx (TmBinOp (TmComp op) tm1 tm2)
+                        Right (_, _) ->
+                                        Left $ generateError ctx (TmBinOp (Comp op) tm1 tm2)
                                                         ("Type error on comparsion operation `" ++ show op ++ "`. Types on both sides must be String.")
                                                         "Make sure that types of both operands are of same type.\n \n-----Further info-----\n \n"
                         Left (STypeError err) ->
                                 Left $ generateError ctx tm1 
                                         ("Type error on first operand of the comparison operator" ++ show op)
                                         ("First operand has type error.\n \n-----Further info-----\n \n" ++ err)
-elaborateInfer ctx (TmBinOp (TmLogic op) tm1 tm2) =
-                case elaborateCheck ctx tm1 Source.TBool of
+elaborateInfer ctx (TmBinOp (Logic op) tm1 tm2) =
+                case elaborateCheck ctx tm1 TySBool of
                         Right tm1' ->
-                                case elaborateCheck ctx tm2 Source.TBool of
+                                case elaborateCheck ctx tm2 TySBool of
                                         Right tm2'      -> 
-                                                Right (Source.TBool, BinOp (elaborateBinaryOp (TmLogic op)) tm1' tm2')
+                                                Right (TySBool, BinOp (Logic op) tm1' tm2')
                                         Left (STypeError err) ->
-                                                Left $ generateError ctx (TmBinOp (TmLogic op) tm1 tm2)
+                                                Left $ generateError ctx (TmBinOp (Logic op) tm1 tm2)
                                                         ("Type error on logic operation `" ++ show op ++ "`. Types on both sides must be Bool.")
                                                         ("Make sure that types of both operands are Bool.\n \n-----Further info-----\n \n" ++ err)
                         Left (STypeError err) ->
                                 Left $ generateError ctx tm1 
                                         ("Type error on first operand of the logic operator" ++ show op)
                                         ("First operand has type error.\n \n-----Further info-----\n \n" ++ err)
-elaborateInfer ctx (TmUnOp TmNot tm)     =
+elaborateInfer ctx (TmUnOp Not tm)     =
                 case elaborateInfer ctx tm of
                         Right (ty, tm')         -> Right (ty, UnOp Not tm')
                         Left err                -> Left err
 
 
-elaborateCheck :: Source.Typ -> Tm -> Source.Typ -> Either SourceTypeError Exp
+elaborateCheck :: TypS -> Tm -> TypS -> Either SourceTypeError Exp
 elaborateCheck ctx tm typ       
         = case elaborateInfer ctx tm of
                 Right (typ', e') ->

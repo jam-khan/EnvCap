@@ -1,7 +1,6 @@
 module ENVCAP.Core.Util where
 
-import ENVCAP.Core.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), LogicOp(..), Typ (..))
-import Data.Maybe (fromMaybe)
+import ENVCAP.Syntax (BinaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), TypC (..))
 
 
 arithOp :: ArithOp -> Integer -> Integer -> Maybe Integer
@@ -12,8 +11,8 @@ arithOp Div v1 v2 = if v2 == 0 then Nothing else Just (v1 `Prelude.div` v2)
 arithOp Mod v1 v2 = if v2 == 0 then Nothing else Just (v1 `Prelude.mod` v2)
 
 lookupv :: Value -> Int -> Maybe Value
-lookupv (VMrg v1 v2) 0 = Just v2
-lookupv (VMrg v1 v2) n = lookupv v1 (n - 1)
+lookupv (VMrg _  v2) 0 = Just v2
+lookupv (VMrg v1 _ ) n = lookupv v1 (n - 1)
 lookupv _ _            = Nothing
 
 rlookupv :: Value -> String -> Maybe Value
@@ -26,32 +25,28 @@ rlookupv (VMrg v1 v2) label =
         (_, _)                  -> Nothing
 rlookupv _ _ = Nothing
 
--- Lookup based on indexing
-lookupt :: Typ -> Int -> Maybe Typ
-lookupt (TAnd tA tB) 0          = Just tB
-lookupt (TAnd tA tB) n          = lookupt tA (n - 1)
+lookupt :: TypC -> Int -> Maybe TypC
+lookupt (TyCAnd _ tB) 0         = Just tB
+lookupt (TyCAnd tA _) n         = lookupt tA (n - 1)
 lookupt _ _                     = Nothing
 
--- checks if l is a label in the typing context
-isLabel :: String -> Typ -> Bool
-isLabel l (TRecord label _)     = l == label
-isLabel l (TAnd tA tB)          = isLabel l tA || isLabel l tB
+isLabel :: String -> TypC -> Bool
+isLabel l (TyCRecord label _)   = l == label
+isLabel l (TyCAnd tA tB)        = isLabel l tA || isLabel l tB
 isLabel _ _                     = False
 
--- containment
-containment :: Typ -> Typ -> Bool
-containment (TRecord l tA) (TRecord label typ ) 
+containment :: TypC -> TypC -> Bool
+containment (TyCRecord l tA) (TyCRecord label typ ) 
                                 = l == label && tA == typ
-containment (TRecord l tA) (TAnd tB tC) 
-                                =   (containment (TRecord l tA) tB && not (isLabel l tC)) ||
-                                    (containment (TRecord l tA) tC && not (isLabel l tB))
+containment (TyCRecord l tA) (TyCAnd tB tC) 
+                                =   (containment (TyCRecord l tA) tB && not (isLabel l tC)) ||
+                                    (containment (TyCRecord l tA) tC && not (isLabel l tB))
 containment _ _                 = False
 
--- Lookup based on label
-rlookupt :: Typ -> String -> Maybe Typ
-rlookupt (TRecord l t) label
+rlookupt :: TypC -> String -> Maybe TypC
+rlookupt (TyCRecord l t) label
     | l == label = Just t
-rlookupt (TAnd tA tB) label = case rlookupt tB label of
+rlookupt (TyCAnd tA tB) label = case rlookupt tB label of
                                 Just t    -> Just t
                                 Nothing   -> rlookupt tA label
 rlookupt _ _                = Nothing
