@@ -32,7 +32,7 @@ import ENVCAP.Syntax
      'struct'       { TokenStruct       }
      'module'       { TokenModule       }
      '[]'           { TokenEmptyList    }
-     '['            { TokenOpenSqBracket }
+     '['            { TokenOpenSqBracket  }
      ']'            { TokenCloseSqBracket }
      '::'           { TokenCons         }
      ','            { TokenComma        }
@@ -43,7 +43,8 @@ import ENVCAP.Syntax
      '%'            { TokenMod          }
      '('            { TokenOB           }
      ')'            { TokenCB           }
-     '?'            { TokenQuery        }
+     'env'          { TokenQuery        }
+     '.'            { TokenProjection   }
      '>='           { TokenGe           }
      '>'            { TokenGt           }
      '=='           { TokenEql          }
@@ -52,7 +53,7 @@ import ENVCAP.Syntax
      '<='           { TokenLe           }
      '&&'           { TokenAnd          }
      '||'           { TokenOr           }
-     ';;'           { TokenSemicolon    }
+     ';'            { TokenSemicolon    }
      ':'            { TokenColon        }
      '='            { TokenEq           }
      '{'            { TokenOpenBracket  }
@@ -61,10 +62,13 @@ import ENVCAP.Syntax
      '}'            { TokenCloseBracket }
      '\\('          { TokenLambda       }
      '=>'           { TokenArrow        }
+     ',,'           { TokenDepMerge }
 
 %right '='
 %right '=>'
 %right '::'
+%left '.'
+%left proj
 %left TokenElse
 %left application_prec
 %left '->'
@@ -77,22 +81,23 @@ import ENVCAP.Syntax
 
 %%
 
-Program        : Statements                   { $1 }
+Program        : Statements                       { $1 }
 
-Statements     : Statement ';;' Statements    { SMrg $1 $3 }
-               | Statement                    { $1 }
+Statements     : Statement ';' Statements         { SMrg $1 $3 }
+               | Statement                        { $1 }
 
-Statement      : Function                     { $1 }
-               | Module                       { $1 }
-               | Binding                      { $1 }
-               | Term                         { $1 }
+Statement      : Function                         { $1 }
+               | Module                           { $1 }
+               | Binding                          { $1 }
+               | Term                             { $1 }
 
-Term           : '?'                               { SCtx }
-               | Application                       { $1 }
+Term           : 'env'                             { SCtx }
+               | FunctionApplication               { $1 }
                | Bool                              { $1 }
                | String                            { $1} 
+               | Projection            %prec proj  { $1 }
                | int                               { SLit $1 }
-               | var                               { SRProj SCtx $1 }
+               | var                               { SVar $1 } -- Parsed into a general variable that will later get separated into
                | ArithmeticOp                      { $1 }
                | ComparisonOp                      { $1 }
                | BooleanOp                         { $1 }
@@ -106,6 +111,7 @@ Term           : '?'                               { SCtx }
                | ListCons                          { $1 }
                | Record                            { $1 }
                | Tuple                             { $1 }
+               | DependentMerge                    { $1 }
                | Parens                            { $1 }
                | error                             { parseError [$1] }
 
@@ -116,28 +122,30 @@ Type           : 'Int'                             { STInt }
                | Type '&'  Type                    { STAnd $1 $3 }
                | '[' Type ']'                      { STList $2 }
                | '{' RecordType '}'                { $2 }
-               | var                               { STIden $1 }
                | Signature                         { $1 }
+               | var                               { STIden $1 }
                | '(' Type ')'                      { $2 }
 
-Signature      : 'Sig' '[' Type ',' Type ']'       { STSig $3 $5 }
+Projection     : Term '.' int                     {SProj $1 $3}
+               | Term '.' var                     {SRProj $1 $3}
 
-Application    : FunctionApplication               %prec application_prec { $1 }
+Module         : 'module' var '(' ParamList ')' '{' Statements '}'    { SModule $2 $4 $7 }
 
-FunctionApplication : var '(' Arguments ')'        { foldl SApp (SRProj SCtx $1) $3 }
+Struct         : 'struct'     '(' ParamList ')' '{' Statements '}'    { SStruct $3 $6 }
 
-Bool           : 'False'                                { SBool False }
-               | 'True'                                 { SBool True }
+Signature      : 'Sig' '[' Type ',' Type ']'                          { STSig $3 $5 }
 
 Function       : 'function' var '(' ParamList ')' '{' Term '}'        { SFunc $2 $4 $7 }
 
-Lambda         : '(' Lambda ')' '(' Arguments ')'                     { foldl SApp $2 $5 }
-               | '\\(' ParamList ')' '=>' '{' Statements '}'          { SLam $2 $6 }
+FunctionApplication : var '(' Arguments ')'  %prec application_prec   { SApp (SVar $1) $3 }
 
 Binding        : 'val' var '=' Term                                   { SRec $2 $4 }
 
-Module         : 'module' var '(' ParamList ')' '{' Statements '}'    { SModule $2 $4 $7 }
-Struct         : 'struct'     '(' ParamList ')' '{' Statements '}'    { SStruct $3 $6 }
+Lambda         : '(' Lambda ')' '(' Arguments ')'                     { SApp $2 $5 }
+               | '\\(' ParamList ')' '=>' '{' Statements '}'          { SLam $2 $6 }
+
+Bool           : 'False' { SBool False }
+               | 'True'  { SBool True }
 
 String         : '\'' var '\''                         { SString $2 }
                | '"' var '"'                           { SString $2 }
@@ -146,16 +154,26 @@ ListCons       : Term '::' Term                        { SCons $1 $3 }
 
 TyAlias        : 'type' var '=' Type                   { SAliasTyp $2 $4 }
 
-Tuple          : '(' TupleElements ')'            { $2 }
-TupleElements  : Term ',' TupleElements           { SPair $1 $3 }
-               | Term                             { $1 }
+-- There must be atleast one element in tuple I guess this satisfies it but
+-- it will create ambiguities, so must have atleast two elements
+
+-- It must have atleast two elements
+DependentMerge           : '(' DependentMergeElements ')'   { $2 }
+DependentMergeElements   : Term ',,' DependentMergeElements { SMrg $1 $3 }
+                         | Term ',,' Term                   { SMrg $1 $3 }
+
+Tuple          : '(' TupleElements ')'            { STuple $2 }
+TupleElements  : Term ',' TupleElements           { $1 : $3 }
+               | Term ',' Term                    { $1 : [$3] }
 
 RecordType     : Param ',' RecordType             { STAnd $1 $3 }
                | Param                            { $1 }
 
-Record         : '{' Records '}'                  { $2 }
-Records        : var '=' Term ',' Records         { SMrg (SRec $1 $3) $5 }
-               | var '=' Term                     { SRec $1 $3 }
+Record         : '{' Records '}'                       { $2 }
+Records        : '"' var '"' '=' Term ',' Records      { SMrg (SRec $2 $5) $7 }
+               | '"' var '"' '=' Term                  { SRec $2 $5 }
+               | '\'' var '\'' '=' Term ',' Records    { SMrg (SRec $2 $5) $7 }
+               | '\'' var '\'' '=' Term                { SRec $2 $5 }
 
 ParamList      : Param ',' ParamList              { STAnd $1 $3 }
                | Param                            { $1 }
@@ -220,9 +238,9 @@ data Token =   TokenInt Integer       -- Lit i
           |    TokenOr                -- '||'
           |    TokenOB                -- '('
           |    TokenCB                -- ')'
-          |    TokenQuery             -- '?'
+          |    TokenQuery             -- 'env()'
           |    TokenEq                -- '='
-          |    TokenSemicolon         -- ';;'
+          |    TokenSemicolon         -- ';'
           |    TokenIf                -- 'if'
           |    TokenThen              -- 'then'
           |    TokenElse              -- 'else'
@@ -252,6 +270,8 @@ data Token =   TokenInt Integer       -- Lit i
           |    TokenEmptyList         -- '[]'
           |    TokenSingleQuote       -- '
           |    TokenDoubleQuote       -- "
+          |    TokenDepMerge          -- ,,
+          |    TokenProjection
           deriving Show
 
 lexer :: String -> [Token]
@@ -260,7 +280,6 @@ lexer (c:cs)
      | isSpace c = lexer cs
      | isAlpha c = lexVar (c:cs)
      | isDigit c = lexNum (c:cs)
-lexer ('?':cs)      = TokenQuery    : lexer cs
 lexer ('+':cs)      = TokenPlus     : lexer cs
 lexer ('-':cs)      = 
      case cs of
@@ -288,9 +307,10 @@ lexer ('>':cs)      = case cs of
 lexer ('<':cs)      = case cs of
                          ('=':cs') -> TokenLe  : lexer cs'
                          _         -> TokenLt  : lexer cs
-lexer (';':cs)      = case cs of
-                         (';':cs') -> TokenSemicolon : lexer cs'
-lexer (',':cs)      = TokenComma : lexer cs
+lexer (';':cs)      = TokenSemicolon : lexer cs
+lexer (',':cs)      = case cs of
+                         (',':cs')  -> TokenDepMerge : lexer cs'
+                         _          -> TokenComma : lexer cs
 lexer (':':cs)      = case cs of 
                          (':':cs')      ->   TokenCons      : lexer cs'
                          _              ->   TokenColon     : lexer cs 
@@ -304,6 +324,7 @@ lexer ('(':cs)      = TokenOB       : lexer cs
 lexer (')':cs)      = TokenCB       : lexer cs
 lexer ('\'':cs)     = TokenSingleQuote : lexer cs
 lexer ('"':cs)      = TokenDoubleQuote : lexer cs
+lexer ('.':cs)      = TokenProjection : lexer cs
 
 lexNum cs = TokenInt (read num) : lexer rest
                     where (num, rest) = span isDigit cs
@@ -313,6 +334,7 @@ lexVar cs = case span isAlpha cs of
                ("Sig",        rest)     -> TokenSig         : lexer rest
                ("String",     rest)     -> TokenTypeString  : lexer rest
                ("True",       rest)     -> TokenTrue        : lexer rest
+               ("env",        rest)     -> TokenQuery       : lexer rest
                ("False",      rest)     -> TokenFalse       : lexer rest
                ("let",        rest)     -> TokenLet         : lexer rest
                ("letrec",     rest)     -> TokenLetrec      : lexer rest
@@ -333,7 +355,7 @@ parseSource input = case sourceParser (lexer input) of
                          _      -> Nothing                    
 
 test_cases :: [(String, SurfaceTm)]
-test_cases = [  ("?", SCtx)
+test_cases = [  ("env", SCtx)
               , ("1 + 2", SBinOp (Arith Add) (SLit 1) (SLit 2))
               , ("1 - 2", SBinOp (Arith Sub) (SLit 1) (SLit 2))
               , ("3 * 4", SBinOp (Arith Mul) (SLit 3) (SLit 4))
@@ -345,30 +367,41 @@ test_cases = [  ("?", SCtx)
               , ("4 >= 1", SBinOp (Comp Ge) (SLit 4) (SLit 1))
               , ("1 == 1", SBinOp (Comp Eql) (SLit 1) (SLit 1))
               , ("2 != 3", SBinOp (Comp Neq) (SLit 2) (SLit 3))
-              , ("a + b * c", SBinOp (Arith Add) (SRProj SCtx "a") (SBinOp (Arith Mul) (SRProj SCtx "b") (SRProj SCtx "c")))
-              , ("1 + 2 * c", SBinOp (Arith Add) (SLit 1) (SBinOp (Arith Mul) (SLit 2) (SRProj SCtx "c")))
+              , ("a + b * c", SBinOp (Arith Add) (SVar "a") (SBinOp (Arith Mul) (SVar "b") (SVar "c")))
+              , ("1 + 2 * c", SBinOp (Arith Add) (SLit 1) (SBinOp (Arith Mul) (SLit 2) (SVar "c")))
               , ("((3 + 4) * 2) - (5 / 2) >= (1 + x)", SBinOp   (Comp Ge)
                                                             (SBinOp (Arith Sub)
                                                                  (SBinOp (Arith Mul)
                                                                       (SBinOp (Arith Add) (SLit 3) (SLit 4))
                                                                       (SLit 2))
                                                                  (SBinOp (Arith Div) (SLit 5) (SLit 2)))
-                                                            (SBinOp (Arith Add) (SLit 1) (SRProj SCtx "x")))
+                                                            (SBinOp (Arith Add) (SLit 1) (SVar "x")))
               , ("(x * 2) + (y / 4) >= 3", SBinOp (Comp Ge)
                                              (SBinOp (Arith Add)
-                                                  (SBinOp (Arith Mul) (SRProj SCtx "x") (SLit 2))
-                                                  (SBinOp (Arith Div) (SRProj SCtx "y") (SLit 4)))
+                                                  (SBinOp (Arith Mul) (SVar "x") (SLit 2))
+                                                  (SBinOp (Arith Div) (SVar "y") (SLit 4)))
                                              (SLit 3))
-              , ("1 ;; (x * 2) + (y / 4) >= 3", SMrg (SLit 1) (SBinOp (Comp Ge)
+              , ("1 ; (x * 2) + (y / 4) >= 3", SMrg (SLit 1) (SBinOp (Comp Ge)
                                                                  (SBinOp (Arith Add)
-                                                                      (SBinOp (Arith Mul) (SRProj SCtx "x") (SLit 2))
-                                                                      (SBinOp (Arith Div) (SRProj SCtx "y") (SLit 4)))
-                                                                 (SLit 3)))]
+                                                                      (SBinOp (Arith Mul) (SVar "x") (SLit 2))
+                                                                      (SBinOp (Arith Div) (SVar "y") (SLit 4)))
+                                                                 (SLit 3)))
+               , ("(1 , 2, 3)", STuple [SLit 1,SLit 2,SLit 3])
+               , ("(1 ,, 2,, 4)", SMrg (SLit 1) (SMrg (SLit 2) (SLit 4)))
+               , ("env.1", SProj SCtx 1)
+               , ("env.hello", SRProj SCtx "hello")
+               , ("({\"x\" = 10})", SRec "x" (SLit 10))
+               , ("({\"x\" = 10} ,, env.x)", (SMrg (SRec "x" (SLit 10)) (SRProj SCtx "x")))]
 
-tester :: [(String, SurfaceTm)] -> [Bool]
-tester = foldr (\ x -> (++) ([parseSource (fst x) == Just (snd x)])) []
+runTest :: Int -> [(String, SurfaceTm)] -> IO()
+runTest n []        = putStrLn $ (show (n + 1) ++ " Tests Completed.")
+runTest n (x:xs)    = do
+                         if parseSource (fst x) == Just (snd x)
+                              then putStrLn $ "Test " ++ (show (n + 1)) ++ ": Passed"
+                              else putStrLn $ "Test " ++ (show (n + 1)) ++ ": Failed"
+                         runTest (n + 1) xs
 
-quit :: IO ()
-quit = print "runCalc failed\n"
+test :: IO()
+test = runTest 0 test_cases
 
 }

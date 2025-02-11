@@ -1,132 +1,132 @@
 module ENVCAP.Source.Desugar where
 import ENVCAP.Syntax
 
-lookupTyp :: SurfaceTyp -> String -> Maybe SurfaceTyp
-lookupTyp (STAnd ty1 (STRecord label' ty2)) label 
-                                = if label' == label    
-                                                then case lookupTyp ty1 label of
-                                                        Just _       -> Nothing
-                                                        _            -> Just ty2
-                                                else lookupTyp ty1 label
-lookupTyp _ _                   = Nothing
+-- lookupTyp :: SurfaceTyp -> String -> Maybe SurfaceTyp
+-- lookupTyp (STAnd ty1 (STRecord label' ty2)) label 
+--                                 = if label' == label    
+--                                                 then case lookupTyp ty1 label of
+--                                                         Just _       -> Nothing
+--                                                         _            -> Just ty2
+--                                                 else lookupTyp ty1 label
+-- lookupTyp _ _                   = Nothing
 
-expandTyAlias :: SurfaceTyp -> SurfaceTyp -> Maybe SurfaceTyp
-expandTyAlias _ STUnit               = Just STUnit
-expandTyAlias _ STInt                = Just STInt
-expandTyAlias _ STBool               = Just STBool
-expandTyAlias _ STString             = Just STString
-expandTyAlias tyCtx (STAnd ty1 ty2)  = 
-        STAnd           <$> expandTyAlias tyCtx ty1  <*> expandTyAlias tyCtx ty2
-expandTyAlias tyCtx (STArrow tA tB)  = 
-        STArrow         <$> expandTyAlias tyCtx tA   <*> expandTyAlias tyCtx tB
-expandTyAlias tyCtx (STRecord l ty)  = 
-        STRecord l      <$> expandTyAlias tyCtx ty
-expandTyAlias tyCtx (STList ty)      = 
-        STList          <$> expandTyAlias tyCtx ty
-expandTyAlias tyCtx (STSum  ty1 ty2) = 
-        STSum           <$> expandTyAlias tyCtx ty1  <*> expandTyAlias tyCtx ty2
-expandTyAlias tyCtx (STPair ty1 ty2) = 
-        STPair          <$> expandTyAlias tyCtx ty1  <*> expandTyAlias tyCtx ty2
-expandTyAlias tyCtx (STSig  tyA tyB) = 
-        STSig           <$> expandTyAlias tyCtx tyA  <*> expandTyAlias tyCtx tyB
-expandTyAlias tyCtx (STIden label)   = 
-        lookupTyp tyCtx label
+-- expandTyAlias :: SurfaceTyp -> SurfaceTyp -> Maybe SurfaceTyp
+-- expandTyAlias _ STUnit               = Just STUnit
+-- expandTyAlias _ STInt                = Just STInt
+-- expandTyAlias _ STBool               = Just STBool
+-- expandTyAlias _ STString             = Just STString
+-- expandTyAlias tyCtx (STAnd ty1 ty2)  = 
+--         STAnd           <$> expandTyAlias tyCtx ty1  <*> expandTyAlias tyCtx ty2
+-- expandTyAlias tyCtx (STArrow tA tB)  = 
+--         STArrow         <$> expandTyAlias tyCtx tA   <*> expandTyAlias tyCtx tB
+-- expandTyAlias tyCtx (STRecord l ty)  = 
+--         STRecord l      <$> expandTyAlias tyCtx ty
+-- expandTyAlias tyCtx (STList ty)      = 
+--         STList          <$> expandTyAlias tyCtx ty
+-- expandTyAlias tyCtx (STSum  ty1 ty2) = 
+--         STSum           <$> expandTyAlias tyCtx ty1  <*> expandTyAlias tyCtx ty2
+-- expandTyAlias tyCtx (STPair ty1 ty2) = 
+--         STPair          <$> expandTyAlias tyCtx ty1  <*> expandTyAlias tyCtx ty2
+-- expandTyAlias tyCtx (STSig  tyA tyB) = 
+--         STSig           <$> expandTyAlias tyCtx tyA  <*> expandTyAlias tyCtx tyB
+-- expandTyAlias tyCtx (STIden label)   = 
+--         lookupTyp tyCtx label
 
-expandAlias :: SurfaceTyp -> SurfaceTm -> Maybe SurfaceTm 
-expandAlias _     SCtx                      = Just SCtx
-expandAlias _     SUnit                     = Just SUnit
-expandAlias _     (SLit n)                   = Just $ SLit n
-expandAlias _     (SBool b)                  = Just $ SBool b
-expandAlias _     (SString s)                = Just $ SString s
-expandAlias _     (SAliasTyp _ _)            = error "Type aliases expansion not completed properly"
-expandAlias tyCtx (SBinOp op tm1 tm2)        = 
-                case (expandAlias tyCtx tm1, expandAlias tyCtx tm2) of
-                        (Just tm1', Just tm2') -> Just (SBinOp op tm1' tm2')
-                        _                      -> Nothing
-expandAlias tyCtx (SUnOp op tm)              = 
-        SUnOp op       <$> expandAlias tyCtx tm
-expandAlias tyCtx (SIf tm1 tm2 tm3)          = 
-        SIf            <$> expandAlias tyCtx tm1 <*> expandAlias tyCtx tm2 <*> expandAlias tyCtx tm3
-expandAlias tyCtx (SFix tm)                  = 
-        SFix           <$> expandAlias tyCtx tm
-expandAlias tyCtx (SMrg tm1 tm2)             = 
-                case tm1 of 
-                (SAliasTyp label typ)  -> expandAlias (STAnd tyCtx (STRecord label typ)) tm2
-                _                       -> case (expandAlias tyCtx tm1, expandAlias tyCtx tm2) of
-                                                (Just tm1', Just tm2')          -> Just (SMrg tm1' tm2')
-                                                _                               -> Nothing
-expandAlias tyCtx (SRec name tm)             = 
-        SRec name <$> expandAlias tyCtx tm
-expandAlias tyCtx (SRProj tm name)           = 
-        SRProj <$> expandAlias tyCtx tm <*> Just name
-expandAlias _ (SProj tm i)                   = 
-        Just $ SProj tm i
-expandAlias tyCtx (SLam ty tm)               = 
-        SLam <$> expandTyAlias tyCtx ty <*> expandAlias tyCtx tm
-expandAlias tyCtx (SFunc name ty tm)         = 
-        SFunc name <$> expandTyAlias tyCtx ty <*> expandAlias tyCtx tm
-expandAlias tyCtx(SApp tm1 tm2)              = 
-        SApp <$> expandAlias tyCtx tm1 <*> expandAlias tyCtx tm2
-expandAlias _ _                               = Nothing
+-- expandAlias :: SurfaceTyp -> SurfaceTm -> Maybe SurfaceTm 
+-- expandAlias _     SCtx                       = Just SCtx
+-- expandAlias _     SUnit                      = Just SUnit
+-- expandAlias _     (SLit n)                   = Just $ SLit n
+-- expandAlias _     (SBool b)                  = Just $ SBool b
+-- expandAlias _     (SString s)                = Just $ SString s
+-- expandAlias _     (SAliasTyp _ _)            = error "Type aliases expansion not completed properly"
+-- expandAlias tyCtx (SBinOp op tm1 tm2)        = 
+--                 case (expandAlias tyCtx tm1, expandAlias tyCtx tm2) of
+--                         (Just tm1', Just tm2') -> Just (SBinOp op tm1' tm2')
+--                         _                      -> Nothing
+-- expandAlias tyCtx (SUnOp op tm)              = 
+--         SUnOp op       <$> expandAlias tyCtx tm
+-- expandAlias tyCtx (SIf tm1 tm2 tm3)          = 
+--         SIf            <$> expandAlias tyCtx tm1 <*> expandAlias tyCtx tm2 <*> expandAlias tyCtx tm3
+-- expandAlias tyCtx (SFix tm)                  = 
+--         SFix           <$> expandAlias tyCtx tm
+-- expandAlias tyCtx (SMrg tm1 tm2)             = 
+--                 case tm1 of 
+--                 (SAliasTyp label typ)  -> expandAlias (STAnd tyCtx (STRecord label typ)) tm2
+--                 _                       -> case (expandAlias tyCtx tm1, expandAlias tyCtx tm2) of
+--                                                 (Just tm1', Just tm2')          -> Just (SMrg tm1' tm2')
+--                                                 _                               -> Nothing
+-- expandAlias tyCtx (SRec name tm)             = 
+--         SRec name <$> expandAlias tyCtx tm
+-- expandAlias tyCtx (SRProj tm name)           = 
+--         SRProj <$> expandAlias tyCtx tm <*> Just name
+-- expandAlias _ (SProj tm i)                   = 
+--         Just $ SProj tm i
+-- expandAlias tyCtx (SLam ty tm)               = 
+--         SLam <$> expandTyAlias tyCtx ty <*> expandAlias tyCtx tm
+-- expandAlias tyCtx (SFunc name ty tm)         = 
+--         SFunc name <$> expandTyAlias tyCtx ty <*> expandAlias tyCtx tm
+-- expandAlias tyCtx(SApp tm1 tm2)              = 
+--         SApp <$> expandAlias tyCtx tm1 <*> expandAlias tyCtx tm2
+-- expandAlias _ _                               = Nothing
 
-desugar :: SurfaceTm -> Maybe SurfaceTm
-desugar SCtx                   = Just SCtx
-desugar SUnit                  = Just SUnit
-desugar (SLit n)               = Just $ SLit n
-desugar (SBool b)              = Just $ SBool b
-desugar (SString s)            = Just $ SString s
-desugar (SAliasTyp _ _)        = Just SUnit
-desugar (SBinOp op tm1 tm2)    = case (desugar tm1, desugar tm2) of
-                                        (Just tm1', Just tm2') -> Just (SBinOp op tm1' tm2')
-                                        _                       -> Nothing
-desugar (SUnOp op tm)          = SUnOp op     <$> desugar tm
-desugar (SIf tm1 tm2 tm3)      = SIf          <$> desugar tm1 <*> desugar tm2 <*> desugar tm3
-desugar (SFix tm)              = SFix         <$> desugar tm
-desugar (SMrg tm1 tm2)         = SMrg         <$> desugar tm1 <*> desugar tm2
-desugar (SRec name tm)         = SRec name    <$> desugar tm
-desugar (SRProj tm name)       = SRProj       <$> desugar tm <*> Just name
-desugar (SProj tm i)           = case desugar tm of
-                                        Just tm' -> Just (SProj tm' i)
-                                        _        -> Nothing
-desugar (SLam ty tm)           = case ty of
-                                        (STAnd t1 t2)               -> desugar (SLam t1 (SLam t2 tm))
-                                        (STRecord label _)        -> case debruijnTransform label 0 tm of
-                                                                                Just tm'        -> SLam ty <$> desugar tm'
-                                                                                _               -> Nothing
-                                        _                               -> SLam ty <$> desugar tm
-desugar (SFunc name ty tm)     = case desugar (SLam ty tm) of
-                                        Just tm'        -> case debruijnTransform name 0 tm' of
-                                                                Just tm''       -> Just $ SRec name (SFix tm'')
-                                                                _               -> Nothing 
-                                        _               -> Nothing
-desugar (SApp tm1 tm2)         = SApp <$> desugar tm1 <*> desugar tm2
-desugar _                      = Nothing
+-- desugar :: SurfaceTm -> Maybe SurfaceTm
+-- desugar SCtx                   = Just SCtx
+-- desugar SUnit                  = Just SUnit
+-- desugar (SLit n)               = Just $ SLit n
+-- desugar (SBool b)              = Just $ SBool b
+-- desugar (SString s)            = Just $ SString s
+-- desugar (SAliasTyp _ _)        = Just SUnit
+-- desugar (SBinOp op tm1 tm2)    = case (desugar tm1, desugar tm2) of
+--                                         (Just tm1', Just tm2') -> Just (SBinOp op tm1' tm2')
+--                                         _                       -> Nothing
+-- desugar (SUnOp op tm)          = SUnOp op     <$> desugar tm
+-- desugar (SIf tm1 tm2 tm3)      = SIf          <$> desugar tm1 <*> desugar tm2 <*> desugar tm3
+-- desugar (SFix tm)              = SFix         <$> desugar tm
+-- desugar (SMrg tm1 tm2)         = SMrg         <$> desugar tm1 <*> desugar tm2
+-- desugar (SRec name tm)         = SRec name    <$> desugar tm
+-- desugar (SRProj tm name)       = SRProj       <$> desugar tm <*> Just name
+-- desugar (SProj tm i)           = case desugar tm of
+--                                         Just tm' -> Just (SProj tm' i)
+--                                         _        -> Nothing
+-- desugar (SLam ty tm)           = case ty of
+--                                         (STAnd t1 t2)               -> desugar (SLam t1 (SLam t2 tm))
+--                                         (STRecord label _)        -> case debruijnTransform label 0 tm of
+--                                                                                 Just tm'        -> SLam ty <$> desugar tm'
+--                                                                                 _               -> Nothing
+--                                         _                               -> SLam ty <$> desugar tm
+-- desugar (SFunc name ty tm)     = case desugar (SLam ty tm) of
+--                                         Just tm'        -> case debruijnTransform name 0 tm' of
+--                                                                 Just tm''       -> Just $ SRec name (SFix tm'')
+--                                                                 _               -> Nothing 
+--                                         _               -> Nothing
+-- desugar (SApp tm1 tm2)         = SApp <$> desugar tm1 <*> desugar tm2
+-- desugar _                      = Nothing
 
 
-debruijnTransform :: String -> Int -> SurfaceTm -> Maybe SurfaceTm
-debruijnTransform _ _ SCtx                     = Just SCtx
-debruijnTransform _ _ SUnit                    = Just SUnit
-debruijnTransform _ _ (SLit n)                 = Just $ SLit n
-debruijnTransform _ _ (SBool b)                = Just $ SBool b
-debruijnTransform _ _ (SString s)              = Just $ SString s
-debruijnTransform x i (SBinOp op tm1 tm2)      = case (debruijnTransform x i tm1, debruijnTransform x i tm2) of
-                                                        (Just tm1', Just tm2')  -> Just (SBinOp op tm1' tm2')
-                                                        _                       -> Nothing
-debruijnTransform x i (SUnOp op tm)            = case debruijnTransform x i tm of
-                                                        (Just tm')      -> Just (SUnOp op tm')
-                                                        _               -> Nothing
-debruijnTransform x i (SIf tm1 tm2 tm3)        = SIf          <$> debruijnTransform x i tm1   <*> debruijnTransform x i tm2   <*> debruijnTransform x i tm3
-debruijnTransform x i (SMrg tm1 tm2)           = SMrg         <$> debruijnTransform x i tm1   <*> debruijnTransform x (i + 1) tm2
-debruijnTransform x i (SRec name tm)           = SRec name    <$> debruijnTransform x i tm
-debruijnTransform x i (SRProj SCtx l)          = Just $ if l == x then SProj SCtx i else SRProj SCtx l
-debruijnTransform x i (SRProj tm name)         = SRProj       <$> debruijnTransform x i tm    <*> Just name
-debruijnTransform x i (SProj tm n)             = SProj        <$> debruijnTransform x i tm    <*> Just n
-debruijnTransform x i (SFix tm)                = SFix         <$> debruijnTransform x i tm
-debruijnTransform x i (SLam ty tm)             =
-        case ty of
-                (STRecord label _) ->     if label == x   then Just $ SLam ty tm
-                                                                        else SLam ty    <$> debruijnTransform x (i + 1) tm
-                _       -> SLam ty      <$> debruijnTransform x (i + 1) tm
-debruijnTransform x i (SApp tm1 tm2)           = SApp <$> debruijnTransform x i tm1 <*> debruijnTransform x i tm2
-debruijnTransform _ _ _                         = Nothing
+-- debruijnTransform :: String -> Int -> SurfaceTm -> Maybe SurfaceTm
+-- debruijnTransform _ _ SCtx                     = Just SCtx
+-- debruijnTransform _ _ SUnit                    = Just SUnit
+-- debruijnTransform _ _ (SLit n)                 = Just $ SLit n
+-- debruijnTransform _ _ (SBool b)                = Just $ SBool b
+-- debruijnTransform _ _ (SString s)              = Just $ SString s
+-- debruijnTransform x i (SBinOp op tm1 tm2)      = case (debruijnTransform x i tm1, debruijnTransform x i tm2) of
+--                                                         (Just tm1', Just tm2')  -> Just (SBinOp op tm1' tm2')
+--                                                         _                       -> Nothing
+-- debruijnTransform x i (SUnOp op tm)            = case debruijnTransform x i tm of
+--                                                         (Just tm')      -> Just (SUnOp op tm')
+--                                                         _               -> Nothing
+-- debruijnTransform x i (SIf tm1 tm2 tm3)        = SIf          <$> debruijnTransform x i tm1   <*> debruijnTransform x i tm2   <*> debruijnTransform x i tm3
+-- debruijnTransform x i (SMrg tm1 tm2)           = SMrg         <$> debruijnTransform x i tm1   <*> debruijnTransform x (i + 1) tm2
+-- debruijnTransform x i (SRec name tm)           = SRec name    <$> debruijnTransform x i tm
+-- debruijnTransform x i (SRProj SCtx l)          = Just $ if l == x then SProj SCtx i else SRProj SCtx l
+-- debruijnTransform x i (SRProj tm name)         = SRProj       <$> debruijnTransform x i tm    <*> Just name
+-- debruijnTransform x i (SProj tm n)             = SProj        <$> debruijnTransform x i tm    <*> Just n
+-- debruijnTransform x i (SFix tm)                = SFix         <$> debruijnTransform x i tm
+-- debruijnTransform x i (SLam ty tm)             =
+--         case ty of
+--                 (STRecord label _) ->     if label == x   then Just $ SLam ty tm
+--                                                                         else SLam ty    <$> debruijnTransform x (i + 1) tm
+--                 _       -> SLam ty      <$> debruijnTransform x (i + 1) tm
+-- debruijnTransform x i (SApp tm1 tm2)           = SApp <$> debruijnTransform x i tm1 <*> debruijnTransform x i tm2
+-- debruijnTransform _ _ _                         = Nothing
 

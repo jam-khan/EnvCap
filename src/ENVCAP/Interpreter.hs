@@ -1,7 +1,6 @@
 module ENVCAP.Interpreter where
 import ENVCAP.Syntax (SurfaceTm, SurfaceTyp (STUnit))
 import ENVCAP.Parser.Happy (parseSource)
-import ENVCAP.Source.Desugar (expandAlias)
 
 
 
@@ -16,5 +15,5 @@ import ENVCAP.Source.Desugar (expandAlias)
                 Big-step (evaluator)
 --}
 
-run :: String -> Maybe SurfaceTm
-run code = parseSource code >>= \parsedTm -> expandAlias STUnit parsedTm
+-- run :: String -> Maybe SurfaceTm
+-- run code = parseSource code >>= \parsedTm -> expandAlias STUnit parsedTm

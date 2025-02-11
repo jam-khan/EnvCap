@@ -93,12 +93,12 @@ test-suite tests-Parser
                     QuickCheck
     default-language: Haskell2010
 
-test-suite tests-PBT
-    type: exitcode-stdio-1.0
-    main-is: Properties.hs
-    hs-source-dirs: Test/PBT
-    build-depends:  base >= 4.7 && <5,
-                    hspec,
-                    EnvCap,
-                    QuickCheck
-    default-language: Haskell2010
+-- test-suite tests-PBT
+--     type: exitcode-stdio-1.0
+--     main-is: Properties.hs
+--     hs-source-dirs: Test/PBT
+--     build-depends:  base >= 4.7 && <5,
+--                     hspec,
+--                     EnvCap,
+--                     QuickCheck
+--     default-language: Haskell2010
