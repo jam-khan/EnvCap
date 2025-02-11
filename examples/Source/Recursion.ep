@@ -1,0 +1,9 @@
+function test(n : Int, m : Int) {
+    if (n == 1) then {
+        1
+    } else {
+        test(n - 1, m - 1)
+    }
+};;
+
+test(1, 2)

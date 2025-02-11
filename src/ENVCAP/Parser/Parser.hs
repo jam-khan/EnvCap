@@ -1,18 +1,25 @@
 module ENVCAP.Parser.Parser where
 import System.IO.Error (catchIOError)
-import ENVCAP.Source.Syntax (Tm(..), Typ(..), TmBinOp(..), TmUnaryOp(..), TmCompOp(..), TmArithOp(..), TmLogicOp(..))
-import Text.Parsec (ParseError, many1, string, try, between, anyChar, notFollowedBy, lookAhead, Parsec, sepEndBy1)
+import ENVCAP.Syntax
+import Text.Parsec (ParseError, many1, string, try, between, Parsec, sepEndBy1)
 import Text.Parsec.String (Parser)
-import Text.Parsec.Prim (parse)
-import Text.Parsec.Char (satisfy, char, oneOf, digit, letter, noneOf)
-import Text.Parsec.Combinator (eof, manyTill, option, anyToken, chainl1, choice, sepBy, sepEndBy1)
-import Data.Char (isLetter, isDigit)
-import Control.Applicative ((<$>), (<*>), (<*), (*>), (<|>), many)
+import Text.Parsec.Char (char, oneOf, digit)
+import Text.Parsec.Combinator (option)
+import Control.Applicative ((<|>))
 import Control.Monad (void, guard)
 import ENVCAP.Parser.Util
+    ( falseToken,
+      identifierToken,
+      intersections,
+      keyword,
+      lexeme,
+      merges,
+      parseWithWhitespace,
+      stringToken,
+      trueToken,
+      unitToken )
 import Text.Parsec.Expr as E (buildExpressionParser, Assoc(AssocNone), Assoc(AssocLeft), Assoc(AssocRight), Operator(Infix, Prefix) )
 import Data.Functor.Identity (Identity)
-import ENVCAP.Core.Util (merge)
 
 
 parseCtx        :: Parser Tm
@@ -50,19 +57,19 @@ parseAssign = do
                 void (lexeme $ char '=')
                 TmRec name <$> parseExp
 
-parseType :: Parser Typ
+parseType :: Parser TypS
 parseType = do
                 void (lexeme $ string "Int")
-                return TInt
+                return TySInt
 
-parseLambdaParams :: Parser [Typ]
+parseLambdaParams :: Parser [TypS]
 parseLambdaParams = parseParam `sepEndBy1` lexeme (char ',')
 
-parseParam :: Parser Typ
+parseParam :: Parser TypS
 parseParam = do
     name <- identifierToken
     void (lexeme $ char ':')
-    TRecord name <$> parseType
+    TySRecord name <$> parseType
 
 
 parseLambda :: Parser Tm
@@ -78,35 +85,31 @@ parseApplication :: Parser Tm
 parseApplication = do
                         funcName <- identifierToken
                         void $ lexeme $ char '('
-                        exp <- lexeme parseExp
+                        e <- lexeme parseExp
                         void $ lexeme $ char ')'
-                        return $ TmApp (TmRProj TmCtx funcName) exp
+                        return $ TmApp (TmRProj TmCtx funcName) e
 
 
 operationParser :: Parsec String () Tm
 operationParser = lexeme $ buildExpressionParser operators parseTerm
 
 operators :: [[Operator String () Identity Tm]]
-operators =    [[E.Prefix (TmUnOp TmNot            <$ char '!')],
-                [E.Infix (TmBinOp (TmArith TmExp)  <$ symbol "^") E.AssocLeft],
-                [E.Infix (TmBinOp (TmArith TmMod)  <$ symbol "%") E.AssocLeft,
-                 E.Infix (TmBinOp (TmArith TmMul)  <$ symbol "*") E.AssocLeft,
-                 E.Infix (TmBinOp (TmArith TmDiv)  <$ symbol "/") E.AssocLeft],
+operators =    [[E.Prefix (TmUnOp Not            <$ char '!')],
+                [E.Infix (TmBinOp (Arith Mod)  <$ symbol "%") E.AssocLeft,
+                 E.Infix (TmBinOp (Arith Mul)  <$ symbol "*") E.AssocLeft,
+                 E.Infix (TmBinOp (Arith Div)  <$ symbol "/") E.AssocLeft],
 
-                [E.Infix (TmBinOp (TmArith TmAdd)  <$ symbol "+") E.AssocLeft,
-                 E.Infix (TmBinOp (TmArith TmSub)  <$ symbol "-") E.AssocLeft],
+                [E.Infix (TmBinOp (Arith Add)  <$ symbol "+") E.AssocLeft,
+                 E.Infix (TmBinOp (Arith Sub)  <$ symbol "-") E.AssocLeft],
 
-                [E.Infix (TmBinOp (TmComp TmLt)    <$ symbol "<")  E.AssocNone,
-                 E.Infix (TmBinOp (TmComp TmGt)    <$ symbol ">")  E.AssocNone],
-
-                [E.Infix (TmBinOp (TmComp TmGe)    <$ symbol ">=") E.AssocRight,
-                 E.Infix (TmBinOp (TmComp TmLe)    <$ symbol "<=") E.AssocRight,
-                 E.Infix (TmBinOp (TmComp TmEql)   <$ symbol "==") E.AssocRight,
-                 E.Infix (TmBinOp (TmComp TmNeq)   <$ symbol "!=") E.AssocRight],
-
-                [E.Infix (TmBinOp (TmLogic TmAnd)  <$ symbol "&&") E.AssocRight],
-
-                [E.Infix (TmBinOp (TmLogic TmOr)   <$ symbol "||")   E.AssocRight]]
+                [E.Infix (TmBinOp (Comp Lt)    <$ symbol "<")  E.AssocNone,
+                 E.Infix (TmBinOp (Comp Gt)    <$ symbol ">")  E.AssocNone],
+                [E.Infix (TmBinOp (Comp Ge)    <$ symbol ">=") E.AssocRight,
+                 E.Infix (TmBinOp (Comp Le)    <$ symbol "<=") E.AssocRight,
+                 E.Infix (TmBinOp (Comp Eql)   <$ symbol "==") E.AssocRight,
+                 E.Infix (TmBinOp (Comp Neq)   <$ symbol "!=") E.AssocRight],
+                [E.Infix (TmBinOp (Logic And)  <$ symbol "&&") E.AssocRight],
+                [E.Infix (TmBinOp (Logic Or)   <$ symbol "||")   E.AssocRight]]
 
 parseTerm :: Parser Tm
 parseTerm = try parseApplication

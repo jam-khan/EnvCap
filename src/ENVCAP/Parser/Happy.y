@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -Werror=non-exhaustive-patterns #-}
 module ENVCAP.Parser.Happy where
 import Data.Char
-import ENVCAP.Source.Syntax 
+import ENVCAP.Syntax 
 }
 
 %name sourceParser
@@ -79,7 +79,7 @@ import ENVCAP.Source.Syntax
 
 Program        : Statements                   { $1 }
 
-Statements     : Statement ';;' Statements    { TmMrg $1 $3 }
+Statements     : Statement ';;' Statements    { SMrg $1 $3 }
                | Statement                    { $1 }
 
 Statement      : Function                     { $1 }
@@ -87,12 +87,12 @@ Statement      : Function                     { $1 }
                | Binding                      { $1 }
                | Term                         { $1 }
 
-Term           : '?'                               { TmCtx }
+Term           : '?'                               { SCtx }
                | Application                       { $1 }
                | Bool                              { $1 }
                | String                            { $1} 
-               | int                               { TmLit $1 }
-               | var                               { TmRProj TmCtx $1 }
+               | int                               { SLit $1 }
+               | var                               { SRProj SCtx $1 }
                | ArithmeticOp                      { $1 }
                | ComparisonOp                      { $1 }
                | BooleanOp                         { $1 }
@@ -109,67 +109,67 @@ Term           : '?'                               { TmCtx }
                | Parens                            { $1 }
                | error                             { parseError [$1] }
 
-Type           : 'Int'                             { TInt }
-               | 'Bool'                            { TBool }
-               | 'String'                          { TString }
-               | Type '->' Type                    { TArrow $1 $3 }
-               | Type '&'  Type                    { TAnd $1 $3 }
-               | '[' Type ']'                      { TList $2 }
+Type           : 'Int'                             { STInt }
+               | 'Bool'                            { STBool }
+               | 'String'                          { STString }
+               | Type '->' Type                    { STArrow $1 $3 }
+               | Type '&'  Type                    { STAnd $1 $3 }
+               | '[' Type ']'                      { STList $2 }
                | '{' RecordType '}'                { $2 }
-               | var                               { TIden $1 }
+               | var                               { STIden $1 }
                | Signature                         { $1 }
                | '(' Type ')'                      { $2 }
 
-Signature      : 'Sig' '[' Type ',' Type ']'       { TSig $3 $5 }
+Signature      : 'Sig' '[' Type ',' Type ']'       { STSig $3 $5 }
 
 Application    : FunctionApplication               %prec application_prec { $1 }
 
-FunctionApplication : var '(' Arguments ')'        { foldl TmApp (TmRProj TmCtx $1) $3 }
+FunctionApplication : var '(' Arguments ')'        { foldl SApp (SRProj SCtx $1) $3 }
 
-Bool           : 'False'                                { TmBool False }
-               | 'True'                                 { TmBool True }
+Bool           : 'False'                                { SBool False }
+               | 'True'                                 { SBool True }
 
-Function       : 'function' var '(' ParamList ')' '{' Term '}'        { TmFunc $2 $4 $7 }
+Function       : 'function' var '(' ParamList ')' '{' Term '}'        { SFunc $2 $4 $7 }
 
-Lambda         : '(' Lambda ')' '(' Arguments ')'                     { foldl TmApp $2 $5 }
-               | '\\(' ParamList ')' '=>' '{' Statements '}'          { TmLam $2 $6 }
+Lambda         : '(' Lambda ')' '(' Arguments ')'                     { foldl SApp $2 $5 }
+               | '\\(' ParamList ')' '=>' '{' Statements '}'          { SLam $2 $6 }
 
-Binding        : 'val' var '=' Term                                   { TmRec $2 $4 }
+Binding        : 'val' var '=' Term                                   { SRec $2 $4 }
 
-Module         : 'module' var '(' ParamList ')' '{' Statements '}'    { TmModule $2 $4 $7 }
-Struct         : 'struct'     '(' ParamList ')' '{' Statements '}'    { TmStruct $3 $6 }
+Module         : 'module' var '(' ParamList ')' '{' Statements '}'    { SModule $2 $4 $7 }
+Struct         : 'struct'     '(' ParamList ')' '{' Statements '}'    { SStruct $3 $6 }
 
-String         : '\'' var '\''                         { TmString $2 }
-               | '"' var '"'                           { TmString $2 }
+String         : '\'' var '\''                         { SString $2 }
+               | '"' var '"'                           { SString $2 }
 
-ListCons       : Term '::' Term                        { TmCons $1 $3 }
+ListCons       : Term '::' Term                        { SCons $1 $3 }
 
-TyAlias        : 'type' var '=' Type                   { TmAliasTyp $2 $4 }
+TyAlias        : 'type' var '=' Type                   { SAliasTyp $2 $4 }
 
 Tuple          : '(' TupleElements ')'            { $2 }
-TupleElements  : Term ',' TupleElements           { TmPair $1 $3 }
+TupleElements  : Term ',' TupleElements           { SPair $1 $3 }
                | Term                             { $1 }
 
-RecordType     : Param ',' RecordType             { TAnd $1 $3 }
+RecordType     : Param ',' RecordType             { STAnd $1 $3 }
                | Param                            { $1 }
 
-Record         : '{' Records '}'                       { $2 }
-Records        : var '=' Term ',' Records              { TmMrg (TmRec $1 $3) $5 }
-               | var '=' Term                          { TmRec $1 $3 }
+Record         : '{' Records '}'                  { $2 }
+Records        : var '=' Term ',' Records         { SMrg (SRec $1 $3) $5 }
+               | var '=' Term                     { SRec $1 $3 }
 
-ParamList      : Param ',' ParamList                   { TAnd $1 $3 }
-               | Param                                 { $1 }
+ParamList      : Param ',' ParamList              { STAnd $1 $3 }
+               | Param                            { $1 }
 
-Param          : var ':' Type                          { TRecord $1 $3 }   
+Param          : var ':' Type                     { STRecord $1 $3 }   
 
-Let            : 'let'    var ':' Type '='   Term   'in' CurlyParens   { TmLet    $2 $4 $6 $8 }
-Letrec         : 'letrec' var ':' Type '='   Term   'in' CurlyParens   { TmLetrec $2 $4 $6 $8 }
+Let            : 'let'    var ':' Type '='   Term   'in' CurlyParens   { SLet    $2 $4 $6 $8 }
+Letrec         : 'letrec' var ':' Type '='   Term   'in' CurlyParens   { SLetrec $2 $4 $6 $8 }
 
-List           : '[]' ':' Type                         { TmNil $3 }
-               | '[' Elements ']'                      { $2 }
+List           : '[]' ':' Type                    { SNil $3 }
+               | '[' Elements ']'                 { $2 }
 
-Elements       : Term ',' Elements                     { TmCons $1 $3 }
-               | Term                                  { $1 }
+Elements       : Term ',' Elements                { SCons $1 $3 }
+               | Term                             { $1 }
 
 Arguments      : Term ',' Arguments               { $1 : $3 }
                | Term                             { [$1] }
@@ -178,24 +178,23 @@ Parens      : '(' Term ')'                        { $2 }
 
 CurlyParens : '{' Statements '}'                  { $2 }
 
-IfThenElse : 'if' Parens 'then' CurlyParens 'else' CurlyParens { TmIf $2 $4 $6 }
-           | 'if' Parens 'then' CurlyParens                    { TmIf $2 $4 TmUnit }
+IfThenElse : 'if' Parens 'then' CurlyParens 'else' CurlyParens { SIf $2 $4 $6 }
 
-ComparisonOp   :  Term    '>='    Term                 { TmBinOp (TmComp  TmGe)   $1 $3 }
-               |  Term    '>'     Term                 { TmBinOp (TmComp  TmGt)   $1 $3 }
-               |  Term    '=='    Term                 { TmBinOp (TmComp  TmEql)  $1 $3 }
-               |  Term    '!='    Term                 { TmBinOp (TmComp  TmNeq)  $1 $3 }
-               |  Term    '<'     Term                 { TmBinOp (TmComp  TmLt)   $1 $3 }
-               |  Term    '<='    Term                 { TmBinOp (TmComp  TmLe)   $1 $3 }
+ComparisonOp   :  Term    '>='    Term                 { SBinOp (Comp  Ge)   $1 $3 }
+               |  Term    '>'     Term                 { SBinOp (Comp  Gt)   $1 $3 }
+               |  Term    '=='    Term                 { SBinOp (Comp  Eql)  $1 $3 }
+               |  Term    '!='    Term                 { SBinOp (Comp  Neq)  $1 $3 }
+               |  Term    '<'     Term                 { SBinOp (Comp  Lt)   $1 $3 }
+               |  Term    '<='    Term                 { SBinOp (Comp  Le)   $1 $3 }
 
-BooleanOp      : Term    '&&'    Term                  { TmBinOp (TmLogic TmAnd)  $1 $3 }
-               | Term    '||'    Term                  { TmBinOp (TmLogic TmOr)   $1 $3 }
+BooleanOp      : Term    '&&'    Term                  { SBinOp (Logic And)  $1 $3 }
+               | Term    '||'    Term                  { SBinOp (Logic Or)   $1 $3 }
           
-ArithmeticOp   :    Term    '+'     Term               { TmBinOp (TmArith TmAdd)  $1 $3 }
-               |    Term    '-'     Term               { TmBinOp (TmArith TmSub)  $1 $3 }
-               |    Term    '*'     Term               { TmBinOp (TmArith TmMul)  $1 $3 }
-               |    Term    '/'     Term               { TmBinOp (TmArith TmDiv)  $1 $3 }
-               |    Term    '%'     Term               { TmBinOp (TmArith TmMod)  $1 $3 }
+ArithmeticOp   :    Term    '+'     Term               { SBinOp (Arith Add)  $1 $3 }
+               |    Term    '-'     Term               { SBinOp (Arith Sub)  $1 $3 }
+               |    Term    '*'     Term               { SBinOp (Arith Mul)  $1 $3 }
+               |    Term    '/'     Term               { SBinOp (Arith Div)  $1 $3 }
+               |    Term    '%'     Term               { SBinOp (Arith Mod)  $1 $3 }
 
 
 {
@@ -328,45 +327,45 @@ lexVar cs = case span isAlpha cs of
                ("else",       rest)     -> TokenElse        : lexer rest
                (var,          rest)     -> TokenVar var     : lexer rest
 
-parseSource :: String -> Maybe Tm
+parseSource :: String -> Maybe SurfaceTm
 parseSource input = case sourceParser (lexer input) of
                          result -> Just result
                          _      -> Nothing                    
 
-test_cases :: [(String, Tm)]
-test_cases = [  ("?", TmCtx)
-              , ("1 + 2", TmBinOp (TmArith TmAdd) (TmLit 1) (TmLit 2))
-              , ("1 - 2", TmBinOp (TmArith TmSub) (TmLit 1) (TmLit 2))
-              , ("3 * 4", TmBinOp (TmArith TmMul) (TmLit 3) (TmLit 4))
-              , ("10 / 2", TmBinOp (TmArith TmDiv) (TmLit 10) (TmLit 2))
-              , ("5 % 2", TmBinOp (TmArith TmMod) (TmLit 5) (TmLit 2))
-              , ("1 < 2", TmBinOp (TmComp TmLt) (TmLit 1) (TmLit 2))
-              , ("2 <= 3", TmBinOp (TmComp TmLe) (TmLit 2) (TmLit 3))
-              , ("3 > 2", TmBinOp (TmComp TmGt) (TmLit 3) (TmLit 2))
-              , ("4 >= 1", TmBinOp (TmComp TmGe) (TmLit 4) (TmLit 1))
-              , ("1 == 1", TmBinOp (TmComp TmEql) (TmLit 1) (TmLit 1))
-              , ("2 != 3", TmBinOp (TmComp TmNeq) (TmLit 2) (TmLit 3))
-              , ("a + b * c", TmBinOp (TmArith TmAdd) (TmRProj TmCtx "a") (TmBinOp (TmArith TmMul) (TmRProj TmCtx "b") (TmRProj TmCtx "c")))
-              , ("1 + 2 * c", TmBinOp (TmArith TmAdd) (TmLit 1) (TmBinOp (TmArith TmMul) (TmLit 2) (TmRProj TmCtx "c")))
-              , ("((3 + 4) * 2) - (5 / 2) >= (1 + x)", TmBinOp   (TmComp TmGe)
-                                                            (TmBinOp (TmArith TmSub)
-                                                                 (TmBinOp (TmArith TmMul)
-                                                                      (TmBinOp (TmArith TmAdd) (TmLit 3) (TmLit 4))
-                                                                      (TmLit 2))
-                                                                 (TmBinOp (TmArith TmDiv) (TmLit 5) (TmLit 2)))
-                                                            (TmBinOp (TmArith TmAdd) (TmLit 1) (TmRProj TmCtx "x")))
-              , ("(x * 2) + (y / 4) >= 3", TmBinOp (TmComp TmGe)
-                                             (TmBinOp (TmArith TmAdd)
-                                                  (TmBinOp (TmArith TmMul) (TmRProj TmCtx "x") (TmLit 2))
-                                                  (TmBinOp (TmArith TmDiv) (TmRProj TmCtx "y") (TmLit 4)))
-                                             (TmLit 3))
-              , ("1 ;; (x * 2) + (y / 4) >= 3", TmMrg (TmLit 1) (TmBinOp (TmComp TmGe)
-                                                                 (TmBinOp (TmArith TmAdd)
-                                                                      (TmBinOp (TmArith TmMul) (TmRProj TmCtx "x") (TmLit 2))
-                                                                      (TmBinOp (TmArith TmDiv) (TmRProj TmCtx "y") (TmLit 4)))
-                                                                 (TmLit 3)))]
+test_cases :: [(String, SurfaceTm)]
+test_cases = [  ("?", SCtx)
+              , ("1 + 2", SBinOp (Arith Add) (SLit 1) (SLit 2))
+              , ("1 - 2", SBinOp (Arith Sub) (SLit 1) (SLit 2))
+              , ("3 * 4", SBinOp (Arith Mul) (SLit 3) (SLit 4))
+              , ("10 / 2", SBinOp (Arith Div) (SLit 10) (SLit 2))
+              , ("5 % 2", SBinOp (Arith Mod) (SLit 5) (SLit 2))
+              , ("1 < 2", SBinOp (Comp Lt) (SLit 1) (SLit 2))
+              , ("2 <= 3", SBinOp (Comp Le) (SLit 2) (SLit 3))
+              , ("3 > 2", SBinOp (Comp Gt) (SLit 3) (SLit 2))
+              , ("4 >= 1", SBinOp (Comp Ge) (SLit 4) (SLit 1))
+              , ("1 == 1", SBinOp (Comp Eql) (SLit 1) (SLit 1))
+              , ("2 != 3", SBinOp (Comp Neq) (SLit 2) (SLit 3))
+              , ("a + b * c", SBinOp (Arith Add) (SRProj SCtx "a") (SBinOp (Arith Mul) (SRProj SCtx "b") (SRProj SCtx "c")))
+              , ("1 + 2 * c", SBinOp (Arith Add) (SLit 1) (SBinOp (Arith Mul) (SLit 2) (SRProj SCtx "c")))
+              , ("((3 + 4) * 2) - (5 / 2) >= (1 + x)", SBinOp   (Comp Ge)
+                                                            (SBinOp (Arith Sub)
+                                                                 (SBinOp (Arith Mul)
+                                                                      (SBinOp (Arith Add) (SLit 3) (SLit 4))
+                                                                      (SLit 2))
+                                                                 (SBinOp (Arith Div) (SLit 5) (SLit 2)))
+                                                            (SBinOp (Arith Add) (SLit 1) (SRProj SCtx "x")))
+              , ("(x * 2) + (y / 4) >= 3", SBinOp (Comp Ge)
+                                             (SBinOp (Arith Add)
+                                                  (SBinOp (Arith Mul) (SRProj SCtx "x") (SLit 2))
+                                                  (SBinOp (Arith Div) (SRProj SCtx "y") (SLit 4)))
+                                             (SLit 3))
+              , ("1 ;; (x * 2) + (y / 4) >= 3", SMrg (SLit 1) (SBinOp (Comp Ge)
+                                                                 (SBinOp (Arith Add)
+                                                                      (SBinOp (Arith Mul) (SRProj SCtx "x") (SLit 2))
+                                                                      (SBinOp (Arith Div) (SRProj SCtx "y") (SLit 4)))
+                                                                 (SLit 3)))]
 
-tester :: [(String, Tm)] -> [Bool]
+tester :: [(String, SurfaceTm)] -> [Bool]
 tester = foldr (\ x -> (++) ([parseSource (fst x) == Just (snd x)])) []
 
 quit :: IO ()
