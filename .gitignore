@@ -6,5 +6,19 @@ Literature/*
 extra/*
 src/Addition.hs
 .vscode/*
-proofs/core
+proofs/core/*.aux
+proofs/core/*.glob
+# proofs/core/*.mk
+proofs/core/*.mk.d
+proofs/core/#basics.v#
+proofs/core/big.v
+proofs/core/lambdarh.v
+proofs/core/stlc.v
+proofs/core/stlc.v
+proofs/core/machine.v
+proofs/core/*.vos
+proofs/core/*.vo
+proofs/core/*.vok
+proofs/core/*.v.crashcoqide
+proofs/core/*.cache
 src/ENVCAP/Parser/Happy.info
