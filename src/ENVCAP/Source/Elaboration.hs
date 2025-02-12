@@ -1,8 +1,9 @@
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 module ENVCAP.Source.Elaboration where
 import ENVCAP.Syntax
+import ENVCAP.Source.Errors 
 
-elaborateTyp :: TypS -> TypC
+elaborateTyp :: SourceTyp -> CoreTyp
 elaborateTyp TySUnit               = TyCUnit
 elaborateTyp TySInt                = TyCInt
 elaborateTyp TySBool               = TyCBool
@@ -22,14 +23,13 @@ unescape ('\\' : '\\' : xs) = '\\' : unescape xs -- Replace `\\` with `\`
 unescape ('\\' : '\"' : xs) = '\"' : unescape xs -- Replace `\"` with `"`
 unescape (x : xs) = x : unescape xs
 
-type Elab = (TypS, Exp)
-newtype SourceTypeError = STypeError String deriving Show
+type Elab = (SourceTyp, CoreTm)
 
-type Context    = TypS
+type Context    = SourceTyp
 type Message    = String
 type Suggestion = String
 
-generateError :: Context -> Tm -> Message -> Suggestion -> SourceTypeError
+generateError :: Context -> SourceTm -> Message -> Suggestion -> SourceTypeError
 generateError ctx tm msg sugg =
         STypeError
                 ("Typechecking failed at Source level\n\n" ++
@@ -39,19 +39,19 @@ generateError ctx tm msg sugg =
                 sugg    ++ "\n")
 
 -- Lookup based on indexing
-lookupt :: TypS -> Int -> Maybe TypS
+lookupt :: SourceTyp -> Int -> Maybe SourceTyp
 lookupt (TySAnd _ tB) 0          = Just tB
 lookupt (TySAnd tA _) n          = lookupt tA (n - 1)
 lookupt _ _                       = Nothing
 
 -- checks if l is a label in the typing context
-isLabel :: String -> TypS -> Bool
+isLabel :: String -> SourceTyp -> Bool
 isLabel l (TySRecord label _)     = l == label
 isLabel l (TySAnd tA tB)          = isLabel l tA || isLabel l tB
 isLabel _ _                       = False
 
 -- containment
-containment :: TypS -> TypS -> Bool
+containment :: SourceTyp -> SourceTyp -> Bool
 containment (TySRecord l tA) (TySRecord label typ ) 
                                 = l == label && tA == typ
 containment (TySRecord l tA) (TySAnd tB tC) 
@@ -60,7 +60,7 @@ containment (TySRecord l tA) (TySAnd tB tC)
 containment _ _                 = False
 
 -- Lookup based on label
-rlookupt :: TypS -> String -> Maybe TypS
+rlookupt :: SourceTyp -> String -> Maybe SourceTyp
 rlookupt (TySRecord l t) label
     | l == label = Just t
 rlookupt (TySAnd tA tB) label 
@@ -69,7 +69,7 @@ rlookupt (TySAnd tA tB) label
                                 Nothing   -> rlookupt tA label
 rlookupt _ _            = Nothing
 
-elaborateInfer :: TypS -> Tm -> Either SourceTypeError Elab
+elaborateInfer :: SourceTyp -> SourceTm -> Either SourceTypeError Elab
 elaborateInfer ctx TmCtx             = Right (ctx, Ctx)
 elaborateInfer _ TmUnit            = Right (TySUnit, Unit)
 elaborateInfer _ (TmLit i)         = Right (TySInt, Lit i)
@@ -271,7 +271,7 @@ elaborateInfer ctx (TmUnOp Not tm)     =
                         Left err                -> Left err
 
 
-elaborateCheck :: TypS -> Tm -> TypS -> Either SourceTypeError Exp
+elaborateCheck :: SourceTyp -> SourceTm -> SourceTyp -> Either SourceTypeError CoreTm
 elaborateCheck ctx tm typ       
         = case elaborateInfer ctx tm of
                 Right (typ', e') ->

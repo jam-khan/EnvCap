@@ -1,8 +1,7 @@
 module ENVCAP.Core.PrettyPrint where
-
 import ENVCAP.Syntax
 
-prettyPrintExp :: Exp -> String
+prettyPrintExp :: CoreTm -> String
 prettyPrintExp Ctx              = "?"
 prettyPrintExp Unit             = "ε"
 prettyPrintExp (Lit i)          = show i
@@ -34,7 +33,7 @@ prettyPrintExp (LCase e1 e2 e3) = "Case (" ++ prettyPrintExp e1 ++ ") of \n" ++
                                             " []        => " ++ prettyPrintExp e2 ++ "\n" ++
                                             " (x:xs)    => " ++ prettyPrintExp e3 ++ "\n"
 
-prettyPrintList :: Exp -> String
+prettyPrintList :: CoreTm -> String
 prettyPrintList (Cons h rest)   = prettyPrintExp h ++ ", " ++ prettyPrintList rest 
 prettyPrintList (Nil _)         = "]>"
 prettyPrintList _               = error "Shouldn't print anything except list"
@@ -58,7 +57,7 @@ prettyPrintList' (VCons h rest)     = prettyPrintVal h ++ ", " ++ prettyPrintLis
 prettyPrintList' (VNil _)           = "]>"
 prettyPrintList' _                  = error "Shouldn't print anything except list"
 
-prettyPrintTyp :: TypC -> String
+prettyPrintTyp :: CoreTyp -> String
 prettyPrintTyp TyCUnit                = "TYPE<ε>"
 prettyPrintTyp TyCInt                 = "Int"
 prettyPrintTyp TyCBool                = "Bool"

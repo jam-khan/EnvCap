@@ -1,6 +1,11 @@
 module ENVCAP.Source.Desugar where
 import ENVCAP.Syntax
+import ENVCAP.Source.Errors 
 
+desugar :: SurfaceTm -> Either DesugarError SourceTm
+desugar SCtx            = Right TmCtx
+desugar _sourceTerm     = Left $ DesugarFailed "Function not implemented completely."
+ 
 -- lookupTyp :: SurfaceTyp -> String -> Maybe SurfaceTyp
 -- lookupTyp (STAnd ty1 (STRecord label' ty2)) label 
 --                                 = if label' == label    

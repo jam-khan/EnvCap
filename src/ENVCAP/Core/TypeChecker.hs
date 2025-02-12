@@ -2,12 +2,12 @@
 {-# HLINT ignore "Use newtype instead of data" #-}
 {-# LANGUAGE LambdaCase #-}
 module ENVCAP.Core.TypeChecker where
-import ENVCAP.Syntax (Exp(..), TypC(..), BinaryOp(..), UnaryOp(..))
+import ENVCAP.Syntax 
 import ENVCAP.Core.Util (rlookupt, lookupt, containment)
 
 data TypeError = TypeError String deriving Show
 
-infer :: TypC -> Exp -> Either TypeError TypC
+infer :: CoreTyp -> CoreTm -> Either TypeError CoreTyp
 infer ctx Ctx                 = Right ctx
 infer _ Unit                  = Right TyCUnit
 infer _ (Lit _)               = Right TyCInt
@@ -90,7 +90,7 @@ infer ctx (UnOp Not e)          = if check ctx e TyCBool  then Right TyCBool
                                                         else Left $ TypeError "Expected boolean for negation"   
 infer _ _                       = Left $ TypeError "Unknown expression"
 
-check :: TypC -> Exp -> TypC -> Bool
+check :: CoreTyp -> CoreTm -> CoreTyp -> Bool
 check ctx e tA                  = case infer ctx e of    
                                     Right tB -> tA == tB    
                                     _        -> False  

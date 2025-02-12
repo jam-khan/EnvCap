@@ -51,12 +51,12 @@ identifierToken     = lexeme ((:) <$> firstChar <*> many nonFirstChar)
                             firstChar       = letter <|> char '_'
                             nonFirstChar    = digit  <|> firstChar
 
-intersections :: [TypS] -> TypS
+intersections :: [SourceTyp] -> SourceTyp
 intersections []  = TySUnit
 intersections [x] = x
 intersections (x:xs) = TySAnd x $ intersections xs
 
-merges :: [Tm] -> Tm
+merges :: [SourceTm] -> SourceTm
 merges [] = TmUnit
 merges [x] = x
 merges (x:xs) = TmMrg x $ merges xs

@@ -1,6 +1,6 @@
 module ENVCAP.Core.Util where
 
-import ENVCAP.Syntax (BinaryOp(..), Exp(..), Value(..), ArithOp(..), CompOp(..), TypC (..))
+import ENVCAP.Syntax
 
 
 arithOp :: ArithOp -> Integer -> Integer -> Maybe Integer
@@ -25,17 +25,17 @@ rlookupv (VMrg v1 v2) label =
         (_, _)                  -> Nothing
 rlookupv _ _ = Nothing
 
-lookupt :: TypC -> Int -> Maybe TypC
+lookupt :: CoreTyp -> Int -> Maybe CoreTyp
 lookupt (TyCAnd _ tB) 0         = Just tB
 lookupt (TyCAnd tA _) n         = lookupt tA (n - 1)
 lookupt _ _                     = Nothing
 
-isLabel :: String -> TypC -> Bool
+isLabel :: String -> CoreTyp -> Bool
 isLabel l (TyCRecord label _)   = l == label
 isLabel l (TyCAnd tA tB)        = isLabel l tA || isLabel l tB
 isLabel _ _                     = False
 
-containment :: TypC -> TypC -> Bool
+containment :: CoreTyp -> CoreTyp -> Bool
 containment (TyCRecord l tA) (TyCRecord label typ ) 
                                 = l == label && tA == typ
 containment (TyCRecord l tA) (TyCAnd tB tC) 
@@ -43,7 +43,7 @@ containment (TyCRecord l tA) (TyCAnd tB tC)
                                     (containment (TyCRecord l tA) tC && not (isLabel l tB))
 containment _ _                 = False
 
-rlookupt :: TypC -> String -> Maybe TypC
+rlookupt :: CoreTyp -> String -> Maybe CoreTyp
 rlookupt (TyCRecord l t) label
     | l == label = Just t
 rlookupt (TyCAnd tA tB) label = case rlookupt tB label of
@@ -70,29 +70,23 @@ compareWith Gt  x y             =   x > y
 compareWith Ge  x y             =   x >= y
 
 
-box :: Exp -> Exp -> Exp
-box = Box
-
-merge :: Exp -> Exp -> Exp
-merge = Mrg
-
-proj :: Int -> Exp
+proj :: Int -> CoreTm
 proj = Proj Ctx
 
-add :: Exp -> Exp -> Exp
+add :: CoreTm -> CoreTm -> CoreTm
 add = BinOp (Arith Add)
 
-sub :: Exp -> Exp -> Exp
+sub :: CoreTm -> CoreTm -> CoreTm
 sub = BinOp (Arith Sub)
 
-mult :: Exp -> Exp -> Exp
+mult :: CoreTm -> CoreTm -> CoreTm
 mult = BinOp (Arith Mul)
 
-div :: Exp -> Exp -> Exp
+div :: CoreTm -> CoreTm -> CoreTm
 div = BinOp (Arith Div)
 
-mod :: Exp -> Exp -> Exp
+mod :: CoreTm -> CoreTm -> CoreTm
 mod = BinOp (Arith Mod)
 
-apply :: Exp -> Exp -> Exp
+apply :: CoreTm -> CoreTm -> CoreTm
 apply = App
