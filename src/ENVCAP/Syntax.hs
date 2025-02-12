@@ -23,16 +23,16 @@ data LogicOp = And | Or
         deriving (Eq, Show)
 
 
-type Args = [SurfaceTm]
+type Args = [(String, SurfaceTyp)]
 
 data SurfaceTm 
         =   SCtx                                        -- Query
-        |   SUnit                                       -- Unit
+        |   x                                       -- Unit
         |   SLit       Integer                          -- Integer Literal
         |   SBool      Bool                             -- Boolean Literal
         |   SString    String                           -- String  Literal
-        |   SLam       SurfaceTyp SurfaceTm             -- Abstraction with binding
-        |   SClos      SurfaceTm SurfaceTm SurfaceTm
+        |   SLam       Args SurfaceTm                   -- Abstraction with binding
+        |   SClos      SurfaceTm SurfaceTyp SurfaceTm
         |   SRec       String SurfaceTm
         |   SRProj     SurfaceTm String
         |   SProj      SurfaceTm Integer                -- Projection on Expression
@@ -52,7 +52,7 @@ data SurfaceTm
         |   SCase      SurfaceTm
         |   SInL       SurfaceTm
         |   SInR       SurfaceTm
-        |   SAnno      SurfaceTm SurfaceTyp  
+        |   SAnno      SurfaceTm SurfaceTyp
         |   STuple     [SurfaceTm]
         |   SSwitch    SurfaceTm [(SurfaceTm, SurfaceTm)]
         |   SVar       String

@@ -89,6 +89,7 @@ Statements     : Statement ';' Statements         { SMrg $1 $3 }
 Statement      : Function                         { $1 }
                | Module                           { $1 }
                | Binding                          { $1 }
+               | TyAlias                          { $1 }
                | Term                             { $1 }
 
 Term           : 'env'                             { SCtx }
@@ -102,7 +103,6 @@ Term           : 'env'                             { SCtx }
                | ComparisonOp                      { $1 }
                | BooleanOp                         { $1 }
                | IfThenElse                        { $1 }
-               | TyAlias                           { $1 }
                | Lambda                            { $1 }
                | Struct                            { $1 }
                | Let                               { $1 }

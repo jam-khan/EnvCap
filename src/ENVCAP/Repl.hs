@@ -1,7 +1,6 @@
 module ENVCAP.Repl where
 import System.Console.Haskeline
-
-newtype InterpreterError = InterpreterFailed String deriving (Show)
+import ENVCAP.Source.Errors 
 
 eval' :: String -> Either InterpreterError String
 eval' input = Right $ "You said: " ++ input

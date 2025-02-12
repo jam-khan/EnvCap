@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 module ENVCAP.Source.TypeExpansion where
 import ENVCAP.Syntax
 import ENVCAP.Source.Errors (TypeExpansionError (DuplicateAlias, AliasNotFound, TypeContextError, TypeExpansionFailed))
@@ -23,13 +24,9 @@ import ENVCAP.Source.Errors (TypeExpansionError (DuplicateAlias, AliasNotFound, 
 -- * The type context must be well-formed and composed only of `STAnd` and `STRecord` types.
 -- * If a duplicate label is found, a `DuplicateAlias` error is returned.
 lookupAliasTyp :: SurfaceTyp -> String -> Either TypeExpansionError SurfaceTyp
-lookupAliasTyp (STAnd ty1 (STRecord label' ty2)) label 
-            = if label' == label    
-                then case lookupAliasTyp ty1 label of
-                        Right ty     -> 
-                            Left $ DuplicateAlias ("Error: Name clash of type alias `" ++ show label ++ "`. Found two types with same label: " ++ show ty ++ ", " ++ show ty2)
-                        Left err -> Left err
-                else Right ty2
+lookupAliasTyp (STAnd ty1 (STRecord label' ty2)) label
+            = if label' == label then Right ty2
+                                 else lookupAliasTyp ty1 label
 lookupAliasTyp STUnit l = Left $ AliasNotFound ("Error: Type not found for alias: " ++ show l)
 lookupAliasTyp _ _      = Left $ TypeContextError "Error: Type context not well-formed. Must only compose of intersection types."
 
@@ -57,27 +54,34 @@ expandTyAlias _ STUnit                  = Right STUnit
 expandTyAlias _ STInt                   = Right STInt
 expandTyAlias _ STBool                  = Right STBool
 expandTyAlias _ STString                = Right STString
-expandTyAlias tyGamma (STAnd ty1 ty2)   = 
-        STAnd       <$> expandTyAlias tyGamma ty1 <*> expandTyAlias tyGamma ty2 
+expandTyAlias tyGamma (STAnd ty1 ty2)   =
+        STAnd       <$> expandTyAlias tyGamma ty1 <*> expandTyAlias tyGamma ty2
 expandTyAlias tyGamma (STArrow tyA tyB) =
         STArrow     <$> expandTyAlias tyGamma tyA <*> expandTyAlias tyGamma tyB
 expandTyAlias tyGamma (STRecord l ty)   =
         STRecord l  <$> expandTyAlias tyGamma ty
-expandTyAlias tyCtx (STList ty)         = 
+expandTyAlias tyCtx (STList ty)         =
         STList      <$> expandTyAlias tyCtx ty
-expandTyAlias tyCtx (STSum  ty1 ty2)    = 
+expandTyAlias tyCtx (STSum  ty1 ty2)    =
         STSum           <$> expandTyAlias tyCtx ty1  <*> expandTyAlias tyCtx ty2
-expandTyAlias tyCtx (STPair ty1 ty2)    = 
+expandTyAlias tyCtx (STPair ty1 ty2)    =
         STPair          <$> expandTyAlias tyCtx ty1  <*> expandTyAlias tyCtx ty2
-expandTyAlias tyCtx (STSig  tyA tyB)    = 
+expandTyAlias tyCtx (STSig  tyA tyB)    =
         STSig           <$> expandTyAlias tyCtx tyA  <*> expandTyAlias tyCtx tyB
-expandTyAlias tyCtx (STIden label)      = 
+expandTyAlias tyCtx (STIden label)      =
         lookupAliasTyp tyCtx label
 
 -- | Recursively traverses the surface level AST and expands type aliases.
 --
 -- This function traverses the surface level AST and loads the type aliases in the context
--- and then, expands any type identifier by calling expandTyAlias.
+-- and then, expands any type identifier by calling expandTyAlias. 
+--
+-- === Example:
+-- >>> expandAlias STUnit (SApp (SLam STInt (SString "Hello")) [SLit 1, SLit 2, SString "Hello"])
+-- Right (SApp (SLam STInt (SString "Hello")) [SLit 1,SLit 2,SString "Hello"])
+--
+-- >>> expandAlias STUnit (SMrg (SAliasTyp "x" STInt) (SLam (STIden "x") (SLit 1)))
+-- Right (SLam STInt (SLit 1))
 --
 -- === Errors:
 -- * `AliasNotFound err`: Occurs when the alias is not found in the context.
@@ -89,42 +93,20 @@ expandTyAlias tyCtx (STIden label)      =
 -- * The function is recursive and handles all possible `SurfaceTyp` constructors.
 -- * The type context `tyGamma` is expected to be well-formed; otherwise, a `TypeContextError` may occur.
 expandAlias :: SurfaceTyp -> SurfaceTm -> Either TypeExpansionError SurfaceTm
-expandAlias _ SCtx  = Right SCtx
-expandAlias _ _     = Left $ TypeExpansionFailed "Expansion function not completed."
-
--- expandAlias :: SurfaceTyp -> SurfaceTm -> Maybe SurfaceTm 
--- expandAlias _     SCtx                       = Just SCtx
--- expandAlias _     SUnit                      = Just SUnit
--- expandAlias _     (SLit n)                   = Just $ SLit n
--- expandAlias _     (SBool b)                  = Just $ SBool b
--- expandAlias _     (SString s)                = Just $ SString s
--- expandAlias _     (SAliasTyp _ _)            = error "Type aliases expansion not completed properly"
--- expandAlias tyCtx (SBinOp op tm1 tm2)        = 
---                 case (expandAlias tyCtx tm1, expandAlias tyCtx tm2) of
---                         (Just tm1', Just tm2') -> Just (SBinOp op tm1' tm2')
---                         _                      -> Nothing
--- expandAlias tyCtx (SUnOp op tm)              = 
---         SUnOp op       <$> expandAlias tyCtx tm
--- expandAlias tyCtx (SIf tm1 tm2 tm3)          = 
---         SIf            <$> expandAlias tyCtx tm1 <*> expandAlias tyCtx tm2 <*> expandAlias tyCtx tm3
--- expandAlias tyCtx (SFix tm)                  = 
---         SFix           <$> expandAlias tyCtx tm
--- expandAlias tyCtx (SMrg tm1 tm2)             = 
---                 case tm1 of 
---                 (SAliasTyp label typ)  -> expandAlias (STAnd tyCtx (STRecord label typ)) tm2
---                 _                       -> case (expandAlias tyCtx tm1, expandAlias tyCtx tm2) of
---                                                 (Just tm1', Just tm2')          -> Just (SMrg tm1' tm2')
---                                                 _                               -> Nothing
--- expandAlias tyCtx (SRec name tm)             = 
---         SRec name <$> expandAlias tyCtx tm
--- expandAlias tyCtx (SRProj tm name)           = 
---         SRProj <$> expandAlias tyCtx tm <*> Just name
--- expandAlias _ (SProj tm i)                   = 
---         Just $ SProj tm i
--- expandAlias tyCtx (SLam ty tm)               = 
---         SLam <$> expandTyAlias tyCtx ty <*> expandAlias tyCtx tm
--- expandAlias tyCtx (SFunc name ty tm)         = 
---         SFunc name <$> expandTyAlias tyCtx ty <*> expandAlias tyCtx tm
--- expandAlias tyCtx(SApp tm1 tm2)              = 
---         SApp <$> expandAlias tyCtx tm1 <*> expandAlias tyCtx tm2
--- expandAlias _ _                               = Nothing
+expandAlias _ SCtx              = Right SCtx
+expandAlias _ SUnit             = Right SUnit
+expandAlias _ (SLit i)          = Right (SLit i)
+expandAlias _ (SBool b)         = Right (SBool b)
+expandAlias _ (SString s)       = Right (SString s)
+expandAlias ctx (SLam ty tm)    = SLam <$> expandTyAlias ctx ty <*> expandAlias ctx tm
+expandAlias ctx (SClos tm1 ty tm2)
+                                = SClos  <$> expandAlias ctx tm1 <*> expandTyAlias ctx ty <*> expandAlias ctx tm2
+expandAlias ctx (SRec l tm)     = SRec l <$> expandAlias ctx tm
+expandAlias ctx (SRProj tm l)   = SRProj <$> expandAlias ctx tm <*> Right l
+expandAlias ctx (SProj tm i)    = SProj  <$> expandAlias ctx tm <*> Right i
+expandAlias ctx (SApp tm params)= SApp   <$> expandAlias ctx tm <*> traverse (expandAlias ctx) params
+expandAlias ctx (SMrg tm1 tm2)  = case tm1 of
+                                        (SAliasTyp l ty) -> expandTyAlias ctx ty >>= (`expandAlias` tm2) . STAnd ctx . STRecord l
+                                        _                -> SMrg <$> expandAlias ctx tm1 <*> expandAlias ctx tm2
+expandAlias ctx (SBox tm1 tm2)  = SBox  <$> expandAlias ctx tm1 <*> expandAlias ctx tm2
+expandAlias _ _                 = Left $ TypeExpansionFailed "Expansion function not completed."
