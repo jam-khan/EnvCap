@@ -17,9 +17,11 @@ data LocallyNamelessError
     | ParamError            String
     | DebruijnFailed        String  -- ^ Failed while resolving de-bruijn indices
     | LocallyNamelessFailed String
+    deriving Show
 
 -- | IMPORTANT: Description not completed
 newtype DesugarError = DesugarFailed String
+    deriving Show
 
 -- | Interpreter error 
 newtype InterpreterError = InterpreterFailed String

@@ -16,12 +16,12 @@ elaborateTyp (TySSum ty1 ty2)      = TyCSum  (elaborateTyp ty1) (elaborateTyp ty
 elaborateTyp (TySPair ty1 ty2)     = TyCPair (elaborateTyp ty1) (elaborateTyp ty2)
 elaborateTyp (TySSig tA tB)        = TyCArrow (elaborateTyp tA) (elaborateTyp tB)
 
-unescape :: String -> String
-unescape [] = []
-unescape ('\\' : 'n' : xs) = '\n' : unescape xs  -- Replace `\n` with newline
-unescape ('\\' : '\\' : xs) = '\\' : unescape xs -- Replace `\\` with `\`
-unescape ('\\' : '\"' : xs) = '\"' : unescape xs -- Replace `\"` with `"`
-unescape (x : xs) = x : unescape xs
+-- unescape :: String -> String
+-- unescape [] = []
+-- unescape ('\\' : 'n' : xs) = '\n' : unescape xs  -- Replace `\n` with newline
+-- unescape ('\\' : '\\' : xs) = '\\' : unescape xs -- Replace `\\` with `\`
+-- unescape ('\\' : '\"' : xs) = '\"' : unescape xs -- Replace `\"` with `"`
+-- unescape (x : xs) = x : unescape xs
 
 type Elab = (SourceTyp, CoreTm)
 
@@ -39,10 +39,10 @@ generateError ctx tm msg sugg =
                 sugg    ++ "\n")
 
 -- Lookup based on indexing
-lookupt :: SourceTyp -> Int -> Maybe SourceTyp
+lookupt :: SourceTyp -> Integer -> Maybe SourceTyp
 lookupt (TySAnd _ tB) 0          = Just tB
 lookupt (TySAnd tA _) n          = lookupt tA (n - 1)
-lookupt _ _                       = Nothing
+lookupt _ _                      = Nothing
 
 -- checks if l is a label in the typing context
 isLabel :: String -> SourceTyp -> Bool
@@ -189,7 +189,7 @@ elaborateInfer ctx (TmIf tm1 tm2 tm3)
                                 Left $ generateError ctx tm1
                                                 "Type error on condition: condition must be of type Bool"
                                                 ("Fix the condition and make sure it is of type Bool.\n \n-----Further info-----\n \n" ++ err)   
-elaborateInfer ctx (TmFix (TmLam tA tm)) = 
+elaborateInfer ctx (TmFix ty (TmLam tA tm)) = 
                 case elaborateInfer (TySAnd ctx (TySArrow tA tA)) (TmLam tA tm) of
                         -- IMPORTANT
                         -- This is not the right way to handle it (Add annotations on surface level)

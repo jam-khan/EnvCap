@@ -3,7 +3,7 @@ import Control.Exception (try, IOException)
 import ENVCAP.Syntax 
 import ENVCAP.Parser.Happy (parseSource)
 import ENVCAP.Source.TypeExpansion (expandAlias)
-import ENVCAP.Source.LocallyNameless (astTolocallyNameless)
+import ENVCAP.Source.LocallyNameless 
 import ENVCAP.Source.Errors
 import ENVCAP.Source.Desugar (desugar)
 import ENVCAP.Source.Elaboration (Elab, elaborateInfer, elaborateTyp)

@@ -23,45 +23,44 @@ data LogicOp = And | Or
         deriving (Eq, Show)
 
 
-type Args = [(String, SurfaceTyp)]
-
+type Params       = [(String, SurfaceTyp)]
+type Letargs      = [(String, SurfaceTyp, SurfaceTm)] 
 data SurfaceTm 
         =   SCtx                                        -- Query
-        |   x                                       -- Unit
+        |   SUnit                                       -- Unit
         |   SLit       Integer                          -- Integer Literal
         |   SBool      Bool                             -- Boolean Literal
         |   SString    String                           -- String  Literal
-        |   SLam       Args SurfaceTm                   -- Abstraction with binding
-        |   SClos      SurfaceTm SurfaceTyp SurfaceTm
+        |   SLam       Params SurfaceTm                   -- Abstraction with binding
+        |   SClos      SurfaceTm Params SurfaceTm
         |   SRec       String SurfaceTm
         |   SRProj     SurfaceTm String
         |   SProj      SurfaceTm Integer                -- Projection on Expression
         |   SApp       SurfaceTm [SurfaceTm]
         |   SMrg       SurfaceTm SurfaceTm
         |   SBox       SurfaceTm SurfaceTm
+        |   SVar       String
+        |   SStruct    Params SurfaceTm
+        |   SFunc      String Params SurfaceTyp SurfaceTm
+        |   SModule    String Params SurfaceTm
+        |   SAliasTyp  String SurfaceTyp
+        |   SLet       [(String, SurfaceTyp, SurfaceTm)] SurfaceTm
+        |   SLetrec    [(String, SurfaceTyp, SurfaceTm)] SurfaceTm
+        |   SBinOp     BinaryOp SurfaceTm SurfaceTm
+        |   SUnOp      UnaryOp SurfaceTm
+        |   SAnno      SurfaceTm SurfaceTyp
         -- Extra parts
         |   SIf        SurfaceTm SurfaceTm SurfaceTm
-        |   SFix       SurfaceTm
         |   SPair      SurfaceTm SurfaceTm
         |   SFst       SurfaceTm
         |   SSnd       SurfaceTm
         |   SNil       SurfaceTyp
         |   SCons      SurfaceTm SurfaceTm
-        |   SBinOp     BinaryOp SurfaceTm SurfaceTm
-        |   SUnOp      UnaryOp SurfaceTm
         |   SCase      SurfaceTm
         |   SInL       SurfaceTm
         |   SInR       SurfaceTm
-        |   SAnno      SurfaceTm SurfaceTyp
         |   STuple     [SurfaceTm]
         |   SSwitch    SurfaceTm [(SurfaceTm, SurfaceTm)]
-        |   SVar       String
-        |   SStruct    SurfaceTyp SurfaceTm
-        |   SFunc      String SurfaceTyp SurfaceTm
-        |   SModule    String SurfaceTyp SurfaceTm
-        |   SAliasTyp  String SurfaceTyp
-        |   SLet       String SurfaceTyp SurfaceTm SurfaceTm
-        |   SLetrec    String SurfaceTyp SurfaceTm SurfaceTm
         deriving (Eq, Show)
 
 -- Types
@@ -89,13 +88,13 @@ data SourceTm   =   TmCtx                               -- Query
                 |   TmClos      SourceTm SourceTyp SourceTm
                 |   TmRec       String SourceTm
                 |   TmRProj     SourceTm String
-                |   TmProj      SourceTm Int                  -- Projection on Expression
+                |   TmProj      SourceTm Integer                  -- Projection on Expression
                 |   TmApp       SourceTm SourceTm
                 |   TmMrg       SourceTm SourceTm
                 |   TmBox       SourceTm SourceTm
                 -- Extension that require elaboration
                 |   TmIf        SourceTm SourceTm SourceTm
-                |   TmFix       SourceTm
+                |   TmFix       SourceTyp SourceTm
                 |   TmNil       SourceTyp
                 |   TmCons      SourceTm SourceTm
                 |   TmBinOp     BinaryOp SourceTm SourceTm
@@ -130,7 +129,7 @@ data CoreTm     =   Ctx                                 -- Context
                 |   Unit                                -- Unit
                 |   Lit    Integer                      -- Integer literal
                 |   Lam    CoreTyp CoreTm               -- Lambda Abstraction
-                |   Proj   CoreTm Int                   -- Projection
+                |   Proj   CoreTm Integer                   -- Projection
                 |   Clos   CoreTm  CoreTm               -- Closure
                 |   Rec    String CoreTm                -- Single-Field Record
                 |   RProj  CoreTm String                -- Record Projection by Label

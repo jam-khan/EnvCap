@@ -1,6 +1,7 @@
-type newInt = Bool;;
+type newInt = Bool & Int;;
+
 val hello =  \(x: newInt) => {
-    \(y: newInt) => { x }
+    \(y: newInt) => { x + y}
 };;
 
 val temp = hello(1==1);;

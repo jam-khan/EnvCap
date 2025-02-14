@@ -98,7 +98,7 @@ expandAlias _ SUnit             = Right SUnit
 expandAlias _ (SLit i)          = Right (SLit i)
 expandAlias _ (SBool b)         = Right (SBool b)
 expandAlias _ (SString s)       = Right (SString s)
-expandAlias ctx (SLam ty tm)    = SLam <$> expandTyAlias ctx ty <*> expandAlias ctx tm
+expandAlias ctx (SLam ty tm)    = SLam  <$> expandTyAlias ctx ty <*> expandAlias ctx tm
 expandAlias ctx (SClos tm1 ty tm2)
                                 = SClos  <$> expandAlias ctx tm1 <*> expandTyAlias ctx ty <*> expandAlias ctx tm2
 expandAlias ctx (SRec l tm)     = SRec l <$> expandAlias ctx tm
