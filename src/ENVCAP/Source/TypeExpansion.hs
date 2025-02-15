@@ -98,9 +98,9 @@ expandAlias _ SUnit             = Right SUnit
 expandAlias _ (SLit i)          = Right (SLit i)
 expandAlias _ (SBool b)         = Right (SBool b)
 expandAlias _ (SString s)       = Right (SString s)
-expandAlias ctx (SLam ty tm)    = SLam  <$> expandTyAlias ctx ty <*> expandAlias ctx tm
-expandAlias ctx (SClos tm1 ty tm2)
-                                = SClos  <$> expandAlias ctx tm1 <*> expandTyAlias ctx ty <*> expandAlias ctx tm2
+expandAlias ctx (SLam params tm)= SLam  <$> expandAliasTypParams ctx params <*> expandAlias ctx tm
+expandAlias ctx (SClos tm1 params tm2)
+                                = SClos  <$> expandAlias ctx tm1 <*> expandAliasTypParams ctx params <*> expandAlias ctx tm2
 expandAlias ctx (SRec l tm)     = SRec l <$> expandAlias ctx tm
 expandAlias ctx (SRProj tm l)   = SRProj <$> expandAlias ctx tm <*> Right l
 expandAlias ctx (SProj tm i)    = SProj  <$> expandAlias ctx tm <*> Right i
@@ -110,3 +110,12 @@ expandAlias ctx (SMrg tm1 tm2)  = case tm1 of
                                         _                -> SMrg <$> expandAlias ctx tm1 <*> expandAlias ctx tm2
 expandAlias ctx (SBox tm1 tm2)  = SBox  <$> expandAlias ctx tm1 <*> expandAlias ctx tm2
 expandAlias _ _                 = Left $ TypeExpansionFailed "Expansion function not completed."
+
+
+expandAliasTypParams :: SurfaceTyp -> Params -> Either TypeExpansionError Params
+expandAliasTypParams _ []                 = Right []
+expandAliasTypParams ctx ((x, ty):xs)     = 
+        do
+        ty'     <- expandTyAlias ctx ty
+        rest    <- expandAliasTypParams ctx xs
+        return $ (x, ty') : rest

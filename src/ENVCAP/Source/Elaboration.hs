@@ -189,18 +189,11 @@ elaborateInfer ctx (TmIf tm1 tm2 tm3)
                                 Left $ generateError ctx tm1
                                                 "Type error on condition: condition must be of type Bool"
                                                 ("Fix the condition and make sure it is of type Bool.\n \n-----Further info-----\n \n" ++ err)   
-elaborateInfer ctx (TmFix ty (TmLam tA tm)) = 
-                case elaborateInfer (TySAnd ctx (TySArrow tA tA)) (TmLam tA tm) of
-                        -- IMPORTANT
-                        -- This is not the right way to handle it (Add annotations on surface level)
-                        -- Temporary fix for testing purposes
-                        Right (ty, tm')       -> case elaborateTyp (TySArrow ty ty) of
-                                                        (TyCArrow t1 _) -> Right (ty, Fix t1 tm')
-                                                        _               -> Left $ generateError ctx (TmFix (TmLam tA tm)) 
-                                                                                "Type error on fixpoint"
-                                                                                "Make sure fixpoint error is correct"
+elaborateInfer ctx (TmFix ty tm) = 
+                case elaborateCheck (TySAnd ctx ty) tm ty of
+                        Right  tm'       ->     Right (ty, Fix (elaborateTyp ty) tm')
                         Left (STypeError err)   
-                                        -> Left $ generateError ctx (TmFix (TmLam tA tm)) 
+                                        -> Left $ generateError ctx (TmFix ty tm) 
                                                 "Type error on fixpoint"
                                                 err
 elaborateInfer ctx (TmBinOp (Arith op) tm1 tm2) =

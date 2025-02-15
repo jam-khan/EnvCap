@@ -1,0 +1,16 @@
+type NewInt = Int;
+
+@insecure Sig Sort
+{
+    require "Utils";
+    require Int;
+    require Int;
+    require {"z" : Int};
+} 
+{
+    val utilsNew    : interface "Utils";
+    val k           : NewInt;
+    val y           : NewInt;
+    val temp1       : NewInt;
+    val temp2       : NewInt;
+}

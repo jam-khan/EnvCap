@@ -1,8 +1,52 @@
+{-|
+Module      : Desugar
+Description : A module for desugaring surface terms into source terms.
+Maintainer  : Your Name <your.email@example.com>
+Stability   : Experimental
+Portability : Non-portable (depends on GHC extensions)
+
+This module provides functions to transform surface-level terms into a more abstract representation suitable for further processing. The desugaring process involves converting various syntactic constructs into simpler forms, enabling easier manipulation and evaluation.
+
+== Functions
+
+* 'extractLetParams'            - Extracts parameter names and types from let bindings.
+* 'extractLetArgs'              - Extracts argument terms from let bindings.
+* 'extractLetRecParams'         - Extracts parameters from letrec bindings.
+* 'processLetRecParamsArgs'     - Processes parameters and arguments for letrec bindings.
+* 'processModule'               - Processes a module structure and desugars its contents.
+* 'processParams'               - Desugars a list of parameters.
+* 'processApplication'          - Desugars application terms.
+* 'processLambda'               - Desugars lambda abstractions.
+* 'desugarParam'                - Desugars a single parameter type.
+* 'desugarTyp'                  - Desugars surface types into source types.
+* 'desugar'                     - Main function to desugar surface terms into source terms.
+
+== Examples
+
+=== Example 1: Desugaring a simple lambda expression
+
+>>> desugar (SLam [("x", STInt)] (SProj SCtx 0))
+Right (TmLam TySInt (TmProj TmCtx 0))
+
+>>> desugar (SLet [("y", STInt, SLit 5)] (SProj SCtx 0))
+Right (TmApp (TmLam TySInt (TmProj TmCtx 0)) (TmLit 5))
+
+=== Example 3: Desugaring a module
+
+>>> desugar (SModule "MyModule" [("param1", STInt), ("param2", STInt)] (SLit 42))
+Right (TmRec "MyModule" (TmStruct (TySAnd TySInt TySInt) (TmLit 42)))
+
+=== Example 4: Handling an unsupported term
+
+>>> desugar (SVar "undefinedVar")
+Left (DesugarFailed "Variable identifier \"undefinedVar\" couldn't get transformed.")
+-}
+
+-- Function implementations follow...
 {-# LANGUAGE LambdaCase #-}
 module ENVCAP.Source.Desugar where
 import ENVCAP.Syntax
 import ENVCAP.Source.Errors
-
 
 
 extractLetParams :: [(String, SurfaceTyp, SurfaceTm)] -> [(String, SurfaceTyp)]
@@ -15,14 +59,32 @@ extractLetArgs []   = []
 extractLetArgs ((_x, _ty, tm):rest)
                     = tm : extractLetArgs rest
 
+extractLetRecParams :: [(String, SurfaceTyp, SurfaceTm)] -> [(String, SurfaceTyp)]
+extractLetRecParams []  = []
+extractLetRecParams ((x, ty, _tm):rest)
+                        = (x, ty) : extractLetParams rest
+
+processLetRecParamsArgs :: [(String, SurfaceTyp, SurfaceTm)] -> Either DesugarError [SourceTm]
+processLetRecParamsArgs []    = Right []
+processLetRecParamsArgs ((_, ty, tm):rest)
+                        = do    ty'     <- desugarTyp ty
+                                tm'     <- desugar tm
+                                rest'   <- processLetRecParamsArgs rest
+                                return $ TmFix ty' tm' : rest'
+
 processModule :: SurfaceTm -> Either DesugarError SourceTm
-processModule (SStruct params tm) = TmStruct <$> processParams params <*> desugar tm
-processModule _ = Left $ DesugarFailed "Utility to process modules called on a non-module"
+processModule (SStruct params tm) = 
+    TmStruct <$> processParams params <*> desugar tm
+processModule _                   = 
+    Left $ DesugarFailed "Utility to process modules called on a non-module"
 
 processParams :: Params -> Either DesugarError SourceTyp
-processParams []        = Left $ DesugarFailed "Empty Params not allowed in the module struct"
-processParams [(_, ty)] = desugarTyp ty
-processParams ((_, ty):rest) = TySAnd <$> desugarTyp ty <*> processParams rest
+processParams []        = 
+    Left $ DesugarFailed "Empty Params not allowed in the module struct"
+processParams [(_, ty)] = 
+    desugarTyp ty
+processParams ((_, ty):rest) = 
+    TySAnd <$> desugarTyp ty <*> processParams rest
 
 
 processApplication :: SurfaceTm -> Either DesugarError SourceTm
@@ -66,6 +128,7 @@ desugarTyp (STSig ty1 ty2)      =
 desugarTyp (STIden x)           =
     Left $ DesugarFailed
         ("Type alias not expanded correctly. Type identifier remaining: " ++ show x)
+
 desugar :: SurfaceTm -> Either DesugarError SourceTm
 desugar SCtx            = Right TmCtx
 desugar SUnit           = Right TmUnit
@@ -77,7 +140,7 @@ desugar (SClos tm1 params tm2)
                         = desugar tm1 >>= \tm1' ->
                             processLambda (SLam params tm2) >>= \case
                                 (TmLam ty tm2')   -> Right $ TmClos tm1' ty tm2'
-                                _                 -> Left $ DesugarFailed "Closure must be an abstraction. Hint: Use boxes instead"
+                                _                 -> Left  $ DesugarFailed "Closure must be an abstraction. Hint: Use boxes instead"
 desugar (SRec l tm)     = 
     TmRec l <$> desugar tm
 desugar (SRProj tm l)   = 
@@ -105,7 +168,16 @@ desugar (SAliasTyp l _) =
                         Left $ DesugarFailed ("Type alias" ++ show l ++ "detected at desugaring phased.")
 desugar (SLet letargs tm)
                         = desugar (SApp (SLam (extractLetParams letargs) tm) (extractLetArgs   letargs))
-desguar (SLetrec letargs tm)
-                        = desugar 
+-- Letrec needs careful handling!
+-- desugar (SLetrec letargs tm)
+--                         = do
+--                             tm'     <- desugar (SLam (extractLetParams letargs) tm)
+--                             args'   <- processLetRecParamsArgs letargs
+--                             return $ foldl (TmApp tm') args'
+desugar (SBinOp op tm1 tm2)
+                        = TmBinOp op <$> desugar tm1 <*> desugar tm2
+desugar (SUnOp op tm)   = TmUnOp op  <$> desugar tm
+desugar (SAnno tm ty)   = TmAnno <$> desugar tm <*> desugarTyp ty
+
 desugar _sourceTerm     =
     Left $ DesugarFailed "Function not implemented completely."

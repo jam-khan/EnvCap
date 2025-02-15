@@ -74,8 +74,8 @@ astToLocallyNameless _ (SStruct params tm)    =
 astToLocallyNameless stack (SFunc name params typ tm) 
                                                 = SFunc name params typ 
                                                     <$> astToLocallyNameless (stack ++ params) tm
-astToLocallyNameless _ (SModule name params typ tm)   =
-    SModule name params typ <$> astToLocallyNameless params tm
+astToLocallyNameless _ (SModule name params tm) 
+                                                = SModule name params <$> astToLocallyNameless params tm
 astToLocallyNameless stack (SLet params tm)   = 
     SLet params     <$> astToLocallyNameless (stack ++ processLetArguments params) tm
 astToLocallyNameless stack (SLetrec params tm)= 

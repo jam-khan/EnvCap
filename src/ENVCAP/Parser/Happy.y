@@ -105,8 +105,8 @@ Term           : 'env'                             { SCtx }
                | IfThenElse                        { $1 }
                | Lambda                            { $1 }
                | Struct                            { $1 }
-               | Let                               { $1 }
-               | Letrec                            { $1 }
+               -- | Let                               { $1 }
+               -- | Letrec                            { $1 }
                | List                              { $1 }
                | ListCons                          { $1 }
                | Record                            { $1 }
@@ -135,7 +135,7 @@ Struct         : 'struct'     '(' ParamList ')' '{' Statements '}'    { SStruct 
 
 Signature      : 'Sig' '[' Type ',' Type ']'                          { STSig $3 $5 }
 
-Function       : 'function' var '(' ParamList ')' '{' Term '}'        { SFunc $2 $4 $7 }
+Function       : 'function' var '(' ParamList ')' ':' Type '{' Term '}'        { SFunc $2 $4 $7 $9 }
 
 FunctionApplication : var '(' Arguments ')'  %prec application_prec   { SApp (SVar $1) $3 }
 
@@ -163,11 +163,14 @@ DependentMergeElements   : Term ',,' DependentMergeElements { SMrg $1 $3 }
                          | Term ',,' Term                   { SMrg $1 $3 }
 
 Tuple          : '(' TupleElements ')'            { STuple $2 }
+
 TupleElements  : Term ',' TupleElements           { $1 : $3 }
                | Term ',' Term                    { $1 : [$3] }
 
 RecordType     : Param ',' RecordType             { STAnd $1 $3 }
                | Param                            { $1 }
+
+Param          : var ':' Type                     { STRecord $1 $3 }   
 
 Record         : '{' Records '}'                       { $2 }
 Records        : '"' var '"' '=' Term ',' Records      { SMrg (SRec $2 $5) $7 }
@@ -175,13 +178,13 @@ Records        : '"' var '"' '=' Term ',' Records      { SMrg (SRec $2 $5) $7 }
                | '\'' var '\'' '=' Term ',' Records    { SMrg (SRec $2 $5) $7 }
                | '\'' var '\'' '=' Term                { SRec $2 $5 }
 
-ParamList      : Param ',' ParamList              { STAnd $1 $3 }
-               | Param                            { $1 }
+ParamList      : ParamL ',' ParamList              { $1 : $3 }
+               | ParamL                            { [$1] }
 
-Param          : var ':' Type                     { STRecord $1 $3 }   
+ParamL         : var ':' Type                     { ($1, $3) } 
 
-Let            : 'let'    var ':' Type '='   Term   'in' CurlyParens   { SLet    $2 $4 $6 $8 }
-Letrec         : 'letrec' var ':' Type '='   Term   'in' CurlyParens   { SLetrec $2 $4 $6 $8 }
+-- Let            : 'let'    var ':' Type '='   Term   'in' CurlyParens   { SLet    $2 $4 $6 $8 }
+-- Letrec         : 'letrec' var ':' Type '='   Term   'in' CurlyParens   { SLetrec $2 $4 $6 $8 }
 
 List           : '[]' ':' Type                    { SNil $3 }
                | '[' Elements ']'                 { $2 }

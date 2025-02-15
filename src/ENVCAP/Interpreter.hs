@@ -54,7 +54,7 @@ typeAliasExpansion surfaceAST =
 -- Right SCtx
 locallyNameless :: SurfaceTm -> Either InterpreterError SurfaceTm
 locallyNameless surfaceAST =
-    case astTolocallyNameless surfaceAST of
+    case astToLocallyNameless [] surfaceAST of
         Right locallyNamelessAST         -> Right locallyNamelessAST
         Left (ScopeError err)            -> Left (InterpreterFailed ("Locally Nameless Failed: scope errors detected! check scope of the functions. " ++ err))
         Left (ParamError err)            -> Left (InterpreterFailed ("Locally Nameless Failed: check function parameters. " ++ err))
