@@ -162,15 +162,15 @@ DependentMerge           : '(' DependentMergeElements ')'   { $2 }
 DependentMergeElements   : Term ',,' DependentMergeElements { SMrg $1 $3 }
                          | Term ',,' Term                   { SMrg $1 $3 }
 
-Tuple          : '(' TupleElements ')'            { STuple $2 }
+Tuple          : '(' TupleElements ')'                 { STuple $2 }
 
-TupleElements  : Term ',' TupleElements           { $1 : $3 }
-               | Term ',' Term                    { $1 : [$3] }
+TupleElements  : Term ',' TupleElements                { $1 : $3 }
+               | Term ',' Term                         { $1 : [$3] }
 
-RecordType     : Param ',' RecordType             { STAnd $1 $3 }
-               | Param                            { $1 }
+RecordType     : Param ',' RecordType                  { STAnd $1 $3 }
+               | Param                                 { $1 }
 
-Param          : var ':' Type                     { STRecord $1 $3 }   
+Param          : var ':' Type                          { STRecord $1 $3 }   
 
 Record         : '{' Records '}'                       { $2 }
 Records        : '"' var '"' '=' Term ',' Records      { SMrg (SRec $2 $5) $7 }
@@ -178,26 +178,26 @@ Records        : '"' var '"' '=' Term ',' Records      { SMrg (SRec $2 $5) $7 }
                | '\'' var '\'' '=' Term ',' Records    { SMrg (SRec $2 $5) $7 }
                | '\'' var '\'' '=' Term                { SRec $2 $5 }
 
-ParamList      : ParamL ',' ParamList              { $1 : $3 }
-               | ParamL                            { [$1] }
+ParamList      : ParamL ',' ParamList                  { $1 : $3 }
+               | ParamL                                { [$1] }
 
-ParamL         : var ':' Type                     { ($1, $3) } 
+ParamL         : var ':' Type                          { ($1, $3) } 
 
 -- Let            : 'let'    var ':' Type '='   Term   'in' CurlyParens   { SLet    $2 $4 $6 $8 }
 -- Letrec         : 'letrec' var ':' Type '='   Term   'in' CurlyParens   { SLetrec $2 $4 $6 $8 }
 
-List           : '[]' ':' Type                    { SNil $3 }
-               | '[' Elements ']'                 { $2 }
+List           : '[]' ':' Type                         { SNil $3 }
+               | '[' Elements ']'                      { $2 }
 
-Elements       : Term ',' Elements                { SCons $1 $3 }
-               | Term                             { $1 }
+Elements       : Term ',' Elements                     { SCons $1 $3 }
+               | Term                                  { $1 }
 
-Arguments      : Term ',' Arguments               { $1 : $3 }
-               | Term                             { [$1] }
+Arguments      : Term ',' Arguments                    { $1 : $3 }
+               | Term                                  { [$1] }
 
-Parens      : '(' Term ')'                        { $2 }
+Parens      : '(' Term ')'                             { $2 }
 
-CurlyParens : '{' Statements '}'                  { $2 }
+CurlyParens : '{' Statements '}'                       { $2 }
 
 IfThenElse : 'if' Parens 'then' CurlyParens 'else' CurlyParens { SIf $2 $4 $6 }
 

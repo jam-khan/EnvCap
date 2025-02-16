@@ -48,56 +48,74 @@ astToLocallyNameless _ SUnit                = Right SUnit
 astToLocallyNameless _ (SLit i)             = Right (SLit i)
 astToLocallyNameless _ (SBool b)            = Right (SBool b)
 astToLocallyNameless _ (SString s)          = Right (SString s)
-astToLocallyNameless stack (SLam params tm)   =
-    SLam <$> Right params <*> astToLocallyNameless (stack ++ params) tm
-astToLocallyNameless stack (SClos tm1 params tm2)
-    = SClos <$> astToLocallyNameless params tm1 
-            <*> Right params 
-            <*> astToLocallyNameless (stack ++ params) tm2
+astToLocallyNameless stack (SLam params tm) =
+                SLam    <$> Right params 
+                        <*> astToLocallyNameless (stack ++ params) tm
+astToLocallyNameless stack (SClos tm1 params tm2)= 
+                    SClos   <$> astToLocallyNameless params tm1 
+                            <*> Right params 
+                            <*> astToLocallyNameless (stack ++ params) tm2
 astToLocallyNameless stack (SRec l tm)      = 
-    SRec l    <$> astToLocallyNameless stack tm
+                    SRec l    <$> astToLocallyNameless stack tm
 astToLocallyNameless stack (SRProj tm l)    = 
-    SRProj    <$> astToLocallyNameless stack tm   <*> Right l
+                    SRProj    <$> astToLocallyNameless stack tm   <*> Right l
 astToLocallyNameless stack (SApp tm1 terms) = 
-    SApp      <$> astToLocallyNameless stack tm1  <*> processArguments stack terms
+                    SApp    <$> astToLocallyNameless stack tm1  
+                            <*> processArguments stack terms
 astToLocallyNameless stack (SMrg tm1 tm2)   = 
-    SMrg        <$> astToLocallyNameless stack tm1  
-                <*> astToLocallyNameless (stack ++ [("?", STUnit)]) tm2
+                    SMrg        <$> astToLocallyNameless stack tm1  
+                                <*> astToLocallyNameless 
+                                        (stack ++ [("?", STUnit)]) tm2
 astToLocallyNameless stack (SBox tm1 tm2)   =
-    SBox      <$> astToLocallyNameless stack tm1  <*> astToLocallyNameless stack tm2
+                    SBox    <$> astToLocallyNameless stack tm1  
+                            <*> astToLocallyNameless stack tm2
 astToLocallyNameless stack (SVar var)       = 
-    case debruijnIndex stack var of
-        Just i          -> Right (SProj SCtx i)
-        Nothing         -> Right (SRProj SCtx var)
+                    case debruijnIndex stack var of
+                        Just i          -> Right (SProj SCtx i)
+                        Nothing         -> Right (SRProj SCtx var)
 astToLocallyNameless _ (SStruct params tm)    = 
-    SStruct params <$> astToLocallyNameless params tm   -- Modules are encapsulated and hence, scope is empty except arguments
+                    SStruct params <$> 
+                            astToLocallyNameless params tm   -- Modules are encapsulated and hence, scope is empty except arguments
 astToLocallyNameless stack (SFunc name params typ tm) 
-                                                = SFunc name params typ 
-                                                    <$> astToLocallyNameless (stack ++ params) tm
+                    = SFunc name params typ 
+                        <$> astToLocallyNameless (stack ++ params) tm
 astToLocallyNameless _ (SModule name params tm) 
-                                                = SModule name params <$> astToLocallyNameless params tm
+                    = SModule name params <$> astToLocallyNameless params tm
 astToLocallyNameless stack (SLet params tm)   = 
-    SLet params     <$> astToLocallyNameless (stack ++ processLetArguments params) tm
+                    SLet params     
+                    <$> astToLocallyNameless (stack ++ processLetArguments params) tm
 astToLocallyNameless stack (SLetrec params tm)= 
-    SLetrec params  <$> astToLocallyNameless (stack ++ processLetArguments params) tm
+                    SLetrec params  
+                    <$> astToLocallyNameless (stack ++ processLetArguments params) tm
 astToLocallyNameless stack (SBinOp op tm1 tm2)  =
-    SBinOp op <$> astToLocallyNameless stack tm1 <*> astToLocallyNameless stack tm2
+                    SBinOp op 
+                    <$> astToLocallyNameless stack tm1 <*> astToLocallyNameless stack tm2
 astToLocallyNameless stack (SUnOp op tm)    = 
-    SUnOp op  <$> astToLocallyNameless stack tm
+                    SUnOp op  
+                    <$> astToLocallyNameless stack tm
+astToLocallyNameless stack (SIf tm1 tm2 tm3)=
+                    SIf <$> astToLocallyNameless stack tm1
+                        <*> astToLocallyNameless stack tm2 
+                        <*> astToLocallyNameless stack tm3
 astToLocallyNameless _ (SAliasTyp l ty)     = 
-    Left $ LocallyNamelessFailed ("Type alias not resolved: type " ++ l ++ " = " ++ show ty)
-astToLocallyNameless _stack _tm             = 
-    Left $ LocallyNamelessFailed "Function not fully implemented."
+                    Left    $ LocallyNamelessFailed 
+                            ("Type alias not resolved: type " ++ l ++ " = " ++ show ty)
+astToLocallyNameless _stack tm             = 
+                    Left    $ LocallyNamelessFailed 
+                            ("Function not fully implemented." ++ show tm)
 
 -- | Helper for `astToLocallyNameless`
 processArguments :: Params -> [SurfaceTm] -> Either LocallyNamelessError [SurfaceTm]
 processArguments _params []       = Right []
-processArguments params (x:xs)    = astToLocallyNameless params x >>= \x' ->
-                                    processArguments params xs >>= \xs' -> Right (x':xs')
+processArguments params (x:xs)    = 
+    astToLocallyNameless params x >>= \x' ->
+        processArguments params xs >>= \xs' -> Right (x':xs')
+
 -- | Helper for `astToLocallyNameless`
 processLetArguments :: [(String, SurfaceTyp, SurfaceTm)] -> [(String, SurfaceTyp)]
 processLetArguments []              = []
-processLetArguments ((x, ty, _):xs) = (x, ty) : processLetArguments xs
+processLetArguments ((x, ty, _):xs) 
+    = (x, ty) : processLetArguments xs
 
 {--
     Suppose programmer wants to create a closure

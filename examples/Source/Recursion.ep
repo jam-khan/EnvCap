@@ -1,9 +1,5 @@
-function test(n : Int, m : Int) {
-    if (n == 1) then {
-        1
-    } else {
-        test(n - 1, m - 1)
-    }
-};;
+function test(n : Int, m: Bool) : Int {
+    n
+};
 
-test(1, 2)
+test(1, 1 == 2)

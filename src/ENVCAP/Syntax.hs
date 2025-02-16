@@ -49,8 +49,8 @@ data SurfaceTm
         |   SBinOp     BinaryOp SurfaceTm SurfaceTm
         |   SUnOp      UnaryOp SurfaceTm
         |   SAnno      SurfaceTm SurfaceTyp
-        -- Extra parts
         |   SIf        SurfaceTm SurfaceTm SurfaceTm
+        -- Extra parts
         |   SPair      SurfaceTm SurfaceTm
         |   SFst       SurfaceTm
         |   SSnd       SurfaceTm

@@ -1,8 +1,5 @@
-type newInt = Bool & Int;;
+type newInt = Int;
 
-val hello =  \(x: newInt) => {
-    \(y: newInt) => { x + y}
-};;
+val hello =  \(x: newInt) => { x };
 
-val temp = hello(1==1);;
-temp(1==2)
+hello(1)

@@ -157,11 +157,16 @@ desugar (SVar x)        =
     Left $ DesugarFailed ("Variable identifier " ++ show x ++ " couldn't get transformed.")
 desugar (SStruct params tm)
                         = processModule (SStruct params tm)
-desugar (SFunc name params ty tm)
+-- I need to extract type information from the curried lambda for fixpoint
+-- How to do this?
+-- 1. Desugar and then, iterate through the desugared Lambda and get all the types
+-- 2. Desugar Params and get the types (This one seems a better option)
+desugar (SFunc name params tyOut tm)
                         = do
-                            ty' <- desugarTyp ty
+                            tyOut' <- desugarTyp tyOut
+                            fixTy  <- getFixpointType params tyOut'
                             tm' <- desugar (SLam params tm)
-                            return $ TmRec name (TmFix ty' tm')
+                            return $ TmRec name (TmFix fixTy tm')
 desugar (SModule name params tm)
                         = TmRec name <$> desugar (SStruct params tm)
 desugar (SAliasTyp l _) =
@@ -178,6 +183,14 @@ desugar (SBinOp op tm1 tm2)
                         = TmBinOp op <$> desugar tm1 <*> desugar tm2
 desugar (SUnOp op tm)   = TmUnOp op  <$> desugar tm
 desugar (SAnno tm ty)   = TmAnno <$> desugar tm <*> desugarTyp ty
+desugar (SIf tm1 tm2 tm3)
+                        = TmIf <$> desugar tm1 <*> desugar tm2 <*> desugar tm3
 
 desugar _sourceTerm     =
-    Left $ DesugarFailed "Function not implemented completely."
+    Left $ DesugarFailed "Function not implemented completely.\n" 
+
+-- | Helper to construct fixpoint type
+getFixpointType :: Params -> SourceTyp -> Either DesugarError SourceTyp
+getFixpointType [] ty'              = Right ty'
+getFixpointType [(_, ty)] ty'       = TySArrow <$> desugarTyp ty <*> Right ty' 
+getFixpointType ((_, ty):rest) ty'  = TySArrow <$> desugarTyp ty <*> getFixpointType rest ty'

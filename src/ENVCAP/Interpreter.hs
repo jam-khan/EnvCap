@@ -1,14 +1,15 @@
 module ENVCAP.Interpreter where
 import Control.Exception (try, IOException)
-import ENVCAP.Syntax 
+import ENVCAP.Syntax
 import ENVCAP.Parser.Happy (parseSource)
 import ENVCAP.Source.TypeExpansion (expandAlias)
-import ENVCAP.Source.LocallyNameless 
+import ENVCAP.Source.LocallyNameless
 import ENVCAP.Source.Errors
 import ENVCAP.Source.Desugar (desugar)
 import ENVCAP.Source.Elaboration (Elab, elaborateInfer, elaborateTyp)
 import ENVCAP.Core.Evaluator (eval)
 import ENVCAP.Core.TypeChecker (check)
+import GHC.IO.Exception (ioException)
 
 
 -- | Parses a string of code into a 'SurfaceTm' or returns an 'InterpreterError' on failure.
@@ -37,7 +38,7 @@ parseCode code = maybe (Left $ InterpreterFailed "Parsing unsuccessful.") Right 
 -- >>> typeAliasExpansion SCtx
 -- Right SCtx
 typeAliasExpansion :: SurfaceTm -> Either InterpreterError SurfaceTm
-typeAliasExpansion surfaceAST = 
+typeAliasExpansion surfaceAST =
     case expandAlias STUnit surfaceAST of
         Right expandedAST               -> Right expandedAST
         Left (AliasNotFound err)        -> Left  (InterpreterFailed ("Type Expansion Failed: some type alias not located. " ++ err))
@@ -82,7 +83,7 @@ desugarSource surfaceAST =
 -- >>> elaboration TmCtx
 -- Right (TySUnit,Ctx)
 elaboration :: SourceTm -> Either InterpreterError Elab
-elaboration sourceAST = 
+elaboration sourceAST =
     case elaborateInfer TySUnit sourceAST of
         Right (sourceTy, coreAST) -> Right (sourceTy, coreAST)
         Left  (STypeError err)    -> Left (InterpreterFailed ("Elaboration Failed (Type error): " ++ err))
@@ -107,7 +108,7 @@ evaluate coreAST  = case eval VUnit coreAST of
 -- >>> interpreter "env"
 -- Right VUnit
 interpreter :: String -> Either InterpreterError Value
-interpreter code = 
+interpreter code =
     do  surfaceAST                  <- parseCode code
         surfaceASTExpanded          <- typeAliasExpansion surfaceAST
         surfacelocallyNameLessAST   <- locallyNameless surfaceASTExpanded
@@ -125,10 +126,22 @@ interpreter code =
 -- === Example:
 -- >>> runFile "examples/Source/Arithmetic.ep"
 -- Right ()
-runFile :: String -> IO (Either InterpreterError ())
+-- runFile :: String -> IO (Either InterpreterError Value)
+-- runFile filePath = do
+--     result <- try (readFile filePath) :: IO (Either IOException String)
+--     case result of
+--         Left ioException ->
+--           return $ Left (InterpreterFailed $ "I/O error: " ++ show ioException)
+--         Right code ->  return $ interpreter code
+runFile :: String -> IO()
 runFile filePath = do
     result <- try (readFile filePath) :: IO (Either IOException String)
     case result of
-        Left ioException ->
-          return $ Left (InterpreterFailed $ "I/O error: " ++ show ioException)
-        Right _ ->  return $ Right ()
+        Left ioexception -> putStrLn ("I/O error: " ++ show ioexception)
+        Right code       -> case interpreter code of
+                                Right res                       -> print res
+                                Left (InterpreterFailed err)    -> putStrLn err
+        --   return $ Left (InterpreterFailed $ "I/O error: " ++ show ioException)
+        -- Right code ->  return $ interpreter code
+
+

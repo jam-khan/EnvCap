@@ -98,19 +98,63 @@ expandAlias _ SUnit             = Right SUnit
 expandAlias _ (SLit i)          = Right (SLit i)
 expandAlias _ (SBool b)         = Right (SBool b)
 expandAlias _ (SString s)       = Right (SString s)
-expandAlias ctx (SLam params tm)= SLam  <$> expandAliasTypParams ctx params <*> expandAlias ctx tm
+expandAlias ctx (SLam params tm)= 
+        SLam  <$> expandAliasTypParams ctx params <*> expandAlias ctx tm
 expandAlias ctx (SClos tm1 params tm2)
-                                = SClos  <$> expandAlias ctx tm1 <*> expandAliasTypParams ctx params <*> expandAlias ctx tm2
+                                = SClos <$> expandAlias ctx tm1 
+                                        <*> expandAliasTypParams ctx params 
+                                        <*> expandAlias ctx tm2
 expandAlias ctx (SRec l tm)     = SRec l <$> expandAlias ctx tm
-expandAlias ctx (SRProj tm l)   = SRProj <$> expandAlias ctx tm <*> Right l
-expandAlias ctx (SProj tm i)    = SProj  <$> expandAlias ctx tm <*> Right i
-expandAlias ctx (SApp tm params)= SApp   <$> expandAlias ctx tm <*> traverse (expandAlias ctx) params
-expandAlias ctx (SMrg tm1 tm2)  = case tm1 of
-                                        (SAliasTyp l ty) -> expandTyAlias ctx ty >>= (`expandAlias` tm2) . STAnd ctx . STRecord l
-                                        _                -> SMrg <$> expandAlias ctx tm1 <*> expandAlias ctx tm2
-expandAlias ctx (SBox tm1 tm2)  = SBox  <$> expandAlias ctx tm1 <*> expandAlias ctx tm2
-expandAlias _ _                 = Left $ TypeExpansionFailed "Expansion function not completed."
+expandAlias ctx (SRProj tm l)   = SRProj <$> expandAlias ctx tm 
+                                         <*> Right l
+expandAlias ctx (SProj tm i)    = SProj <$> expandAlias ctx tm 
+                                        <*> Right i
+expandAlias ctx (SApp tm params)= SApp  <$> expandAlias ctx tm 
+                                        <*> traverse (expandAlias ctx) params
+expandAlias ctx (SMrg tm1 tm2)  = 
+                case tm1 of
+                (SAliasTyp l ty) -> 
+                        expandTyAlias ctx ty >>= (`expandAlias` tm2) . STAnd ctx . STRecord l
+                _                ->
+                        SMrg <$> expandAlias ctx tm1 <*> expandAlias ctx tm2
+expandAlias ctx (SBox tm1 tm2)  = 
+        SBox  <$> expandAlias ctx tm1 <*> expandAlias ctx tm2
+expandAlias _   (SVar x)        = Right $ SVar x
+expandAlias ctx (SStruct params tm)
+                                = SStruct <$> expandAliasTypParams ctx params <*> expandAlias ctx tm
+expandAlias ctx (SFunc name params ty tm)
+                                = SFunc name  
+                                <$> expandAliasTypParams ctx params 
+                                <*> expandTyAlias ctx ty 
+                                <*> expandAlias ctx  tm
+expandAlias ctx (SModule name params tm)
+                                = SModule name <$> expandAliasTypParams ctx params <*> expandAlias ctx tm
+expandAlias ctx (SLet letargs tm)
+                                = SLet  <$> expandAliasLetArgs ctx letargs 
+                                        <*> expandAlias ctx tm
+expandAlias ctx (SLetrec letargs tm)
+                                = SLetrec  <$> expandAliasLetArgs ctx letargs
+                                           <*> expandAlias ctx tm
+expandAlias ctx (SBinOp op tm1 tm2)
+                                = SBinOp op <$> expandAlias ctx tm1 <*> expandAlias ctx tm2
+expandAlias ctx (SUnOp op tm)
+                                = SUnOp op  <$> expandAlias ctx tm
+expandAlias ctx (SAnno tm ty)   = 
+                                SAnno <$> expandAlias ctx tm <*> expandTyAlias ctx ty
+expandAlias ctx (SIf tm1 tm2 tm3)
+                                = SIf <$> expandAlias ctx tm1 <*> expandAlias ctx tm2 <*> expandAlias ctx tm3
+expandAlias _   (SAliasTyp l ty)= 
+        Left $ TypeExpansionFailed ("Unresolved type alias detected. Only declare as part of merge: " ++ l ++ " as " ++ show ty)
+expandAlias _ctx tm              = 
+        Left $ TypeExpansionFailed ("Expansion function not completed." ++ show tm)
 
+expandAliasLetArgs   :: SurfaceTyp -> [(String, SurfaceTyp, SurfaceTm)] -> Either TypeExpansionError [(String, SurfaceTyp, SurfaceTm)]
+expandAliasLetArgs _ []                 = Right []
+expandAliasLetArgs ctx ((x, ty, tm):xs) =
+        do
+                ty'     <- expandTyAlias ctx ty
+                rest    <- expandAliasLetArgs ctx xs
+                return $ (x, ty', tm) : rest
 
 expandAliasTypParams :: SurfaceTyp -> Params -> Either TypeExpansionError Params
 expandAliasTypParams _ []                 = Right []
