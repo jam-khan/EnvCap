@@ -78,7 +78,7 @@ astToLocallyNameless _ (SStruct params tm)    =
                             astToLocallyNameless params tm   -- Modules are encapsulated and hence, scope is empty except arguments
 astToLocallyNameless stack (SFunc name params typ tm) 
                     = SFunc name params typ 
-                        <$> astToLocallyNameless (stack ++ params) tm
+                        <$> astToLocallyNameless (stack ++ [(name, STUnit)] ++ params) tm
 astToLocallyNameless _ (SModule name params tm) 
                     = SModule name params <$> astToLocallyNameless params tm
 astToLocallyNameless stack (SLet params tm)   = 

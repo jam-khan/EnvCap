@@ -1,0 +1,47 @@
+type OUT     = {y : Int, f : Int -> Int};
+
+function getFunction(m: Sig[Int, OUT]) : Int -> Int {
+    ( \(applied: OUT) => { applied.f } )(m(20))
+};
+
+module k (x: Int) {
+    val y = x + 1;
+    function f(n : Int) : Int {
+        if (n == 0) then {
+            0
+        } else {
+            n + f(n - 1)
+        }
+    }
+};
+
+val m = 
+    struct (x: Int) {
+        val y = x + 1;
+        function f(n : Int) : Int {
+            if (n == 0) then {
+                1
+            } else {
+                n * f(n - 1)
+            }
+        }
+    };
+
+val n =
+    struct (x: Int) {
+        val y = x + 1;
+        function f(n : Int) : Int {
+            if (n == 0 || n == 1) then {
+                1
+            } else {
+                f(n - 1) + f(n - 2)
+            }
+        }
+    };
+
+val factorial   = getFunction(m);
+val fibonacci   = getFunction(n);
+val sum         = getFunction(k);
+val x           = factorial(20);
+val y           = fibonacci(20);
+val res         = sum(10)zzzz

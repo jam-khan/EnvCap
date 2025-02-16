@@ -1,5 +1,10 @@
-function test(n : Int, m: Bool) : Int {
-    n
+
+function factorial(n : Int, m : Int) : Int {
+    if (n == 0) then {
+        1
+    } else {
+        n * factorial(n - 1, m)
+    }
 };
 
-test(1, 1 == 2)
+factorial(5, 10)

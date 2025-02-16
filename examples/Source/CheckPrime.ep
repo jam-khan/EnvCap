@@ -1,18 +1,3 @@
-function isPrime(n : Int) {
-    if (n < 2) 
-        then { False }
-        else {
-            if ((i * i) > n) 
-                then { True }
-                else {
-                    if (n % i == 0) 
-                        then {
-                            False
-                        } else {
-                            isPrime(n, i + 1)
-                        }
-                }
-            }
-};;
+function isPrime(n : Int)
 
-isPrime(11, 11)
+isPrime(10, 1)

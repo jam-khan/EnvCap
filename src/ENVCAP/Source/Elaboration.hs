@@ -135,6 +135,13 @@ elaborateInfer ctx (TmApp tm1 tm2)
                                                                         -> Left $ generateError ctx tm2
                                                                                         ("Type error on application: expected type " ++ show tA)
                                                                                         err
+                                        (TySSig tA tB)
+                                                -> case elaborateCheck ctx tm2 tA of 
+                                                        Right tm2'      -> Right (tB, App tm1' tm2')
+                                                        Left (STypeError err)
+                                                                        -> Left $ generateError ctx tm2
+                                                                                        ("Type error on module application: expected type " ++ show tA)
+                                                                                        err
                                         _       -> Left $ 
                                                         generateError ctx tm1
                                                         ("Type error on application: function type expected, but got" ++ show typ)
@@ -196,6 +203,13 @@ elaborateInfer ctx (TmFix ty tm) =
                                         -> Left $ generateError ctx (TmFix ty tm) 
                                                 "Type error on fixpoint"
                                                 err
+elaborateInfer ctx (TmStruct tyA tm)=
+                case elaborateInfer (TySAnd TySUnit tyA) tm of
+                        Right (tyB, tm')       -> Right (TySSig tyA tyB, Box Unit (Lam (elaborateTyp tyA) tm'))
+                        Left  (STypeError err) -> Left $ generateError ctx 
+                                                        (TmStruct tyA tm)
+                                                        "Type error on module."
+                                                        ("Fix the module.\n \n-----Further info-----\n \n" ++ err)
 elaborateInfer ctx (TmBinOp (Arith op) tm1 tm2) =
                 case elaborateCheck ctx tm1 TySInt of
                         Right tm1' -> 
