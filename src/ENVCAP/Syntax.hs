@@ -25,6 +25,7 @@ data LogicOp = And | Or
 
 type Params       = [(String, SurfaceTyp)]
 type Letargs      = [(String, SurfaceTyp, SurfaceTm)] 
+
 data SurfaceTm 
         =   SCtx                                        -- Query
         |   SUnit                                       -- Unit
@@ -44,8 +45,8 @@ data SurfaceTm
         |   SFunc      String Params SurfaceTyp SurfaceTm
         |   SModule    String Params SurfaceTm
         |   SAliasTyp  String SurfaceTyp
-        |   SLet       [(String, SurfaceTyp, SurfaceTm)] SurfaceTm
-        |   SLetrec    [(String, SurfaceTyp, SurfaceTm)] SurfaceTm
+        |   SLet       Letargs SurfaceTm
+        |   SLetrec    Letargs SurfaceTm
         |   SBinOp     BinaryOp SurfaceTm SurfaceTm
         |   SUnOp      UnaryOp SurfaceTm
         |   SAnno      SurfaceTm SurfaceTyp

@@ -105,8 +105,8 @@ Term           : 'env'                             { SCtx }
                | IfThenElse                        { $1 }
                | Lambda                            { $1 }
                | Struct                            { $1 }
-               -- | Let                               { $1 }
-               -- | Letrec                            { $1 }
+               | Let                               { $1 }
+               | Letrec                            { $1 }
                | List                              { $1 }
                | ListCons                          { $1 }
                | Record                            { $1 }
@@ -183,8 +183,13 @@ ParamList      : ParamL ',' ParamList                  { $1 : $3 }
 
 ParamL         : var ':' Type                          { ($1, $3) } 
 
--- Let            : 'let'    var ':' Type '='   Term   'in' CurlyParens   { SLet    $2 $4 $6 $8 }
--- Letrec         : 'letrec' var ':' Type '='   Term   'in' CurlyParens   { SLetrec $2 $4 $6 $8 }
+Let            : 'let'    '{' bindings '}' 'in' '{' Term '}'   { SLet    $3 $7 }
+Letrec         : 'letrec' '{' bindings '}' 'in' '{' Term '}'   { SLetrec $3 $7 }
+
+bindings       : binding ';' bindings                  { $1 : $3 }
+               | binding                               { [$1] }
+
+binding        : var ':' Type '=' Term                 { ($1, $3, $5) }
 
 List           : '[]' ':' Type                         { SNil $3 }
                | '[' Elements ']'                      { $2 }

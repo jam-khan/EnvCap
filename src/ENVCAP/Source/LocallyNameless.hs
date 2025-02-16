@@ -73,7 +73,7 @@ astToLocallyNameless stack (SVar var)       =
                     case debruijnIndex stack var of
                         Just i          -> Right (SProj SCtx i)
                         Nothing         -> Right (SRProj SCtx var)
-astToLocallyNameless _ (SStruct params tm)    = 
+astToLocallyNameless _ (SStruct params tm)  = 
                     SStruct params <$> 
                             astToLocallyNameless params tm   -- Modules are encapsulated and hence, scope is empty except arguments
 astToLocallyNameless stack (SFunc name params typ tm) 
@@ -81,13 +81,27 @@ astToLocallyNameless stack (SFunc name params typ tm)
                         <$> astToLocallyNameless (stack ++ [(name, STUnit)] ++ params) tm
 astToLocallyNameless _ (SModule name params tm) 
                     = SModule name params <$> astToLocallyNameless params tm
-astToLocallyNameless stack (SLet params tm)   = 
-                    SLet params     
-                    <$> astToLocallyNameless (stack ++ processLetArguments params) tm
-astToLocallyNameless stack (SLetrec params tm)= 
-                    SLetrec params  
-                    <$> astToLocallyNameless (stack ++ processLetArguments params) tm
-astToLocallyNameless stack (SBinOp op tm1 tm2)  =
+astToLocallyNameless stack (SLet args tm)   = 
+                    do  processedLet <- processLet (SLet args tm)
+                        case processedLet of
+                            (SLet [(x1, ty1, tm1)] tm2) -> 
+                                do 
+                                    tm1' <- astToLocallyNameless stack tm1
+                                    SLet [(x1, ty1, tm1')] <$> astToLocallyNameless (stack ++ [(x1, ty1)]) tm2
+                            _                           -> 
+                                Left $  LocallyNamelessFailed
+                                        "Got unexpected response from internal utility function `processLet`"
+astToLocallyNameless stack (SLetrec args tm)=
+                    do  processedLet <- processLet (SLetrec args tm)
+                        case processedLet of
+                            (SLetrec [(x1, ty1, tm1)] tm2) -> 
+                                do 
+                                    tm1' <- astToLocallyNameless (stack ++ [(x1, ty1)]) tm1
+                                    SLetrec [(x1, ty1, tm1')] <$> astToLocallyNameless (stack ++ [(x1, ty1)]) tm2
+                            _                           -> 
+                                Left $  LocallyNamelessFailed
+                                        "Got unexpected response from internal utility function `processLet`"
+astToLocallyNameless stack (SBinOp op tm1 tm2)=
                     SBinOp op 
                     <$> astToLocallyNameless stack tm1 <*> astToLocallyNameless stack tm2
 astToLocallyNameless stack (SUnOp op tm)    = 
@@ -103,6 +117,14 @@ astToLocallyNameless _ (SAliasTyp l ty)     =
 astToLocallyNameless _stack tm             = 
                     Left    $ LocallyNamelessFailed 
                             ("Function not fully implemented." ++ show tm)
+
+processLet :: SurfaceTm -> Either LocallyNamelessError SurfaceTm
+processLet (SLet [x] tm)        = Right $ SLet      [x] tm
+processLet (SLet (x:xs) tm)     = SLet [x]      <$> processLet (SLet xs tm)
+processLet (SLetrec [x] tm)     = Right $ SLetrec   [x] tm
+processLet (SLetrec (x:xs) tm)  = SLetrec [x]   <$> processLet (SLetrec xs tm)
+processLet _                    = Left $ LocallyNamelessFailed "Either a let with no params or Let utility function called on wrong term."
+
 
 -- | Helper for `astToLocallyNameless`
 processArguments :: Params -> [SurfaceTm] -> Either LocallyNamelessError [SurfaceTm]
