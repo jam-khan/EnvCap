@@ -1,8 +1,9 @@
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 module ENVCAP.Source.Elaboration where
 import ENVCAP.Syntax
+import ENVCAP.Source.Errors 
 
-elaborateTyp :: TypS -> TypC
+elaborateTyp :: SourceTyp -> CoreTyp
 elaborateTyp TySUnit               = TyCUnit
 elaborateTyp TySInt                = TyCInt
 elaborateTyp TySBool               = TyCBool
@@ -15,21 +16,20 @@ elaborateTyp (TySSum ty1 ty2)      = TyCSum  (elaborateTyp ty1) (elaborateTyp ty
 elaborateTyp (TySPair ty1 ty2)     = TyCPair (elaborateTyp ty1) (elaborateTyp ty2)
 elaborateTyp (TySSig tA tB)        = TyCArrow (elaborateTyp tA) (elaborateTyp tB)
 
-unescape :: String -> String
-unescape [] = []
-unescape ('\\' : 'n' : xs) = '\n' : unescape xs  -- Replace `\n` with newline
-unescape ('\\' : '\\' : xs) = '\\' : unescape xs -- Replace `\\` with `\`
-unescape ('\\' : '\"' : xs) = '\"' : unescape xs -- Replace `\"` with `"`
-unescape (x : xs) = x : unescape xs
+-- unescape :: String -> String
+-- unescape [] = []
+-- unescape ('\\' : 'n' : xs) = '\n' : unescape xs  -- Replace `\n` with newline
+-- unescape ('\\' : '\\' : xs) = '\\' : unescape xs -- Replace `\\` with `\`
+-- unescape ('\\' : '\"' : xs) = '\"' : unescape xs -- Replace `\"` with `"`
+-- unescape (x : xs) = x : unescape xs
 
-type Elab = (TypS, Exp)
-newtype SourceTypeError = STypeError String deriving Show
+type Elab = (SourceTyp, CoreTm)
 
-type Context    = TypS
+type Context    = SourceTyp
 type Message    = String
 type Suggestion = String
 
-generateError :: Context -> Tm -> Message -> Suggestion -> SourceTypeError
+generateError :: Context -> SourceTm -> Message -> Suggestion -> SourceTypeError
 generateError ctx tm msg sugg =
         STypeError
                 ("Typechecking failed at Source level\n\n" ++
@@ -39,19 +39,19 @@ generateError ctx tm msg sugg =
                 sugg    ++ "\n")
 
 -- Lookup based on indexing
-lookupt :: TypS -> Int -> Maybe TypS
+lookupt :: SourceTyp -> Integer -> Maybe SourceTyp
 lookupt (TySAnd _ tB) 0          = Just tB
 lookupt (TySAnd tA _) n          = lookupt tA (n - 1)
-lookupt _ _                       = Nothing
+lookupt _ _                      = Nothing
 
 -- checks if l is a label in the typing context
-isLabel :: String -> TypS -> Bool
+isLabel :: String -> SourceTyp -> Bool
 isLabel l (TySRecord label _)     = l == label
 isLabel l (TySAnd tA tB)          = isLabel l tA || isLabel l tB
 isLabel _ _                       = False
 
 -- containment
-containment :: TypS -> TypS -> Bool
+containment :: SourceTyp -> SourceTyp -> Bool
 containment (TySRecord l tA) (TySRecord label typ ) 
                                 = l == label && tA == typ
 containment (TySRecord l tA) (TySAnd tB tC) 
@@ -60,7 +60,7 @@ containment (TySRecord l tA) (TySAnd tB tC)
 containment _ _                 = False
 
 -- Lookup based on label
-rlookupt :: TypS -> String -> Maybe TypS
+rlookupt :: SourceTyp -> String -> Maybe SourceTyp
 rlookupt (TySRecord l t) label
     | l == label = Just t
 rlookupt (TySAnd tA tB) label 
@@ -69,7 +69,7 @@ rlookupt (TySAnd tA tB) label
                                 Nothing   -> rlookupt tA label
 rlookupt _ _            = Nothing
 
-elaborateInfer :: TypS -> Tm -> Either SourceTypeError Elab
+elaborateInfer :: SourceTyp -> SourceTm -> Either SourceTypeError Elab
 elaborateInfer ctx TmCtx             = Right (ctx, Ctx)
 elaborateInfer _ TmUnit            = Right (TySUnit, Unit)
 elaborateInfer _ (TmLit i)         = Right (TySInt, Lit i)
@@ -189,18 +189,11 @@ elaborateInfer ctx (TmIf tm1 tm2 tm3)
                                 Left $ generateError ctx tm1
                                                 "Type error on condition: condition must be of type Bool"
                                                 ("Fix the condition and make sure it is of type Bool.\n \n-----Further info-----\n \n" ++ err)   
-elaborateInfer ctx (TmFix (TmLam tA tm)) = 
-                case elaborateInfer (TySAnd ctx (TySArrow tA tA)) (TmLam tA tm) of
-                        -- IMPORTANT
-                        -- This is not the right way to handle it (Add annotations on surface level)
-                        -- Temporary fix for testing purposes
-                        Right (ty, tm')       -> case elaborateTyp (TySArrow ty ty) of
-                                                        (TyCArrow t1 _) -> Right (ty, Fix t1 tm')
-                                                        _               -> Left $ generateError ctx (TmFix (TmLam tA tm)) 
-                                                                                "Type error on fixpoint"
-                                                                                "Make sure fixpoint error is correct"
+elaborateInfer ctx (TmFix ty tm) = 
+                case elaborateCheck (TySAnd ctx ty) tm ty of
+                        Right  tm'       ->     Right (ty, Fix (elaborateTyp ty) tm')
                         Left (STypeError err)   
-                                        -> Left $ generateError ctx (TmFix (TmLam tA tm)) 
+                                        -> Left $ generateError ctx (TmFix ty tm) 
                                                 "Type error on fixpoint"
                                                 err
 elaborateInfer ctx (TmBinOp (Arith op) tm1 tm2) =
@@ -271,7 +264,7 @@ elaborateInfer ctx (TmUnOp Not tm)     =
                         Left err                -> Left err
 
 
-elaborateCheck :: TypS -> Tm -> TypS -> Either SourceTypeError Exp
+elaborateCheck :: SourceTyp -> SourceTm -> SourceTyp -> Either SourceTypeError CoreTm
 elaborateCheck ctx tm typ       
         = case elaborateInfer ctx tm of
                 Right (typ', e') ->

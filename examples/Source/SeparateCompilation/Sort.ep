@@ -1,0 +1,19 @@
+type NewInt     = Int;
+type UtilsOut   = interface "Utils";
+
+@insecure module Sort {
+    require utils : import "Utils",
+    -- only insecure modules can be imported in a insecure module
+    -- since Utils is a secure module so it can't be imported.
+    require x : Int,
+    require y : Int,
+    require {"z" : Int}
+}
+{
+    open utils(3);
+    val utilsNew : UtilsOut = utils(6);
+    val k : Int             = 10;
+    val temp1 : NewInt      = add(x + y + z);
+    val temp2 : NewInt      = utilsNew.add(x + y + z);
+    val result: NewInt      = factorial(10);
+}

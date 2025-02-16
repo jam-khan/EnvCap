@@ -2,12 +2,12 @@
 {-# HLINT ignore "Use newtype instead of data" #-}
 {-# LANGUAGE LambdaCase #-}
 module ENVCAP.Core.TypeChecker where
-import ENVCAP.Syntax (Exp(..), TypC(..), BinaryOp(..), UnaryOp(..))
+import ENVCAP.Syntax 
 import ENVCAP.Core.Util (rlookupt, lookupt, containment)
 
 data TypeError = TypeError String deriving Show
 
-infer :: TypC -> Exp -> Either TypeError TypC
+infer :: CoreTyp -> CoreTm -> Either TypeError CoreTyp
 infer ctx Ctx                 = Right ctx
 infer _ Unit                  = Right TyCUnit
 infer _ (Lit _)               = Right TyCInt
@@ -38,16 +38,21 @@ infer ctx (RProj e l)           = infer ctx e >>= \tB ->
                                                 then Right tA 
                                                 else Left $ TypeError "Record projection failed due to containment"
                                         Nothing -> Left $ TypeError $ "Field " ++ show l ++ " not found in type " ++ show tB 
-infer ctx (Fix tA e)            = if check (TyCAnd ctx tA) e tA then Right tA else Left $ TypeError "Fixpoint type check failed"
+infer ctx (Fix tA e)            = if check (TyCAnd ctx tA) e tA 
+                                        then Right tA 
+                                        else Left $ TypeError "Fixpoint type check failed"
 infer ctx (If cond e1 e2)       = if check ctx cond TyCBool 
                                         then infer ctx e1 >>= \t1 -> 
                                                 infer ctx e2 >>= \t2 -> 
-                                                    if t1 == t2 then Right t1 
-                                                                else Left $ TypeError "Branches of if must have the same type"  
+                                                    if t1 == t2 
+                                                            then Right t1 
+                                                            else Left $ TypeError "Branches of if must have the same type"  
                                         else Left $ TypeError "Condition must be of type Bool"
 infer ctx (Pair e1 e2)          = infer ctx e1 >>= \ta -> infer ctx e2 >>= \tb -> Right $ TyCPair ta tb
-infer ctx (Fst e)               = infer ctx e >>= \case TyCPair ta _ -> Right ta 
-                                                        _          -> Left $ TypeError "Expected a pair type"
+infer ctx (Fst e)               = infer ctx e >>= 
+                                        \case 
+                                            TyCPair ta _ -> Right ta 
+                                            _          -> Left $ TypeError "Expected a pair type"
 infer ctx (Snd e)               = infer ctx e >>= \case TyCPair _ tb -> Right tb 
                                                         _           -> Left $ TypeError "Expected a pair type"
 infer ctx (InL tb e1)           = infer ctx e1 >>= \ta -> Right $ TyCSum ta tb  
@@ -90,7 +95,7 @@ infer ctx (UnOp Not e)          = if check ctx e TyCBool  then Right TyCBool
                                                         else Left $ TypeError "Expected boolean for negation"   
 infer _ _                       = Left $ TypeError "Unknown expression"
 
-check :: TypC -> Exp -> TypC -> Bool
+check :: CoreTyp -> CoreTm -> CoreTyp -> Bool
 check ctx e tA                  = case infer ctx e of    
                                     Right tB -> tA == tB    
                                     _        -> False  

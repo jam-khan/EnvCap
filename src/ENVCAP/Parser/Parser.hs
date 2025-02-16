@@ -22,57 +22,57 @@ import Text.Parsec.Expr as E (buildExpressionParser, Assoc(AssocNone), Assoc(Ass
 import Data.Functor.Identity (Identity)
 
 
-parseCtx        :: Parser Tm
+parseCtx        :: Parser SourceTm
 parseCtx        = lexeme $ keyword "?" >> return TmCtx
 
-parseTrue       :: Parser Tm
+parseTrue       :: Parser SourceTm
 parseTrue       = lexeme $ trueToken    >> return (TmBool True)
 
-parseFalse      :: Parser Tm
+parseFalse      :: Parser SourceTm
 parseFalse      = lexeme $ falseToken   >> return (TmBool False)
 
-parseBoolean    :: Parser Tm
+parseBoolean    :: Parser SourceTm
 parseBoolean    = try parseTrue <|> parseFalse
 
-parseString     :: Parser Tm
+parseString     :: Parser SourceTm
 parseString     = TmString <$> lexeme stringToken
 
-parseInteger :: Parser Tm
+parseInteger :: Parser SourceTm
 parseInteger = lexeme $ do
                         sign    <-  option "" (string "-")      -- Handling Prefix -
                         void    $   option "" (string "+")      -- Handling Prefix +
                         num     <-  read <$> many1 digit
                         return $ TmLit (if null sign then num else -num)
 
-parseUnit   :: Parser Tm
+parseUnit   :: Parser SourceTm
 parseUnit   = lexeme    $ void unitToken >> return TmUnit
 
-parseDef    :: Parser Tm
+parseDef    :: Parser SourceTm
 parseDef    = TmRProj TmCtx <$> identifierToken
 
-parseAssign :: Parser Tm
+parseAssign :: Parser SourceTm
 parseAssign = do
                 void (lexeme $ keyword "define")
                 name <- identifierToken
                 void (lexeme $ char '=')
                 TmRec name <$> parseExp
 
-parseType :: Parser TypS
+parseType :: Parser SourceTyp
 parseType = do
                 void (lexeme $ string "Int")
                 return TySInt
 
-parseLambdaParams :: Parser [TypS]
+parseLambdaParams :: Parser [SourceTyp]
 parseLambdaParams = parseParam `sepEndBy1` lexeme (char ',')
 
-parseParam :: Parser TypS
+parseParam :: Parser SourceTyp
 parseParam = do
     name <- identifierToken
     void (lexeme $ char ':')
     TySRecord name <$> parseType
 
 
-parseLambda :: Parser Tm
+parseLambda :: Parser SourceTm
 parseLambda = do
                 void (lexeme $ string "\\(")
                 ty <- lexeme parseLambdaParams
@@ -81,7 +81,7 @@ parseLambda = do
                 tm <- lexeme $ between (lexeme $ char '{') (lexeme $ char '}') parseMultExpr
                 return $ TmLam (intersections ty) (merges tm)
 
-parseApplication :: Parser Tm
+parseApplication :: Parser SourceTm
 parseApplication = do
                         funcName <- identifierToken
                         void $ lexeme $ char '('
@@ -90,10 +90,10 @@ parseApplication = do
                         return $ TmApp (TmRProj TmCtx funcName) e
 
 
-operationParser :: Parsec String () Tm
+operationParser :: Parsec String () SourceTm
 operationParser = lexeme $ buildExpressionParser operators parseTerm
 
-operators :: [[Operator String () Identity Tm]]
+operators :: [[Operator String () Identity SourceTm]]
 operators =    [[E.Prefix (TmUnOp Not            <$ char '!')],
                 [E.Infix (TmBinOp (Arith Mod)  <$ symbol "%") E.AssocLeft,
                  E.Infix (TmBinOp (Arith Mul)  <$ symbol "*") E.AssocLeft,
@@ -111,7 +111,7 @@ operators =    [[E.Prefix (TmUnOp Not            <$ char '!')],
                 [E.Infix (TmBinOp (Logic And)  <$ symbol "&&") E.AssocRight],
                 [E.Infix (TmBinOp (Logic Or)   <$ symbol "||")   E.AssocRight]]
 
-parseTerm :: Parser Tm
+parseTerm :: Parser SourceTm
 parseTerm = try parseApplication
             <|> parseCtx
             <|> parseInteger
@@ -122,7 +122,7 @@ parseTerm = try parseApplication
             <|> parens operationParser
             <|> parseUnit
 
-parseExp :: Parser Tm
+parseExp :: Parser SourceTm
 parseExp = try parseApplication
            <|> try parseAssign   
            <|> parseLambda
@@ -145,15 +145,15 @@ symbol s = try $ lexeme $ do
 parens :: Parser a -> Parser a
 parens p = lexeme $ between (char '(') (char ')') p
 
-parseConditional :: Parser Tm
+parseConditional :: Parser SourceTm
 parseConditional = TmIf    <$>  (void (keyword "if")       *> parseExp)
                             <*> (void (keyword "then")     *> parseExp)
                             <*> (void (keyword "else")     *> parseExp)
 
-parseMultExpr :: Parser [Tm]
+parseMultExpr :: Parser [SourceTm]
 parseMultExpr = parseExp `sepEndBy1` lexeme (char ';')
 
-parseMain :: String -> Either ParseError Tm
+parseMain :: String -> Either ParseError SourceTm
 parseMain input = case parseWithWhitespace parseMultExpr input of
                         Left err          ->    Left err
                         Right res        ->     Right (merges res)

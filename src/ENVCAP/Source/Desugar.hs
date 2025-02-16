@@ -1,132 +1,196 @@
+{-|
+Module      : Desugar
+Description : A module for desugaring surface terms into source terms.
+Maintainer  : Your Name <your.email@example.com>
+Stability   : Experimental
+Portability : Non-portable (depends on GHC extensions)
+
+This module provides functions to transform surface-level terms into a more abstract representation suitable for further processing. The desugaring process involves converting various syntactic constructs into simpler forms, enabling easier manipulation and evaluation.
+
+== Functions
+
+* 'extractLetParams'            - Extracts parameter names and types from let bindings.
+* 'extractLetArgs'              - Extracts argument terms from let bindings.
+* 'extractLetRecParams'         - Extracts parameters from letrec bindings.
+* 'processLetRecParamsArgs'     - Processes parameters and arguments for letrec bindings.
+* 'processModule'               - Processes a module structure and desugars its contents.
+* 'processParams'               - Desugars a list of parameters.
+* 'processApplication'          - Desugars application terms.
+* 'processLambda'               - Desugars lambda abstractions.
+* 'desugarParam'                - Desugars a single parameter type.
+* 'desugarTyp'                  - Desugars surface types into source types.
+* 'desugar'                     - Main function to desugar surface terms into source terms.
+
+== Examples
+
+=== Example 1: Desugaring a simple lambda expression
+
+>>> desugar (SLam [("x", STInt)] (SProj SCtx 0))
+Right (TmLam TySInt (TmProj TmCtx 0))
+
+>>> desugar (SLet [("y", STInt, SLit 5)] (SProj SCtx 0))
+Right (TmApp (TmLam TySInt (TmProj TmCtx 0)) (TmLit 5))
+
+=== Example 3: Desugaring a module
+
+>>> desugar (SModule "MyModule" [("param1", STInt), ("param2", STInt)] (SLit 42))
+Right (TmRec "MyModule" (TmStruct (TySAnd TySInt TySInt) (TmLit 42)))
+
+=== Example 4: Handling an unsupported term
+
+>>> desugar (SVar "undefinedVar")
+Left (DesugarFailed "Variable identifier \"undefinedVar\" couldn't get transformed.")
+-}
+
+-- Function implementations follow...
+{-# LANGUAGE LambdaCase #-}
 module ENVCAP.Source.Desugar where
 import ENVCAP.Syntax
-
-lookupTyp :: SurfaceTyp -> String -> Maybe SurfaceTyp
-lookupTyp (STAnd ty1 (STRecord label' ty2)) label 
-                                = if label' == label    
-                                                then case lookupTyp ty1 label of
-                                                        Just _       -> Nothing
-                                                        _            -> Just ty2
-                                                else lookupTyp ty1 label
-lookupTyp _ _                   = Nothing
-
-expandTyAlias :: SurfaceTyp -> SurfaceTyp -> Maybe SurfaceTyp
-expandTyAlias _ STUnit               = Just STUnit
-expandTyAlias _ STInt                = Just STInt
-expandTyAlias _ STBool               = Just STBool
-expandTyAlias _ STString             = Just STString
-expandTyAlias tyCtx (STAnd ty1 ty2)  = 
-        STAnd           <$> expandTyAlias tyCtx ty1  <*> expandTyAlias tyCtx ty2
-expandTyAlias tyCtx (STArrow tA tB)  = 
-        STArrow         <$> expandTyAlias tyCtx tA   <*> expandTyAlias tyCtx tB
-expandTyAlias tyCtx (STRecord l ty)  = 
-        STRecord l      <$> expandTyAlias tyCtx ty
-expandTyAlias tyCtx (STList ty)      = 
-        STList          <$> expandTyAlias tyCtx ty
-expandTyAlias tyCtx (STSum  ty1 ty2) = 
-        STSum           <$> expandTyAlias tyCtx ty1  <*> expandTyAlias tyCtx ty2
-expandTyAlias tyCtx (STPair ty1 ty2) = 
-        STPair          <$> expandTyAlias tyCtx ty1  <*> expandTyAlias tyCtx ty2
-expandTyAlias tyCtx (STSig  tyA tyB) = 
-        STSig           <$> expandTyAlias tyCtx tyA  <*> expandTyAlias tyCtx tyB
-expandTyAlias tyCtx (STIden label)   = 
-        lookupTyp tyCtx label
-
-expandAlias :: SurfaceTyp -> SurfaceTm -> Maybe SurfaceTm 
-expandAlias _     SCtx                      = Just SCtx
-expandAlias _     SUnit                     = Just SUnit
-expandAlias _     (SLit n)                   = Just $ SLit n
-expandAlias _     (SBool b)                  = Just $ SBool b
-expandAlias _     (SString s)                = Just $ SString s
-expandAlias _     (SAliasTyp _ _)            = error "Type aliases expansion not completed properly"
-expandAlias tyCtx (SBinOp op tm1 tm2)        = 
-                case (expandAlias tyCtx tm1, expandAlias tyCtx tm2) of
-                        (Just tm1', Just tm2') -> Just (SBinOp op tm1' tm2')
-                        _                      -> Nothing
-expandAlias tyCtx (SUnOp op tm)              = 
-        SUnOp op       <$> expandAlias tyCtx tm
-expandAlias tyCtx (SIf tm1 tm2 tm3)          = 
-        SIf            <$> expandAlias tyCtx tm1 <*> expandAlias tyCtx tm2 <*> expandAlias tyCtx tm3
-expandAlias tyCtx (SFix tm)                  = 
-        SFix           <$> expandAlias tyCtx tm
-expandAlias tyCtx (SMrg tm1 tm2)             = 
-                case tm1 of 
-                (SAliasTyp label typ)  -> expandAlias (STAnd tyCtx (STRecord label typ)) tm2
-                _                       -> case (expandAlias tyCtx tm1, expandAlias tyCtx tm2) of
-                                                (Just tm1', Just tm2')          -> Just (SMrg tm1' tm2')
-                                                _                               -> Nothing
-expandAlias tyCtx (SRec name tm)             = 
-        SRec name <$> expandAlias tyCtx tm
-expandAlias tyCtx (SRProj tm name)           = 
-        SRProj <$> expandAlias tyCtx tm <*> Just name
-expandAlias _ (SProj tm i)                   = 
-        Just $ SProj tm i
-expandAlias tyCtx (SLam ty tm)               = 
-        SLam <$> expandTyAlias tyCtx ty <*> expandAlias tyCtx tm
-expandAlias tyCtx (SFunc name ty tm)         = 
-        SFunc name <$> expandTyAlias tyCtx ty <*> expandAlias tyCtx tm
-expandAlias tyCtx(SApp tm1 tm2)              = 
-        SApp <$> expandAlias tyCtx tm1 <*> expandAlias tyCtx tm2
-expandAlias _ _                               = Nothing
-
-desugar :: SurfaceTm -> Maybe SurfaceTm
-desugar SCtx                   = Just SCtx
-desugar SUnit                  = Just SUnit
-desugar (SLit n)               = Just $ SLit n
-desugar (SBool b)              = Just $ SBool b
-desugar (SString s)            = Just $ SString s
-desugar (SAliasTyp _ _)        = Just SUnit
-desugar (SBinOp op tm1 tm2)    = case (desugar tm1, desugar tm2) of
-                                        (Just tm1', Just tm2') -> Just (SBinOp op tm1' tm2')
-                                        _                       -> Nothing
-desugar (SUnOp op tm)          = SUnOp op     <$> desugar tm
-desugar (SIf tm1 tm2 tm3)      = SIf          <$> desugar tm1 <*> desugar tm2 <*> desugar tm3
-desugar (SFix tm)              = SFix         <$> desugar tm
-desugar (SMrg tm1 tm2)         = SMrg         <$> desugar tm1 <*> desugar tm2
-desugar (SRec name tm)         = SRec name    <$> desugar tm
-desugar (SRProj tm name)       = SRProj       <$> desugar tm <*> Just name
-desugar (SProj tm i)           = case desugar tm of
-                                        Just tm' -> Just (SProj tm' i)
-                                        _        -> Nothing
-desugar (SLam ty tm)           = case ty of
-                                        (STAnd t1 t2)               -> desugar (SLam t1 (SLam t2 tm))
-                                        (STRecord label _)        -> case debruijnTransform label 0 tm of
-                                                                                Just tm'        -> SLam ty <$> desugar tm'
-                                                                                _               -> Nothing
-                                        _                               -> SLam ty <$> desugar tm
-desugar (SFunc name ty tm)     = case desugar (SLam ty tm) of
-                                        Just tm'        -> case debruijnTransform name 0 tm' of
-                                                                Just tm''       -> Just $ SRec name (SFix tm'')
-                                                                _               -> Nothing 
-                                        _               -> Nothing
-desugar (SApp tm1 tm2)         = SApp <$> desugar tm1 <*> desugar tm2
-desugar _                      = Nothing
+import ENVCAP.Source.Errors
 
 
-debruijnTransform :: String -> Int -> SurfaceTm -> Maybe SurfaceTm
-debruijnTransform _ _ SCtx                     = Just SCtx
-debruijnTransform _ _ SUnit                    = Just SUnit
-debruijnTransform _ _ (SLit n)                 = Just $ SLit n
-debruijnTransform _ _ (SBool b)                = Just $ SBool b
-debruijnTransform _ _ (SString s)              = Just $ SString s
-debruijnTransform x i (SBinOp op tm1 tm2)      = case (debruijnTransform x i tm1, debruijnTransform x i tm2) of
-                                                        (Just tm1', Just tm2')  -> Just (SBinOp op tm1' tm2')
-                                                        _                       -> Nothing
-debruijnTransform x i (SUnOp op tm)            = case debruijnTransform x i tm of
-                                                        (Just tm')      -> Just (SUnOp op tm')
-                                                        _               -> Nothing
-debruijnTransform x i (SIf tm1 tm2 tm3)        = SIf          <$> debruijnTransform x i tm1   <*> debruijnTransform x i tm2   <*> debruijnTransform x i tm3
-debruijnTransform x i (SMrg tm1 tm2)           = SMrg         <$> debruijnTransform x i tm1   <*> debruijnTransform x (i + 1) tm2
-debruijnTransform x i (SRec name tm)           = SRec name    <$> debruijnTransform x i tm
-debruijnTransform x i (SRProj SCtx l)          = Just $ if l == x then SProj SCtx i else SRProj SCtx l
-debruijnTransform x i (SRProj tm name)         = SRProj       <$> debruijnTransform x i tm    <*> Just name
-debruijnTransform x i (SProj tm n)             = SProj        <$> debruijnTransform x i tm    <*> Just n
-debruijnTransform x i (SFix tm)                = SFix         <$> debruijnTransform x i tm
-debruijnTransform x i (SLam ty tm)             =
-        case ty of
-                (STRecord label _) ->     if label == x   then Just $ SLam ty tm
-                                                                        else SLam ty    <$> debruijnTransform x (i + 1) tm
-                _       -> SLam ty      <$> debruijnTransform x (i + 1) tm
-debruijnTransform x i (SApp tm1 tm2)           = SApp <$> debruijnTransform x i tm1 <*> debruijnTransform x i tm2
-debruijnTransform _ _ _                         = Nothing
+extractLetParams :: [(String, SurfaceTyp, SurfaceTm)] -> [(String, SurfaceTyp)]
+extractLetParams [] = []
+extractLetParams ((x, ty, _tm):rest)
+                    = (x, ty) : extractLetParams rest
 
+extractLetArgs :: [(String, SurfaceTyp, SurfaceTm)] -> [SurfaceTm]
+extractLetArgs []   = []
+extractLetArgs ((_x, _ty, tm):rest)
+                    = tm : extractLetArgs rest
+
+extractLetRecParams :: [(String, SurfaceTyp, SurfaceTm)] -> [(String, SurfaceTyp)]
+extractLetRecParams []  = []
+extractLetRecParams ((x, ty, _tm):rest)
+                        = (x, ty) : extractLetParams rest
+
+processLetRecParamsArgs :: [(String, SurfaceTyp, SurfaceTm)] -> Either DesugarError [SourceTm]
+processLetRecParamsArgs []    = Right []
+processLetRecParamsArgs ((_, ty, tm):rest)
+                        = do    ty'     <- desugarTyp ty
+                                tm'     <- desugar tm
+                                rest'   <- processLetRecParamsArgs rest
+                                return $ TmFix ty' tm' : rest'
+
+processModule :: SurfaceTm -> Either DesugarError SourceTm
+processModule (SStruct params tm) = 
+    TmStruct <$> processParams params <*> desugar tm
+processModule _                   = 
+    Left $ DesugarFailed "Utility to process modules called on a non-module"
+
+processParams :: Params -> Either DesugarError SourceTyp
+processParams []        = 
+    Left $ DesugarFailed "Empty Params not allowed in the module struct"
+processParams [(_, ty)] = 
+    desugarTyp ty
+processParams ((_, ty):rest) = 
+    TySAnd <$> desugarTyp ty <*> processParams rest
+
+
+processApplication :: SurfaceTm -> Either DesugarError SourceTm
+processApplication (SApp tm1 args)
+    = do
+        tm1' <- desugar tm1
+        args' <- mapM desugar args
+        return $ foldl TmApp tm1' args'
+processApplication tm
+    = Left $ DesugarFailed ("Utility function called on non-application: " ++ show tm)
+
+processLambda :: SurfaceTm -> Either DesugarError SourceTm
+processLambda (SLam [] tm)          = desugar tm
+processLambda (SLam (arg:rest) tm)  =
+    TmLam <$> desugarParam arg <*> processLambda (SLam rest tm)
+processLambda _                     =
+    Left $ DesugarFailed "Utility function `processLambda` called upon non-lambda term."
+
+desugarParam :: (String, SurfaceTyp) -> Either DesugarError SourceTyp
+desugarParam (_, ty) = desugarTyp ty
+
+desugarTyp :: SurfaceTyp -> Either DesugarError SourceTyp
+desugarTyp STUnit               = Right TySUnit
+desugarTyp STInt                = Right TySInt
+desugarTyp STBool               = Right TySBool
+desugarTyp STString             = Right TySString
+desugarTyp (STAnd   ty1 ty2)    =
+    TySAnd    <$> desugarTyp ty1 <*> desugarTyp ty2
+desugarTyp (STArrow ty1 ty2)    =
+    TySArrow  <$> desugarTyp ty1 <*> desugarTyp ty2
+desugarTyp (STRecord l ty)      =
+    TySRecord l <$> desugarTyp ty
+desugarTyp (STList ty)          =
+    TySList   <$> desugarTyp ty
+desugarTyp (STSum  ty1 ty2)     =
+    TySSum    <$> desugarTyp ty1 <*> desugarTyp ty2
+desugarTyp (STPair ty1 ty2)     =
+    TySPair   <$> desugarTyp ty1 <*> desugarTyp ty2
+desugarTyp (STSig ty1 ty2)      =
+    TySSig    <$> desugarTyp ty1 <*> desugarTyp ty2
+desugarTyp (STIden x)           =
+    Left $ DesugarFailed
+        ("Type alias not expanded correctly. Type identifier remaining: " ++ show x)
+
+desugar :: SurfaceTm -> Either DesugarError SourceTm
+desugar SCtx            = Right TmCtx
+desugar SUnit           = Right TmUnit
+desugar (SLit i)        = Right (TmLit i)
+desugar (SBool b)       = Right (TmBool b)
+desugar (SString s)     = Right (TmString s)
+desugar (SLam params tm)= processLambda (SLam params tm)
+desugar (SClos tm1 params tm2)
+                        = desugar tm1 >>= \tm1' ->
+                            processLambda (SLam params tm2) >>= \case
+                                (TmLam ty tm2')   -> Right $ TmClos tm1' ty tm2'
+                                _                 -> Left  $ DesugarFailed "Closure must be an abstraction. Hint: Use boxes instead"
+desugar (SRec l tm)     = 
+    TmRec l <$> desugar tm
+desugar (SRProj tm l)   = 
+    TmRProj <$> desugar tm <*> Right l
+desugar (SProj tm n)    = 
+    TmProj  <$> desugar tm <*> Right n
+desugar (SApp tm1 args) = 
+    processApplication (SApp tm1 args)
+desugar (SMrg tm1 tm2)  = 
+    TmMrg <$> desugar tm1 <*> desugar tm2
+desugar (SBox tm1 tm2)  = 
+    TmBox <$> desugar tm1 <*> desugar tm2
+desugar (SVar x)        = 
+    Left $ DesugarFailed ("Variable identifier " ++ show x ++ " couldn't get transformed.")
+desugar (SStruct params tm)
+                        = processModule (SStruct params tm)
+-- I need to extract type information from the curried lambda for fixpoint
+-- How to do this?
+-- 1. Desugar and then, iterate through the desugared Lambda and get all the types
+-- 2. Desugar Params and get the types (This one seems a better option)
+desugar (SFunc name params tyOut tm)
+                        = do
+                            tyOut' <- desugarTyp tyOut
+                            fixTy  <- getFixpointType params tyOut'
+                            tm' <- desugar (SLam params tm)
+                            return $ TmRec name (TmFix fixTy tm')
+desugar (SModule name params tm)
+                        = TmRec name <$> desugar (SStruct params tm)
+desugar (SAliasTyp l _) =
+                        Left $ DesugarFailed ("Type alias" ++ show l ++ "detected at desugaring phased.")
+desugar (SLet letargs tm)
+                        = desugar (SApp (SLam (extractLetParams letargs) tm) (extractLetArgs   letargs))
+-- Letrec needs careful handling!
+-- desugar (SLetrec letargs tm)
+--                         = do
+--                             tm'     <- desugar (SLam (extractLetParams letargs) tm)
+--                             args'   <- processLetRecParamsArgs letargs
+--                             return $ foldl (TmApp tm') args'
+desugar (SBinOp op tm1 tm2)
+                        = TmBinOp op <$> desugar tm1 <*> desugar tm2
+desugar (SUnOp op tm)   = TmUnOp op  <$> desugar tm
+desugar (SAnno tm ty)   = TmAnno <$> desugar tm <*> desugarTyp ty
+desugar (SIf tm1 tm2 tm3)
+                        = TmIf <$> desugar tm1 <*> desugar tm2 <*> desugar tm3
+
+desugar _sourceTerm     =
+    Left $ DesugarFailed "Function not implemented completely.\n" 
+
+-- | Helper to construct fixpoint type
+getFixpointType :: Params -> SourceTyp -> Either DesugarError SourceTyp
+getFixpointType [] ty'              = Right ty'
+getFixpointType [(_, ty)] ty'       = TySArrow <$> desugarTyp ty <*> Right ty' 
+getFixpointType ((_, ty):rest) ty'  = TySArrow <$> desugarTyp ty <*> getFixpointType rest ty'

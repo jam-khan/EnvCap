@@ -1,11 +1,11 @@
 {-# LANGUAGE LambdaCase #-}
 module ENVCAP.Core.Evaluator where
 
-import ENVCAP.Syntax (BinaryOp(..), UnaryOp(..), Exp(..), Value(..), LogicOp(..))
+import ENVCAP.Syntax
 import ENVCAP.Core.Util  (compareOp, lookupv, rlookupv, arithOp)
 
 
-eval :: Value -> Exp -> Maybe Value
+eval :: Value -> CoreTm -> Maybe Value
 eval _ (Lit n)                  = Just (VInt n)
 eval _ Unit                     = Just VUnit
 eval env Ctx                    = Just env
