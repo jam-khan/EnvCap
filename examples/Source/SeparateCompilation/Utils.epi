@@ -1,7 +1,0 @@
-@secure Sig Utils {
-    require Int
-}
-{
-    function add        : Int -> Int;
-    function factorial  : Int -> Int;
-}

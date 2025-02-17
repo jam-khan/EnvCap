@@ -43,37 +43,39 @@ findDebruijnIndex ((x, _):xs) l i   =
 -- >>> astToLocallyNameless [] (SLam [("x", STInt), ("y", STInt)] (SBinOp (Arith Add) (SVar "x") (SVar "y")))
 -- Right (SLam [("x",STInt),("y",STInt)] (SBinOp (Arith Add) (SProj SCtx 1) (SProj SCtx 0)))
 astToLocallyNameless :: Params -> SurfaceTm -> Either LocallyNamelessError SurfaceTm
-astToLocallyNameless _ SCtx                 = Right SCtx
-astToLocallyNameless _ SUnit                = Right SUnit
-astToLocallyNameless _ (SLit i)             = Right (SLit i)
-astToLocallyNameless _ (SBool b)            = Right (SBool b)
-astToLocallyNameless _ (SString s)          = Right (SString s)
-astToLocallyNameless stack (SLam params tm) =
+astToLocallyNameless _ SCtx                     = Right SCtx
+astToLocallyNameless _ SUnit                    = Right SUnit
+astToLocallyNameless _ (SLit i)                 = Right (SLit i)
+astToLocallyNameless _ (SBool b)                = Right (SBool b)
+astToLocallyNameless _ (SString s)              = Right (SString s)
+astToLocallyNameless stack (SLam params tm)     =
                 SLam    <$> Right params 
                         <*> astToLocallyNameless (stack ++ params) tm
 astToLocallyNameless stack (SClos tm1 params tm2)= 
                     SClos   <$> astToLocallyNameless params tm1 
                             <*> Right params 
                             <*> astToLocallyNameless (stack ++ params) tm2
-astToLocallyNameless stack (SRec l tm)      = 
+astToLocallyNameless stack (SRec l tm)          = 
                     SRec l    <$> astToLocallyNameless stack tm
-astToLocallyNameless stack (SRProj tm l)    = 
+astToLocallyNameless stack (SRProj tm l)        = 
                     SRProj    <$> astToLocallyNameless stack tm   <*> Right l
-astToLocallyNameless stack (SApp tm1 terms) = 
+astToLocallyNameless stack (SProj tm i)        = 
+                    SProj    <$> astToLocallyNameless stack tm    <*> Right i
+astToLocallyNameless stack (SApp tm1 terms)     = 
                     SApp    <$> astToLocallyNameless stack tm1  
                             <*> processArguments stack terms
-astToLocallyNameless stack (SMrg tm1 tm2)   = 
+astToLocallyNameless stack (SMrg tm1 tm2)       = 
                     SMrg        <$> astToLocallyNameless stack tm1  
                                 <*> astToLocallyNameless 
                                         (stack ++ [("?", STUnit)]) tm2
-astToLocallyNameless stack (SBox tm1 tm2)   =
+astToLocallyNameless stack (SBox tm1 tm2)       =
                     SBox    <$> astToLocallyNameless stack tm1  
                             <*> astToLocallyNameless stack tm2
-astToLocallyNameless stack (SVar var)       = 
+astToLocallyNameless stack (SVar var)           = 
                     case debruijnIndex stack var of
                         Just i          -> Right (SProj SCtx i)
                         Nothing         -> Right (SRProj SCtx var)
-astToLocallyNameless _ (SStruct params tm)  = 
+astToLocallyNameless _ (SStruct params tm)      = 
                     SStruct params <$> 
                             astToLocallyNameless params tm   -- Modules are encapsulated and hence, scope is empty except arguments
 astToLocallyNameless stack (SFunc name params typ tm) 
@@ -81,7 +83,7 @@ astToLocallyNameless stack (SFunc name params typ tm)
                         <$> astToLocallyNameless (stack ++ [(name, STUnit)] ++ params) tm
 astToLocallyNameless _ (SModule name params tm) 
                     = SModule name params <$> astToLocallyNameless params tm
-astToLocallyNameless stack (SLet args tm)   = 
+astToLocallyNameless stack (SLet args tm)       = 
                     do  processedLet <- processLet (SLet args tm)
                         case processedLet of
                             (SLet [(x1, ty1, tm1)] tm2) -> 
@@ -91,7 +93,7 @@ astToLocallyNameless stack (SLet args tm)   =
                             _                           -> 
                                 Left $  LocallyNamelessFailed
                                         "Got unexpected response from internal utility function `processLet`"
-astToLocallyNameless stack (SLetrec args tm)=
+astToLocallyNameless stack (SLetrec args tm)    =
                     do  processedLet <- processLet (SLetrec args tm)
                         case processedLet of
                             (SLetrec [(x1, ty1, tm1)] tm2) -> 
@@ -101,20 +103,20 @@ astToLocallyNameless stack (SLetrec args tm)=
                             _                           -> 
                                 Left $  LocallyNamelessFailed
                                         "Got unexpected response from internal utility function `processLet`"
-astToLocallyNameless stack (SBinOp op tm1 tm2)=
+astToLocallyNameless stack (SBinOp op tm1 tm2)  =
                     SBinOp op 
                     <$> astToLocallyNameless stack tm1 <*> astToLocallyNameless stack tm2
-astToLocallyNameless stack (SUnOp op tm)    = 
+astToLocallyNameless stack (SUnOp op tm)        = 
                     SUnOp op  
                     <$> astToLocallyNameless stack tm
-astToLocallyNameless stack (SIf tm1 tm2 tm3)=
+astToLocallyNameless stack (SIf tm1 tm2 tm3)    =
                     SIf <$> astToLocallyNameless stack tm1
                         <*> astToLocallyNameless stack tm2 
                         <*> astToLocallyNameless stack tm3
-astToLocallyNameless _ (SAliasTyp l ty)     = 
+astToLocallyNameless _ (SAliasTyp l ty)         = 
                     Left    $ LocallyNamelessFailed 
                             ("Type alias not resolved: type " ++ l ++ " = " ++ show ty)
-astToLocallyNameless _stack tm             = 
+astToLocallyNameless _stack tm                  = 
                     Left    $ LocallyNamelessFailed 
                             ("Function not fully implemented." ++ show tm)
 

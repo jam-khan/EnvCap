@@ -44,4 +44,4 @@ val fibonacci   = getFunction(n);
 val sum         = getFunction(k);
 val x           = factorial(20);
 val y           = fibonacci(20);
-val res         = sum(10)zzzz
+val res         = sum(10)

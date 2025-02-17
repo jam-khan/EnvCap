@@ -1,9 +1,0 @@
-@secure Sig Runner 
-{
-    require "Utils",
-    require "Sort"
-} 
-{
-    val finalResult : Int;
-    -- val result : Int = 10  // Not allowed due to name clash after open
-}
