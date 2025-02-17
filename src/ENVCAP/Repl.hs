@@ -1,9 +1,12 @@
 module ENVCAP.Repl where
 import System.Console.Haskeline
 import ENVCAP.Source.Errors 
+import ENVCAP.Interpreter (interpreter)
 
-eval' :: String -> Either InterpreterError String
-eval' input = Right $ "You said: " ++ input
+eval' :: String -> Either InterpreterError String 
+eval' input = do
+                res <- interpreter input
+                return $ show res
 
 repl :: IO ()
 repl = runInputT defaultSettings loop

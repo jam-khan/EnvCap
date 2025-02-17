@@ -21,7 +21,7 @@ maintainer:         jamkhan@connect.hku.hk
 -- category:
 extra-source-files: CHANGELOG.md
 library
-    exposed-modules:    ENVCAP.Interpreter ENVCAP.Syntax ENVCAP.Parser.Util ENVCAP.Parser.Parser ENVCAP.Parser.Happy ENVCAP.Core.Evaluator ENVCAP.Core.TypeChecker ENVCAP.Core.Util ENVCAP.Core.Step ENVCAP.Core.PrettyPrint ENVCAP.Source.Elaboration
+    exposed-modules:    ENVCAP.Interpreter ENVCAP.Parser.Implementation.ParseImp ENVCAP.Parser.Interface.ParseInterface ENVCAP.Syntax ENVCAP.Core.Evaluator ENVCAP.Core.TypeChecker ENVCAP.Core.Util ENVCAP.Core.Step ENVCAP.Core.PrettyPrint ENVCAP.Source.Elaboration
     -- Modules included in this library but not exported.
     -- other-modules:
 
