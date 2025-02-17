@@ -116,7 +116,7 @@ interpreter code =
         if check TyCUnit coreAST (elaborateTyp sourceTy)
             then evaluate coreAST
             else Left $ InterpreterFailed "Type checking faile at core level"
-
+            
 -- | Runs a file by reading its contents. Handles potential I/O errors.
 --
 -- Reads the file at the given 'filePath'. Returns 'Right ()' if successful,

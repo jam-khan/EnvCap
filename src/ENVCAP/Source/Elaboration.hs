@@ -276,7 +276,12 @@ elaborateInfer ctx (TmUnOp Not tm)     =
                 case elaborateInfer ctx tm of
                         Right (ty, tm')         -> Right (ty, UnOp Not tm')
                         Left err                -> Left err
-
+elaborateInfer ctx (TmAnno tm typ)      =
+                case elaborateCheck ctx tm typ of
+                        Right tm'       -> Right (typ, tm')
+                        Left err        -> Left $ generateError ctx (TmAnno tm typ)
+                                                "Type error on the annotation."
+                                                ("Type inferred from term does not checks with the type on the annotation. \n \n----Further info-----\n \n" ++ show err)  
 
 elaborateCheck :: SourceTyp -> SourceTm -> SourceTyp -> Either SourceTypeError CoreTm
 elaborateCheck ctx tm typ       
