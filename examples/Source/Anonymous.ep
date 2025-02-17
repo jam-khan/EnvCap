@@ -1,4 +1,4 @@
 
-val f = \(x: Int, f: Int -> Bool) => { if ( f(x) ) then { True } else { False } };;
+val f = \(x: Int, f: Int -> Bool) => { if ( f(x) ) then { True } else { False } };
 
 f(10, \(x: Int) => { x % 2 == 0 } )

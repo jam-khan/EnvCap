@@ -1,11 +1,13 @@
 
-function square( double : Int -> Int , n : Int ) {
+function square( double : Int -> Int , n : Int ) : Int {
     double(n)
-};;
+};
 
-function fancy ( n : Int ) {
-    \(x : Int) => { x + square( \(n: Int) => { n * 2 } , 10 ) }
-};;
+function fancy ( n : Int ) : (Int -> Int){
+    \(x : Int) => { 
+        x + square( \(n: Int) => { n * 2 } , 10 )
+    }
+};
 
-val temp = fancy(10, 20);;
-temp
+val temp = fancy(10);
+val result = temp(10)

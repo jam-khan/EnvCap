@@ -171,8 +171,18 @@ desugar (SModule name params tm)
                         = TmRec name <$> desugar (SStruct params tm)
 desugar (SAliasTyp l _) =
                         Left $ DesugarFailed ("Type alias" ++ show l ++ "detected at desugaring phased.")
-desugar (SLet letargs tm)
-                        = desugar (SApp (SLam (extractLetParams letargs) tm) (extractLetArgs   letargs))
+desugar (SLet [(_, ty, tm1)] tm2)
+                        = do
+                            lambda <- TmLam <$> desugarTyp ty <*> desugar tm2
+                            TmApp lambda <$> desugar tm1
+desugar (SLetrec [(_, ty, tm1)] tm2)
+                        = do
+                            lambda  <- TmLam <$> desugarTyp ty <*> desugar tm2
+                            TmApp lambda <$> (TmFix <$> desugarTyp ty <*> desugar tm1)
+desugar (SLet (x:xs) _) = Left $ DesugarFailed ("Need exactly one argument in the locally nameless representation, but found " ++ show (x:xs))
+desugar (SLetrec (x:xs) _)
+                        = Left $ DesugarFailed ("Need exactly one argument in the locally nameless representation, but found " ++ show (x:xs))
+
 -- Letrec needs careful handling!
 -- desugar (SLetrec letargs tm)
 --                         = do

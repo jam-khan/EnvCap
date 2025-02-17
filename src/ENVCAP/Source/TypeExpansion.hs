@@ -1,8 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 module ENVCAP.Source.TypeExpansion where
 import ENVCAP.Syntax
-import ENVCAP.Source.Errors (TypeExpansionError (DuplicateAlias, AliasNotFound, TypeContextError, TypeExpansionFailed))
-
+import ENVCAP.Source.Errors 
 
 -- | Finds a `SurfaceTyp` by its alias (`label`) in a nested `STAnd` / `STRecord` type context.
 --
@@ -113,10 +112,10 @@ expandAlias ctx (SApp tm params)= SApp  <$> expandAlias ctx tm
                                         <*> traverse (expandAlias ctx) params
 expandAlias ctx (SMrg tm1 tm2)  = 
                 case tm1 of
-                (SAliasTyp l ty) -> 
-                        expandTyAlias ctx ty >>= (`expandAlias` tm2) . STAnd ctx . STRecord l
-                _                ->
-                        SMrg <$> expandAlias ctx tm1 <*> expandAlias ctx tm2
+                        (SAliasTyp l ty) -> 
+                                expandTyAlias ctx ty >>= (`expandAlias` tm2) . STAnd ctx . STRecord l
+                        _                ->
+                                SMrg <$> expandAlias ctx tm1 <*> expandAlias ctx tm2
 expandAlias ctx (SBox tm1 tm2)  = 
         SBox  <$> expandAlias ctx tm1 <*> expandAlias ctx tm2
 expandAlias _   (SVar x)        = Right $ SVar x
@@ -160,6 +159,6 @@ expandAliasTypParams :: SurfaceTyp -> Params -> Either TypeExpansionError Params
 expandAliasTypParams _ []                 = Right []
 expandAliasTypParams ctx ((x, ty):xs)     = 
         do
-        ty'     <- expandTyAlias ctx ty
-        rest    <- expandAliasTypParams ctx xs
-        return $ (x, ty') : rest
+                ty'     <- expandTyAlias ctx ty
+                rest    <- expandAliasTypParams ctx xs
+                return $ (x, ty') : rest

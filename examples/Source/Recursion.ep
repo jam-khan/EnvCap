@@ -1,5 +1,0 @@
-function test(n : Int, m: Bool) : Int {
-    n
-};
-
-test(1, 1 == 2)
