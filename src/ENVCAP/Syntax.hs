@@ -25,6 +25,16 @@ data LogicOp = And | Or
 
 type Params       = [(String, SurfaceTyp)]
 type Letargs      = [(String, SurfaceTyp, SurfaceTm)] 
+type Name         = String
+
+data Interface  
+        =       IAliasTyp       String SurfaceTyp
+        |       IType           SurfaceTyp
+        |       FunctionTyp     Name Params SurfaceTyp
+        |       ModuleTyp       Name Params SurfaceTyp
+        |       Binding         Name SurfaceTyp
+        |       InterfaceAnd    Interface Interface
+        deriving (Eq, Show)
 
 data SurfaceTm 
         =   SCtx                                        -- Query
@@ -42,8 +52,8 @@ data SurfaceTm
         |   SBox       SurfaceTm SurfaceTm
         |   SVar       String
         |   SStruct    Params SurfaceTm
-        |   SFunc      String Params SurfaceTyp SurfaceTm
-        |   SModule    String Params SurfaceTm
+        |   SFunc      Name Params SurfaceTyp SurfaceTm
+        |   SModule    Name Params SurfaceTm
         |   SAliasTyp  String SurfaceTyp
         |   SLet       Letargs SurfaceTm
         |   SLetrec    Letargs SurfaceTm

@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use camelCase" #-}
 {-# LANGUAGE LambdaCase #-}
 -- {-# HLINT ignore "Use lambda-case" #-}

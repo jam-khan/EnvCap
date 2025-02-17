@@ -30,3 +30,7 @@ newtype InterpreterError = InterpreterFailed String
 -- | Represents type errors detected at the source level.
 newtype SourceTypeError = STypeError String 
     deriving Show
+
+-- | Represents errors for separate compilation.
+newtype SeparateCompilationError = SepCompError String
+    deriving Show 

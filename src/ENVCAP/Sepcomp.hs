@@ -1,4 +1,7 @@
 module ENVCAP.Sepcomp where
+import ENVCAP.Source.Errors (SeparateCompilationError (SepCompError), InterpreterError (InterpreterFailed))
+import ENVCAP.Interpreter 
+import Control.Exception 
 
 
 
@@ -16,4 +19,19 @@ module ENVCAP.Sepcomp where
 --                                                          4) Each file gets a core generation
 --                  envcap "E1.epc" ~~~~> Evaluates result
 --
-       
+
+-- This is supposed to be a type basically
+readInterface :: String -> Either SeparateCompilationError String
+readInterface file = case parseCode file of
+                        Left (InterpreterFailed err) -> Left $ SepCompError ("Couldn't read the interface loaded." ++ err) 
+                        Right res                    -> Right $ show res
+
+loadInterface :: String -> IO()
+loadInterface interfaceFilePath = 
+                do
+                    result <- try (readFile interfaceFilePath) :: IO (Either IOException String)
+                    case result of
+                        Left ioexception -> putStrLn ("I/O error: " ++ show ioexception)
+                        Right code       -> case readInterface code of
+                                                Right res                  -> print res
+                                                Left  (SepCompError err)   -> print err

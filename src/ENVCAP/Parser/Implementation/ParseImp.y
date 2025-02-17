@@ -1,11 +1,11 @@
 {
 {-# OPTIONS_GHC -Werror=non-exhaustive-patterns #-}
-module ENVCAP.Parser.Happy where
+module ENVCAP.Parser.Implementation.ParseImp where
 import Data.Char
 import ENVCAP.Syntax 
 }
 
-%name sourceParser
+%name implementationParser
 %tokentype     { Token        }
 %error         { parseError   }
 
@@ -225,7 +225,8 @@ ArithmeticOp   :    Term    '+'     Term               { SBinOp (Arith Add)  $1 
 
 {
 parseError :: [Token] -> a
-parseError _ = error "Parse error"
+parseError (x:xs)   = error ("Parse Error: Token Failed" ++ show x)
+parseError []       = error ("Parser Error: No Tokens")
 
 data Token =   TokenInt Integer       -- Lit i
           |    TokenVar String        -- x
@@ -357,8 +358,8 @@ lexVar cs = case span isAlpha cs of
                ("else",       rest)     -> TokenElse        : lexer rest
                (var,          rest)     -> TokenVar var     : lexer rest
 
-parseSource :: String -> Maybe SurfaceTm
-parseSource input = case sourceParser (lexer input) of
+parseImplementation :: String -> Maybe SurfaceTm
+parseImplementation input = case implementationParser (lexer input) of
                          result -> Just result
                          _      -> Nothing                    
 
@@ -404,7 +405,7 @@ test_cases = [  ("env", SCtx)
 runTest :: Int -> [(String, SurfaceTm)] -> IO()
 runTest n []        = putStrLn $ (show (n + 1) ++ " Tests Completed.")
 runTest n (x:xs)    = do
-                         if parseSource (fst x) == Just (snd x)
+                         if parseImplementation (fst x) == Just (snd x)
                               then putStrLn $ "Test " ++ (show (n + 1)) ++ ": Passed"
                               else putStrLn $ "Test " ++ (show (n + 1)) ++ ": Failed"
                          runTest (n + 1) xs

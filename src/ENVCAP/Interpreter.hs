@@ -1,7 +1,7 @@
 module ENVCAP.Interpreter where
 import Control.Exception (try, IOException)
 import ENVCAP.Syntax
-import ENVCAP.Parser.Happy (parseSource)
+import ENVCAP.Parser.Implementation.ParseImp (parseImplementation)
 import ENVCAP.Source.TypeExpansion (expandAlias)
 import ENVCAP.Source.LocallyNameless
 import ENVCAP.Source.Errors
@@ -13,8 +13,8 @@ import ENVCAP.Core.TypeChecker (check)
 
 -- | Parses a string of code into a 'SurfaceTm' or returns an 'InterpreterError' on failure.
 --
--- If 'parseSource' returns 'Just SurfaceTm', it's converted to 'Right SurfaceTm'.
--- If 'parseSource' returns 'Nothing', it's converted to 'Left (InterpreterFailed "Parsing unsuccessful.")'.
+-- If 'parseImplementation' returns 'Just SurfaceTm', it's converted to 'Right SurfaceTm'.
+-- If 'parseImplementation' returns 'Nothing', it's converted to 'Left (InterpreterFailed "Parsing unsuccessful.")'.
 --
 -- === Example:
 -- >>> parseCode "1 + 2"
@@ -24,7 +24,7 @@ import ENVCAP.Core.TypeChecker (check)
 -- >>> parseCode "function 1"
 -- Parse error
 parseCode :: String -> Either InterpreterError SurfaceTm
-parseCode code = maybe (Left $ InterpreterFailed "Parsing unsuccessful.") Right (parseSource code)
+parseCode code = maybe (Left $ InterpreterFailed "Parsing unsuccessful.") Right (parseImplementation code)
 
 -- | Expands type aliases within the surfaceAST, returning the expanded term or an 'InterpreterError' on failure.
 --

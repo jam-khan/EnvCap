@@ -9,6 +9,8 @@ src/Addition.hs
 proofs/core/*.aux
 proofs/core/*.glob
 # proofs/core/*.mk
+src/ENVCAP/Parser/Interface/ParseInterface.info
+src/ENVCAP/Parser/Implementation/ParseImp.info
 proofs/core/*.mk.d
 proofs/core/#basics.v#
 proofs/core/big.v

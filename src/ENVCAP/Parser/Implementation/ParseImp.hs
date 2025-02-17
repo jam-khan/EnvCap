@@ -12,7 +12,7 @@
 {-# LANGUAGE PartialTypeSignatures #-}
 #endif
 {-# OPTIONS_GHC -Werror=non-exhaustive-patterns #-}
-module ENVCAP.Parser.Happy where
+module ENVCAP.Parser.Implementation.ParseImp where
 import Data.Char
 import ENVCAP.Syntax
 import qualified Data.Function as Happy_Prelude
@@ -1374,14 +1374,15 @@ happyReport' = (\tokens expected resume -> HappyIdentity Happy_Prelude.$ (parseE
 happyAbort :: () => [(Token)] -> (HappyIdentity a)
 happyAbort = Happy_Prelude.error "Called abort handler in non-resumptive parser"
 
-sourceParser tks = happyRunIdentity happySomeParser where
+implementationParser tks = happyRunIdentity happySomeParser where
  happySomeParser = happyThen (happyParse 0# tks) (\x -> case x of {HappyAbsSyn5 z -> happyReturn z; _other -> notHappyAtAll })
 
 happySeq = happyDontSeq
 
 
 parseError :: [Token] -> a
-parseError _ = error "Parse error"
+parseError (x:xs)   = error ("Parse Error: Token Failed" ++ show x)
+parseError []       = error ("Parser Error: No Tokens")
 
 data Token =   TokenInt Integer       -- Lit i
           |    TokenVar String        -- x
@@ -1513,8 +1514,8 @@ lexVar cs = case span isAlpha cs of
                ("else",       rest)     -> TokenElse        : lexer rest
                (var,          rest)     -> TokenVar var     : lexer rest
 
-parseSource :: String -> Maybe SurfaceTm
-parseSource input = case sourceParser (lexer input) of
+parseImplementation :: String -> Maybe SurfaceTm
+parseImplementation input = case implementationParser (lexer input) of
                          result -> Just result
                          _      -> Nothing                    
 
@@ -1560,7 +1561,7 @@ test_cases = [  ("env", SCtx)
 runTest :: Int -> [(String, SurfaceTm)] -> IO()
 runTest n []        = putStrLn $ (show (n + 1) ++ " Tests Completed.")
 runTest n (x:xs)    = do
-                         if parseSource (fst x) == Just (snd x)
+                         if parseImplementation (fst x) == Just (snd x)
                               then putStrLn $ "Test " ++ (show (n + 1)) ++ ": Passed"
                               else putStrLn $ "Test " ++ (show (n + 1)) ++ ": Failed"
                          runTest (n + 1) xs

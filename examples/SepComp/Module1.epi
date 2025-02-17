@@ -1,0 +1,7 @@
+type ExampleOutputType = {y : Int, inc : Int};
+
+val x : Int;
+
+module example (x: Int) : ExampleOutputType;
+
+val y : {y: Int, inc: Int}
