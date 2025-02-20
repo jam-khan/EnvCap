@@ -11,8 +11,8 @@ import ENVCAP.Interpreter
 import Control.Monad (liftM2)
 import System.Environment (getArgs)
 import ENVCAP.Source.Elaboration (elaborateInfer)
-
-
+import Data.List (delete)
+import Data.Maybe (listToMaybe)
 
 -- Step 1: Add annotations                                          [Done]
 -- Step 2: Read interface files                                     [Done]
@@ -230,5 +230,41 @@ formatResult filePath result =
 --   if null args
 --     then putStrLn "Please provide file paths as arguments."
 --     else processFiles args
+-- main :: IO ()
+-- main = manuallyCheckFiles
+-- import qualified Data.Map as M
+
+-- A graph is represented as an adjacency list
+type Graph = [(Int, [Int])]
+
+-- Topological sort using Kahn's algorithm
+topologicalSort :: Graph -> Maybe [Int]
+topologicalSort graph
+  | null nodesWithNoIncomingEdges = Nothing  -- Cycle detected
+  | otherwise = Just sorted
+  where
+    -- Find all nodes with no incoming edges
+    nodesWithNoIncomingEdges = [node | (node, _) <- graph, not (any (node `elem`) (map snd graph))]
+
+    -- Remove a node from the graph and return the updated graph
+    removeNode :: Int -> Graph -> Graph
+    removeNode node = map (\(n, edges) -> (n, delete node edges)) . filter ((/= node) . fst)
+
+    -- Recursively perform the topological sort
+    sortHelper :: [Int] -> Graph -> [Int]
+    sortHelper sorted [] = sorted
+    sortHelper sorted g =
+      case nodesWithNoIncomingEdges of
+        [] -> []  -- Cycle detected
+        (node:rest) ->
+          let newGraph = removeNode node g
+              newSorted = sorted ++ [node]
+          in sortHelper newSorted newGraph
+
+    sorted = sortHelper [] graph
+
+-- Example usage
 main :: IO ()
-main = manuallyCheckFiles
+main = do
+  let graph = [(1, [2, 3]), (2, [4]), (3, [4]), (4, [])]
+  print $ topologicalSort graph

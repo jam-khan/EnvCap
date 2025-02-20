@@ -33,6 +33,7 @@ library
                       megaparsec,
                       parser-combinators >=1.3.0,
                       array,
+                      containers,
                       haskeline >= 0.8
     hs-source-dirs:   src, test, examples
     ghc-options:      -Wall

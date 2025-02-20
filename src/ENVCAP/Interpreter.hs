@@ -125,13 +125,6 @@ interpreter code =
 -- === Example:
 -- >>> runFile "examples/Source/Arithmetic.ep"
 -- Right ()
--- runFile :: String -> IO (Either InterpreterError Value)
--- runFile filePath = do
---     result <- try (readFile filePath) :: IO (Either IOException String)
---     case result of
---         Left ioException ->
---           return $ Left (InterpreterFailed $ "I/O error: " ++ show ioException)
---         Right code ->  return $ interpreter code
 runFile :: String -> IO()
 runFile filePath = do
     result <- try (readFile filePath) :: IO (Either IOException String)
@@ -142,5 +135,4 @@ runFile filePath = do
                                 Left (InterpreterFailed err)    -> putStrLn err
         --   return $ Left (InterpreterFailed $ "I/O error: " ++ show ioException)
         -- Right code ->  return $ interpreter code
-
 
