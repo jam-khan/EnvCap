@@ -1,5 +1,0 @@
-type newInt = Int;
-
-val hello =  \(x: newInt) => { x };
-
-hello(1)
