@@ -98,7 +98,9 @@ astToLocallyNameless stack (SLetrec args tm)    =
                         case processedLet of
                             (SLetrec [(x1, ty1, tm1)] tm2) -> 
                                 do 
-                                    tm1' <- astToLocallyNameless (stack ++ [(x1, ty1)]) tm1
+                                    tm1' <- case tm1 of 
+                                                SLam _ _    -> astToLocallyNameless (stack ++ [(x1, ty1)]) tm1
+                                                _           -> astToLocallyNameless stack tm1
                                     SLetrec [(x1, ty1, tm1')] <$> astToLocallyNameless (stack ++ [(x1, ty1)]) tm2
                             _                           -> 
                                 Left $  LocallyNamelessFailed

@@ -173,12 +173,15 @@ desugar (SAliasTyp l _) =
                         Left $ DesugarFailed ("Type alias" ++ show l ++ "detected at desugaring phased.")
 desugar (SLet [(_, ty, tm1)] tm2)
                         = do
-                            lambda <- TmLam <$> desugarTyp ty <*> desugar tm2
+                            lambda  <- TmLam <$> desugarTyp ty <*> desugar tm2
                             TmApp lambda <$> desugar tm1
 desugar (SLetrec [(_, ty, tm1)] tm2)
                         = do
-                            lambda  <- TmLam <$> desugarTyp ty <*> desugar tm2
-                            TmApp lambda <$> (TmFix <$> desugarTyp ty <*> desugar tm1)
+                            lambda  <-  TmLam <$> desugarTyp ty <*> desugar tm2
+                            app     <-  case tm1 of
+                                            (SLam _ _)  -> TmFix <$> desugarTyp ty <*> desugar tm1
+                                            _           -> desugar tm1
+                            return $ TmApp lambda app
 desugar (SLet (x:xs) _) = Left $ DesugarFailed ("Need exactly one argument in the locally nameless representation, but found " ++ show (x:xs))
 desugar (SLetrec (x:xs) _)
                         = Left $ DesugarFailed ("Need exactly one argument in the locally nameless representation, but found " ++ show (x:xs))

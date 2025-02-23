@@ -20,7 +20,7 @@ data LocallyNamelessError
     deriving Show
 
 -- | IMPORTANT: Description not completed
-newtype DesugarError = DesugarFailed String
+newtype DesugarError     = DesugarFailed String
     deriving Show
 
 -- | Interpreter error 

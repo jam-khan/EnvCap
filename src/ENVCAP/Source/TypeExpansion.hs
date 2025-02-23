@@ -136,16 +136,15 @@ expandAlias ctx (SLetrec letargs tm)
                                            <*> expandAlias ctx tm
 expandAlias ctx (SBinOp op tm1 tm2)
                                 = SBinOp op <$> expandAlias ctx tm1 <*> expandAlias ctx tm2
-expandAlias ctx (SUnOp op tm)
-                                = SUnOp op  <$> expandAlias ctx tm
+expandAlias ctx (SUnOp op tm)   = SUnOp op  <$> expandAlias ctx tm
 expandAlias ctx (SAnno tm ty)   = 
                                 SAnno <$> expandAlias ctx tm <*> expandTyAlias ctx ty
 expandAlias ctx (SIf tm1 tm2 tm3)
                                 = SIf <$> expandAlias ctx tm1 <*> expandAlias ctx tm2 <*> expandAlias ctx tm3
 expandAlias _   (SAliasTyp l ty)= 
-        Left $ TypeExpansionFailed ("Unresolved type alias detected. Only declare as part of merge: " ++ l ++ " as " ++ show ty)
+                        Left $ TypeExpansionFailed ("Unresolved type alias detected. Only declare as part of merge: " ++ l ++ " as " ++ show ty)
 expandAlias _ctx tm              = 
-        Left $ TypeExpansionFailed ("Expansion function not completed." ++ show tm)
+                        Left $ TypeExpansionFailed ("Expansion function not completed." ++ show tm)
 
 expandAliasLetArgs   :: SurfaceTyp -> [(String, SurfaceTyp, SurfaceTm)] -> Either TypeExpansionError [(String, SurfaceTyp, SurfaceTm)]
 expandAliasLetArgs _ []                 = Right []
