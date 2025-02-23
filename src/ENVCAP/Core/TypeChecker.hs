@@ -3,9 +3,35 @@
 {-# LANGUAGE LambdaCase #-}
 module ENVCAP.Core.TypeChecker where
 import ENVCAP.Syntax 
-import ENVCAP.Core.Util (rlookupt, lookupt, containment)
 
 data TypeError = TypeError String deriving Show
+
+lookupt :: CoreTyp -> Integer -> Maybe CoreTyp
+lookupt (TyCAnd _ tB) 0         = Just tB
+lookupt (TyCAnd tA _) n         = lookupt tA (n - 1)
+lookupt _ _                     = Nothing
+
+isLabel :: String -> CoreTyp -> Bool
+isLabel l (TyCRecord label _)   = l == label
+isLabel l (TyCAnd tA tB)        = isLabel l tA || isLabel l tB
+isLabel _ _                     = False
+
+containment :: CoreTyp -> CoreTyp -> Bool
+containment (TyCRecord l tA) (TyCRecord label typ ) 
+                                = l == label && tA == typ
+containment (TyCRecord l tA) (TyCAnd tB tC) 
+                                =   (containment (TyCRecord l tA) tB && not (isLabel l tC)) ||
+                                    (containment (TyCRecord l tA) tC && not (isLabel l tB))
+containment _ _                 = False
+
+rlookupt :: CoreTyp -> String -> Maybe CoreTyp
+rlookupt (TyCRecord l t) label
+    | l == label = Just t
+rlookupt (TyCAnd tA tB) label = 
+    case rlookupt tB label of
+        Just t    -> Just t
+        Nothing   -> rlookupt tA label
+rlookupt _ _                = Nothing
 
 infer :: CoreTyp -> CoreTm -> Either TypeError CoreTyp
 infer ctx Ctx                 = Right ctx

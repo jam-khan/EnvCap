@@ -121,18 +121,18 @@ data SourceTm   =   TmCtx                               -- Query
                 deriving (Eq, Show)
 
 -- Types
-data SourceTyp  =   TySUnit                  -- Unit type for empty environment
-                |   TySInt                   -- Integer type
-                |   TySAnd      SourceTyp SourceTyp           -- Intersection type
-                |   TySArrow    SourceTyp SourceTyp         -- Arrow type, e.g. A -> B
-                |   TySRecord   String SourceTyp     -- Single-Field Record Type
-                |   TySBool                  -- Boolean type
-                |   TySString                -- String type
-                |   TySList     SourceTyp             -- Type for built-in list 
-                |   TySSum      SourceTyp SourceTyp         -- Type for sums
-                |   TySPair     SourceTyp SourceTyp         -- Type for pairs
-                |   TySSig      SourceTyp SourceTyp         -- Sig Type End
-                |   TySIden     String          -- Simply an alias
+data SourceTyp  =   TySUnit                             -- Unit type for empty environment
+                |   TySInt                              -- Integer type
+                |   TySAnd      SourceTyp SourceTyp     -- Intersection type
+                |   TySArrow    SourceTyp SourceTyp     -- Arrow type, e.g. A -> B
+                |   TySRecord   String SourceTyp        -- Single-Field Record Type
+                |   TySBool                             -- Boolean type
+                |   TySString                           -- String type
+                |   TySList     SourceTyp               -- Type for built-in list 
+                |   TySSum      SourceTyp SourceTyp     -- Type for sums
+                |   TySPair     SourceTyp SourceTyp     -- Type for pairs
+                |   TySSig      SourceTyp SourceTyp     -- Sig Type End
+                |   TySIden     String                  -- Simply an alias
                 deriving (Eq, Show)
 
 

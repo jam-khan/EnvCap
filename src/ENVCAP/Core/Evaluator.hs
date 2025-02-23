@@ -2,8 +2,23 @@
 module ENVCAP.Core.Evaluator where
 
 import ENVCAP.Syntax
-import ENVCAP.Core.Util  (compareOp, lookupv, rlookupv, arithOp)
+import ENVCAP.Utils  (compareOp, arithOp)
 
+
+lookupv :: Value -> Integer -> Maybe Value
+lookupv (VMrg _  v2) 0 = Just v2
+lookupv (VMrg v1 _ ) n = lookupv v1 (n - 1)
+lookupv _ _            = Nothing
+
+rlookupv :: Value -> String -> Maybe Value
+rlookupv (VRcd l v) label
+    | l == label = Just v
+rlookupv (VMrg v1 v2) label =
+    case (rlookupv v1 label, rlookupv v2 label) of
+        (Just vL, Nothing)      -> Just vL
+        (Nothing, Just vR)      -> Just vR
+        (_, _)                  -> Nothing
+rlookupv _ _ = Nothing
 
 eval :: Value -> CoreTm -> Maybe Value
 eval _ (Lit n)                  = Just (VInt n)

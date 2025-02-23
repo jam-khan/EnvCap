@@ -6,18 +6,19 @@ import ENVCAP.Syntax
 }
 
 %name implementationParser
-%tokentype     { Token        }
-%error         { parseError   }
+%tokentype          { Token        }
+%error              { parseError   }
 
 %token
      int            { TokenInt $$       }
      var            { TokenVar $$       }
-     'Sig'          { TokenSig          }          
+     'unit'         { TokenUnit         }
+     'Sig'          { TokenSig          }  
+     'Unit'         { TokenTyUnit       }        
      'Int'          { TokenTypeInt      }
      'Bool'         { TokenTypeBool     }
      'String'       { TokenTypeString   }
      '->'           { TokenTypeArrow    }
-     '&'            { TokenTypeAnd      }
      'False'        { TokenFalse        }
      'True'         { TokenTrue         }
      'if'           { TokenIf           }
@@ -31,6 +32,7 @@ import ENVCAP.Syntax
      'function'     { TokenFunc         }
      'struct'       { TokenStruct       }
      'module'       { TokenModule       }
+     'with'         { TokenBox          }
      '[]'           { TokenEmptyList    }
      '['            { TokenOpenSqBracket  }
      ']'            { TokenCloseSqBracket }
@@ -64,6 +66,7 @@ import ENVCAP.Syntax
      '=>'           { TokenArrow        }
      ',,'           { TokenDepMerge }
 
+
 %right '='
 %right '=>'
 %right '::'
@@ -72,7 +75,6 @@ import ENVCAP.Syntax
 %left TokenElse
 %left application_prec
 %left '->'
-%left '&'
 %left '||'
 %left '&&'
 %left '>=' '>' '==' '!=' '<' '<='
@@ -93,6 +95,7 @@ Statement      : Function                         { $1 }
                | Term                             { $1 }
 
 Term           : 'env'                             { SCtx }
+               | 'unit'                            { SUnit }
                | FunctionApplication               { $1 }
                | Bool                              { $1 }
                | String                            { $1} 
@@ -112,37 +115,44 @@ Term           : 'env'                             { SCtx }
                | Record                            { $1 }
                | Tuple                             { $1 }
                | DependentMerge                    { $1 }
+               | Box                               { $1 }
                | Parens                            { $1 }
                | error                             { parseError [$1] }
 
-Type           : 'Int'                             { STInt }
+Box        : 'with' Term 'in' '{' Statements '}'   { SBox $2 $5 }
+
+Type           : 'Unit'                            { STUnit } 
+               | 'Int'                             { STInt }
                | 'Bool'                            { STBool }
                | 'String'                          { STString }
                | Type '->' Type                    { STArrow $1 $3 }
-               | Type '&'  Type                    { STAnd $1 $3 }
                | '[' Type ']'                      { STList $2 }
                | '{' RecordType '}'                { $2 }
+               | '(' IntersectionType ')'          { $2 }
                | Signature                         { $1 }
                | var                               { STIden $1 }
                | '(' Type ')'                      { $2 }
 
+IntersectionType    : Type ',' IntersectionType      { STAnd $1 $3 }
+                    | Type ',' Type                  { STAnd $1 $3 }
+
 Projection     : Term '.' int                     {SProj $1 $3}
                | Term '.' var                     {SRProj $1 $3}
 
-Module         : 'module' var '(' ParamList ')' '{' Statements '}'    { SModule $2 $4 $7 }
+Module         : 'module' var '(' ParamList ')' '{' Statements '}'         { SModule $2 $4 $7 }
 
-Struct         : 'struct'     '(' ParamList ')' '{' Statements '}'    { SStruct $3 $6 }
+Struct         : 'struct'     '(' ParamList ')' '{' Statements '}'         { SStruct $3 $6 }
 
-Signature      : 'Sig' '[' Type ',' Type ']'                          { STSig $3 $5 }
+Signature      : 'Sig' '[' Type ',' Type ']'                               { STSig $3 $5 }
 
-Function       : 'function' var '(' ParamList ')' ':' Type '{' Term '}'        { SFunc $2 $4 $7 $9 }
+Function       : 'function' var '(' ParamList ')' ':' Type '{' Term '}'    { SFunc $2 $4 $7 $9 }
 
-FunctionApplication : var '(' Arguments ')'  %prec application_prec   { SApp (SVar $1) $3 }
+FunctionApplication : var '(' Arguments ')'  %prec application_prec        { SApp (SVar $1) $3 }
 
-Binding        : 'val' var '=' Term                                   { SRec $2 $4 }
+Binding        : 'val' var '=' Term                                        { SRec $2 $4 }
 
-Lambda         : '(' Lambda ')' '(' Arguments ')'                     { SApp $2 $5 }
-               | '\\(' ParamList ')' '=>' '{' Statements '}'          { SLam $2 $6 }
+Lambda         : '(' Lambda ')' '(' Arguments ')'                          { SApp $2 $5 }
+               | '\\(' ParamList ')' '=>' '{' Statements '}'               { SLam $2 $6 }
 
 Bool           : 'False' { SBool False }
                | 'True'  { SBool True }
@@ -158,21 +168,24 @@ TyAlias        : 'type' var '=' Type                   { SAliasTyp $2 $4 }
 -- it will create ambiguities, so must have atleast two elements
 
 -- It must have atleast two elements
-DependentMerge           : '(' DependentMergeElements ')'   { $2 }
-DependentMergeElements   : Term ',,' DependentMergeElements { SMrg $1 $3 }
-                         | Term ',,' Term                   { SMrg $1 $3 }
 
-Tuple          : '(' TupleElements ')'                 { STuple $2 }
+DependentMerge           : '(' DependentMergeElements ')'        { $2 }
 
-TupleElements  : Term ',' TupleElements                { $1 : $3 }
-               | Term ',' Term                         { $1 : [$3] }
+DependentMergeElements   : Term ',,' DependentMergeElements      { SMrg $1 $3 }
+                         | Term ',,' Term                        { SMrg $1 $3 }
 
-RecordType     : Param ',' RecordType                  { STAnd $1 $3 }
-               | Param                                 { $1 }
+Tuple                    : '(' TupleElements ')'                 { STuple $2 }
+
+TupleElements            : Term ',' TupleElements                { $1 : $3 }
+                         | Term ',' Term                         { $1 : [$3] }
+
+RecordType               : Param ',' RecordType                  { STAnd $1 $3 }
+                         | Param                                 { $1 }
 
 Param          : var ':' Type                          { STRecord $1 $3 }   
 
 Record         : '{' Records '}'                       { $2 }
+
 Records        : '"' var '"' '=' Term ',' Records      { SMrg (SRec $2 $5) $7 }
                | '"' var '"' '=' Term                  { SRec $2 $5 }
                | '\'' var '\'' '=' Term ',' Records    { SMrg (SRec $2 $5) $7 }
@@ -270,7 +283,6 @@ data Token =   TokenInt Integer       -- Lit i
           |    TokenTypeBool          -- 'Bool'
           |    TokenTypeString        -- 'String'
           |    TokenTypeArrow         -- '->'
-          |    TokenTypeAnd           -- '&'
           |    TokenTyAlias           -- 'type'
           |    TokenComma             -- ','
           |    TokenOpenSqBracket     -- '['
@@ -281,6 +293,9 @@ data Token =   TokenInt Integer       -- Lit i
           |    TokenDoubleQuote       -- "
           |    TokenDepMerge          -- ,,
           |    TokenProjection
+          |    TokenBox               -- "with"
+          |    TokenUnit              -- 'unit'
+          |    TokenTyUnit            -- 'Unit'
           deriving Show
 
 lexer :: String -> [Token]
@@ -294,9 +309,9 @@ lexer ('-':cs)      =
      case cs of
           ('>':cs')      -> TokenTypeArrow   : lexer cs'
           _              -> TokenMinus       : lexer cs
-lexer ('*':cs)      = TokenTimes    : lexer cs
-lexer ('/':cs)      = TokenDiv      : lexer cs
-lexer ('%':cs)      = TokenMod      : lexer cs
+lexer ('*':cs)      = TokenTimes             : lexer cs
+lexer ('/':cs)      = TokenDiv               : lexer cs
+lexer ('%':cs)      = TokenMod               : lexer cs 
 lexer ('\\':cs)     = case cs of 
                          ('(':cs') -> TokenLambda   : lexer cs' 
 lexer ('=':cs)      = case cs of
@@ -307,7 +322,6 @@ lexer ('!':cs)      = case cs of
                          ('=':cs') -> TokenNeq : lexer cs'
 lexer ('&':cs)      = case cs of
                          ('&':cs') -> TokenAnd         : lexer cs'
-                         _         -> TokenTypeAnd     : lexer cs
 lexer ('|':cs)      = case cs of
                          ('|':cs') -> TokenOr  : lexer cs'
 lexer ('>':cs)      = case cs of
@@ -340,7 +354,10 @@ lexNum cs = TokenInt (read num) : lexer rest
 lexVar cs = case span isAlpha cs of
                ("Int",        rest)     -> TokenTypeInt     : lexer rest
                ("Bool",       rest)     -> TokenTypeBool    : lexer rest
+               ("unit",       rest)     -> TokenUnit      : lexer rest
                ("Sig",        rest)     -> TokenSig         : lexer rest
+               ("Unit",       rest)     -> TokenTyUnit      : lexer rest
+               ("with",       rest)     -> TokenBox         : lexer rest
                ("String",     rest)     -> TokenTypeString  : lexer rest
                ("True",       rest)     -> TokenTrue        : lexer rest
                ("env",        rest)     -> TokenQuery       : lexer rest
