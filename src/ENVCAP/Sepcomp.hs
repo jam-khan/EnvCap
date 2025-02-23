@@ -9,16 +9,13 @@ import ENVCAP.Source.TypeExpansion (expandTyAlias, expandAliasTypParams)
 import ENVCAP.Source.Desugar (getFixpointType, desugarTyp)
 import ENVCAP.Interpreter
 import Control.Monad (liftM2)
-import System.Environment (getArgs)
 import ENVCAP.Source.Elaboration (elaborateInfer)
 import Data.List (delete)
-import Data.Maybe (listToMaybe)
 
 -- Step 1: Add annotations                                          [Done]
 -- Step 2: Read interface files                                     [Done]
 -- Step 3: Read implementation files                                [Done]
 -- Step 4: Combine implementation and interface as an annotation    [Done]
-
 
 -- Step 5: Read multiple files in order                             [~2 hours]
 --          Order reflects dependencies: File1 File2 (means that File2 depends on File1)
