@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkenvcap_proj=self.webpackChunkenvcap_proj||[]).push([[7794],{2697:e=>{e.exports=JSON.parse('{"metadata":{"permalink":"/EnvCap/blog","page":1,"postsPerPage":10,"totalPages":1,"totalCount":4,"blogDescription":"Blog","blogTitle":"Blog"}}')}}]);
