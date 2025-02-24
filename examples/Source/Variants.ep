@@ -1,0 +1,9 @@
+type Day    = Monday | AnotherDay String Int;
+
+val value   = Monday as Day;
+
+val result  = match value of
+                case Monday                  => { 1 }
+                case (AnotherDay msg num)    => { num };
+
+val ok = result

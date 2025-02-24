@@ -1,16 +1,10 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 module ENVCAP.Interface where
 import ENVCAP.Source.Errors
-import Control.Exception
 import ENVCAP.Parser.Interface.ParseInterface (parseInterface)
 import ENVCAP.Syntax
 import ENVCAP.Source.TypeExpansion (expandTyAlias, expandAliasTypParams)
 import ENVCAP.Source.Desugar (getFixpointType, desugarTyp)
-import ENVCAP.Interpreter
-import Control.Monad (liftM2)
-import ENVCAP.Source.Elaboration (elaborateInfer)
-import Data.List (delete)
-
 
 -- | Performs type expansion on the interface
 --  Returns `Right Interface AST` or SepCompError if couldn't parse interface correctly

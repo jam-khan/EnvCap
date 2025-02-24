@@ -4,7 +4,7 @@
 	"name": "ENCAP",
 	"patterns": [
 	  {
-		"match": "\\b(if|then|else|let|letrec|in|val|function|module|struct|type|env|True|False|Sig|Int|Bool|String)\\b",
+		"match": "\\b(if|then|else|let|letrec|in|val|function|module|struct|type|env|True|False|Sig|Int|Bool|String|match|of|case|with|as)\\b",
 		"name": "keyword.control.encap"
 	  },
 	  {

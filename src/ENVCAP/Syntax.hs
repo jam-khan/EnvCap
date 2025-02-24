@@ -26,6 +26,8 @@ data LogicOp = And | Or
 type Params       = [(String, SurfaceTyp)]
 type Letargs      = [(String, SurfaceTyp, SurfaceTm)] 
 type Name         = String
+type Pattern      = (String, [String])
+type Cases        = [(Pattern, SurfaceTm)]
 
 data Interface  
         =       IAliasTyp       String SurfaceTyp
@@ -67,11 +69,10 @@ data SurfaceTm
         |   SSnd       SurfaceTm
         |   SNil       SurfaceTyp
         |   SCons      SurfaceTm SurfaceTm
-        |   SCase      SurfaceTm
-        |   SInL       SurfaceTm
-        |   SInR       SurfaceTm
         |   STuple     [SurfaceTm]
         |   SSwitch    SurfaceTm [(SurfaceTm, SurfaceTm)]
+        |   SADTInst   (String, [SurfaceTm]) SurfaceTyp 
+        |   SCase      SurfaceTm Cases
         deriving (Eq, Show)
 
 -- Types

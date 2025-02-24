@@ -116,7 +116,7 @@ interpreter code =
         if check TyCUnit coreAST (elaborateTyp sourceTy)
             then evaluate coreAST
             else Left $ InterpreterFailed "Type checking faile at core level"
-            
+
 -- | Runs a file by reading its contents. Handles potential I/O errors.
 --
 -- Reads the file at the given 'filePath'. Returns 'Right ()' if successful,
@@ -136,3 +136,15 @@ runFile filePath = do
         --   return $ Left (InterpreterFailed $ "I/O error: " ++ show ioException)
         -- Right code ->  return $ interpreter code
 
+-- | Simply reads and parses the file (Testing purposes)
+--
+-- === Example
+-- >>> parseFile "examples/Source/Arithmetic.ep"
+parseFile :: String -> IO()
+parseFile filePath = do
+        result <- try (readFile filePath) :: IO (Either IOException String)
+        case result of
+            Left ioException -> putStrLn ("I/O error: " ++ show ioException)
+            Right code       -> case parseImplementation code of
+                                    Just res   -> print res
+                                    Nothing    -> putStrLn "Parsing failed"

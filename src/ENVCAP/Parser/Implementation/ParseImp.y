@@ -33,6 +33,10 @@ import ENVCAP.Syntax
      'struct'       { TokenStruct       }
      'module'       { TokenModule       }
      'with'         { TokenBox          }
+     'as'           { TokenAs }
+     'match'        { TokenMatch        }
+     'case'         { TokenCase         }
+     'of'           { TokenMatchOf      }
      '[]'           { TokenEmptyList    }
      '['            { TokenOpenSqBracket  }
      ']'            { TokenCloseSqBracket }
@@ -55,6 +59,7 @@ import ENVCAP.Syntax
      '<='           { TokenLe           }
      '&&'           { TokenAnd          }
      '||'           { TokenOr           }
+     '|'            { TokenUnion        }
      ';'            { TokenSemicolon    }
      ':'            { TokenColon        }
      '='            { TokenEq           }
@@ -69,8 +74,8 @@ import ENVCAP.Syntax
 
 %right '='
 %right '=>'
-%right '::'
 %left '.'
+%left '::'
 %left proj
 %left TokenElse
 %left application_prec
@@ -78,6 +83,7 @@ import ENVCAP.Syntax
 %left '||'
 %left '&&'
 %left '>=' '>' '==' '!=' '<' '<='
+%left '|'
 %left '+' '-'
 %left '*' '/' '%'
 
@@ -94,37 +100,67 @@ Statement      : Function                         { $1 }
                | TyAlias                          { $1 }
                | Term                             { $1 }
 
-Term           : 'env'                             { SCtx }
-               | 'unit'                            { SUnit }
-               | FunctionApplication               { $1 }
-               | Bool                              { $1 }
-               | String                            { $1} 
-               | Projection            %prec proj  { $1 }
-               | int                               { SLit $1 }
-               | var                               { SVar $1 } -- Parsed into a general variable that will later get separated into
-               | ArithmeticOp                      { $1 }
-               | ComparisonOp                      { $1 }
-               | BooleanOp                         { $1 }
-               | IfThenElse                        { $1 }
-               | Lambda                            { $1 }
-               | Struct                            { $1 }
-               | Let                               { $1 }
-               | Letrec                            { $1 }
-               | List                              { $1 }
-               | ListCons                          { $1 }
-               | Record                            { $1 }
-               | Tuple                             { $1 }
-               | DependentMerge                    { $1 }
-               | Box                               { $1 }
+Term           : BaseTerm                          { $1 }
+               | ConstructedTerm                   { $1 }
                | Parens                            { $1 }
                | error                             { parseError [$1] }
 
-Box        : 'with' Term 'in' '{' Statements '}'   { SBox $2 $5 }
+BaseTerm            : 'env'                             { SCtx }
+                    | 'unit'                            { SUnit }
+                    | FunctionApplication               { $1 }
+                    | Bool                              { $1 }
+                    | String                            { $1 } 
+                    | int                               { SLit $1 }
+                    | var                               { SVar $1 } -- Parsed into a general variable that will later get separated into
 
-Type           : 'Unit'                            { STUnit } 
-               | 'Int'                             { STInt }
-               | 'Bool'                            { STBool }
-               | 'String'                          { STString }
+ConstructedTerm     : Projection            %prec proj  { $1 }
+                    | ArithmeticOp                      { $1 }
+                    | ComparisonOp                      { $1 }
+                    | BooleanOp                         { $1 }
+                    | IfThenElse                        { $1 }
+                    | Lambda                            { $1 }
+                    | Struct                            { $1 }
+                    | Match                             { $1 }
+                    | Tagging                           { $1 }
+                    | Let                               { $1 }
+                    | Letrec                            { $1 }
+                    | List                              { $1 }
+                    | ListCons                          { $1 }
+                    | Record                            { $1 }
+                    | Tuple                             { $1 }
+                    | DependentMerge                    { $1 }
+                    | Box                               { $1 }
+               
+
+Tagging        : ADTInstance 'as' Type            { SADTInst $1 $3 }
+
+ADTInstance    : var                              { ($1, []) }
+               | '{' var Terms '}'                { ($2, $3) }
+
+Terms          : BaseTerm                Terms    { $1 : $2 }
+               | '(' ConstructedTerm ')' Terms    { $2 : $4 }
+               | BaseTerm                         { [$1] }
+               | '(' ConstructedTerm ')'          { [$2] }
+
+Match          : 'match' Term 'of' Cases          { SCase $2 $4 }
+
+Cases          :  Case    Cases                             { $1 : $2}
+               |  Case                                      { [$1] }
+
+Case           :  'case' Pattern '=>' '{' Term '}'   { ($2, $5) }
+
+Pattern        : var                         { ($1, []) }
+               | '(' var Identifiers ')'     { ($2, $3) }
+
+Identifiers    : var Identifiers             { $1 : $2 }
+               | var                         { [$1] }
+
+-- Tagging        : Type '.' '<' var 
+
+Box            : 'with' Term 'in' '{' Statements '}'   { SBox $2 $5 }
+
+Type           : BaseType                          { $1 }
+               | ADT                               { $1 }
                | Type '->' Type                    { STArrow $1 $3 }
                | '[' Type ']'                      { STList $2 }
                | '{' RecordType '}'                { $2 }
@@ -133,11 +169,26 @@ Type           : 'Unit'                            { STUnit }
                | var                               { STIden $1 }
                | '(' Type ')'                      { $2 }
 
+BaseType       : 'Unit'                            { STUnit } 
+               | 'Int'                             { STInt }
+               | 'Bool'                            { STBool }
+               | 'String'                          { STString } 
+
+ADT            : Constructor '|' Constructor   { STAnd $1 $3 }
+               | Constructor '|' ADT           { STAnd $1 $3 } 
+
+Constructor    : var                         { STRecord $1 STUnit }
+               | var BaseType                { STRecord $1 $2 }
+               | var ProductTypes            { STRecord $1 $2 }
+
+ProductTypes   : BaseType ProductTypes       { STAnd $1 $2 }
+               | BaseType BaseType           { STAnd $1 $2 }
+
 IntersectionType    : Type ',' IntersectionType      { STAnd $1 $3 }
                     | Type ',' Type                  { STAnd $1 $3 }
 
-Projection     : Term '.' int                     {SProj $1 $3}
-               | Term '.' var                     {SRProj $1 $3}
+Projection          : Term '.' int                     {SProj $1 $3}
+                    | Term '.' var                     {SRProj $1 $3}
 
 Module         : 'module' var '(' ParamList ')' '{' Statements '}'         { SModule $2 $4 $7 }
 
@@ -213,11 +264,11 @@ Elements       : Term ',' Elements                     { SCons $1 $3 }
 Arguments      : Term ',' Arguments                    { $1 : $3 }
                | Term                                  { [$1] }
 
-Parens      : '(' Term ')'                             { $2 }
+Parens         : '(' Term ')'                             { $2 }
 
-CurlyParens : '{' Statements '}'                       { $2 }
+CurlyParens    : '{' Statements '}'                       { $2 }
 
-IfThenElse : 'if' Parens 'then' CurlyParens 'else' CurlyParens { SIf $2 $4 $6 }
+IfThenElse     : 'if' Parens 'then' CurlyParens 'else' CurlyParens { SIf $2 $4 $6 }
 
 ComparisonOp   :  Term    '>='    Term                 { SBinOp (Comp  Ge)   $1 $3 }
                |  Term    '>'     Term                 { SBinOp (Comp  Gt)   $1 $3 }
@@ -237,6 +288,7 @@ ArithmeticOp   :    Term    '+'     Term               { SBinOp (Arith Add)  $1 
 
 
 {
+
 parseError :: [Token] -> a
 parseError (x:xs)   = error ("Parse Error: Token Failed" ++ show x)
 parseError []       = error ("Parser Error: No Tokens")
@@ -296,6 +348,12 @@ data Token =   TokenInt Integer       -- Lit i
           |    TokenBox               -- "with"
           |    TokenUnit              -- 'unit'
           |    TokenTyUnit            -- 'Unit'
+          |    TokenMatch             -- 'match'
+          |    TokenCase              -- 'case'
+          |    TokenMatchOf           -- 'of'
+          |    TokenAs                -- 'as'
+          |    TokenUnion             -- '|'
+          |    TokenSpace
           deriving Show
 
 lexer :: String -> [Token]
@@ -323,7 +381,8 @@ lexer ('!':cs)      = case cs of
 lexer ('&':cs)      = case cs of
                          ('&':cs') -> TokenAnd         : lexer cs'
 lexer ('|':cs)      = case cs of
-                         ('|':cs') -> TokenOr  : lexer cs'
+                         ('|':cs') -> TokenOr     : lexer cs'
+                         _         -> TokenUnion  : lexer cs
 lexer ('>':cs)      = case cs of
                          ('=':cs') -> TokenGe  : lexer cs'
                          _         -> TokenGt  : lexer cs
@@ -354,11 +413,14 @@ lexNum cs = TokenInt (read num) : lexer rest
 lexVar cs = case span isAlpha cs of
                ("Int",        rest)     -> TokenTypeInt     : lexer rest
                ("Bool",       rest)     -> TokenTypeBool    : lexer rest
-               ("unit",       rest)     -> TokenUnit      : lexer rest
+               ("String",     rest)     -> TokenTypeString  : lexer rest
+               ("unit",       rest)     -> TokenUnit        : lexer rest
                ("Sig",        rest)     -> TokenSig         : lexer rest
                ("Unit",       rest)     -> TokenTyUnit      : lexer rest
                ("with",       rest)     -> TokenBox         : lexer rest
-               ("String",     rest)     -> TokenTypeString  : lexer rest
+               ("match",      rest)     -> TokenMatch       : lexer rest
+               ("of",         rest)     -> TokenMatchOf     : lexer rest
+               ("case",       rest)     -> TokenCase        : lexer rest         
                ("True",       rest)     -> TokenTrue        : lexer rest
                ("env",        rest)     -> TokenQuery       : lexer rest
                ("False",      rest)     -> TokenFalse       : lexer rest
@@ -373,6 +435,7 @@ lexVar cs = case span isAlpha cs of
                ("if",         rest)     -> TokenIf          : lexer rest
                ("then",       rest)     -> TokenThen        : lexer rest
                ("else",       rest)     -> TokenElse        : lexer rest
+               ("as",         rest)     -> TokenAs          : lexer rest
                (var,          rest)     -> TokenVar var     : lexer rest
 
 parseImplementation :: String -> Maybe SurfaceTm
@@ -407,7 +470,7 @@ test_cases = [  ("env", SCtx)
                                                   (SBinOp (Arith Mul) (SVar "x") (SLit 2))
                                                   (SBinOp (Arith Div) (SVar "y") (SLit 4)))
                                              (SLit 3))
-              , ("1 ; (x * 2) + (y / 4) >= 3", SMrg (SLit 1) (SBinOp (Comp Ge)
+              ,  ("1 ; (x * 2) + (y / 4) >= 3", SMrg (SLit 1) (SBinOp (Comp Ge)
                                                                  (SBinOp (Arith Add)
                                                                       (SBinOp (Arith Mul) (SVar "x") (SLit 2))
                                                                       (SBinOp (Arith Div) (SVar "y") (SLit 4)))
