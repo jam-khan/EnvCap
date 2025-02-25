@@ -18,7 +18,7 @@ interfaceTypeExpansion tyGamma (IType     ty)
                         Right ty'   -> Right    $ IType ty'
                         Left  _     -> Left     $ SepCompError ("Type " ++ show ty ++ "did not expand properly")
 interfaceTypeExpansion tyGamma (FunctionTyp name params ty)
-                =  case expandAliasTypParams tyGamma params of
+                =   case expandAliasTypParams tyGamma params of
                         Right params'  ->
                             case expandTyAlias tyGamma ty of
                                 Right ty'   -> Right $ FunctionTyp name params' ty'
