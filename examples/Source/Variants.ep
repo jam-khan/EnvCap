@@ -2,8 +2,10 @@ type Day    = Monday | AnotherDay String Int;
 
 val value   = Monday as Day;
 
-val result  = match value of
-                case Monday                  => { 1 }
-                case (AnotherDay msg num)    => { num };
+function test(value: Day): Int {
+    match value of
+        case Monday                  => { 1 }
+        case (AnotherDay msg num)    => { num } 
+};
 
-val ok = result
+val result  = test({AnotherDay "Tuesday" 2} as Day)

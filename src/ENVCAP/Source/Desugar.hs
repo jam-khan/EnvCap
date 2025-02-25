@@ -185,22 +185,44 @@ desugar (SLetrec [(_, ty, tm1)] tm2)
 desugar (SLet (x:xs) _) = Left $ DesugarFailed ("Need exactly one argument in the locally nameless representation, but found " ++ show (x:xs))
 desugar (SLetrec (x:xs) _)
                         = Left $ DesugarFailed ("Need exactly one argument in the locally nameless representation, but found " ++ show (x:xs))
-
--- Letrec needs careful handling!
--- desugar (SLetrec letargs tm)
---                         = do
---                             tm'     <- desugar (SLam (extractLetParams letargs) tm)
---                             args'   <- processLetRecParamsArgs letargs
---                             return $ foldl (TmApp tm') args'
 desugar (SBinOp op tm1 tm2)
                         = TmBinOp op <$> desugar tm1 <*> desugar tm2
 desugar (SUnOp op tm)   = TmUnOp op  <$> desugar tm
 desugar (SAnno tm ty)   = TmAnno <$> desugar tm <*> desugarTyp ty
 desugar (SIf tm1 tm2 tm3)
                         = TmIf <$> desugar tm1 <*> desugar tm2 <*> desugar tm3
+desugar (SADTInst (label, terms) ty)
+                        =   do
+                                terms' <- desugarMultipleTerms terms
+                                ty'    <- desugarTyp ty
+                                return $ TmTag (label, terms') ty'
+desugar (SCase tm cases)=   do
+                                cases'  <- desugarCases cases
+                                tm'     <- desugar tm
+                                return $ TmCase tm' cases'
+
+-- desugar (SADTInst (label, terms) ty)
+--                         =  do
+--                             terms' <- desugarMultipleTerms terms
+--                             ty'    <- desugarTyp ty
+--                             return $ TmTag (label, terms') ty'
 
 desugar _sourceTerm     =
     Left $ DesugarFailed "Function not implemented completely.\n" 
+
+desugarCases :: Cases -> Either DesugarError [(Pattern, SourceTm)]
+desugarCases []     = Right []
+desugarCases ((pattern, tm):rest) 
+                    = do    tm'     <- desugar tm
+                            rest'   <- desugarCases rest
+                            return $ (pattern, tm'):rest'
+
+desugarMultipleTerms :: [SurfaceTm] -> Either DesugarError [SourceTm]
+desugarMultipleTerms []     = Right []
+desugarMultipleTerms (x:xs) = do
+                                x'  <- desugar x
+                                xs' <- desugarMultipleTerms xs
+                                return (x':xs')
 
 -- | Helper to construct fixpoint type
 getFixpointType :: Params -> SourceTyp -> Either DesugarError SourceTyp

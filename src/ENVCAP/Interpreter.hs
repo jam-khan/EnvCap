@@ -163,3 +163,44 @@ expandFile filePath = do
                                                     Right res' -> print res'
                                                     Left  err  -> print err
                                     Nothing  -> putStrLn "Parsing Failed"
+
+-- | Reads the file and performs parsing, type expansion and locally nameless.
+-- 
+-- === Example
+-- >>> namelessFile "examples/Source/Arithmetic.ep"
+namelessFile :: String -> IO()
+namelessFile filePath = do
+        result <- try (readFile filePath) :: IO (Either IOException String)
+        case result of
+            Left ioException -> putStrLn ("I/O error: " ++ show ioException)
+            Right code       -> case parseImplementation code of
+                                    Just res -> case typeAliasExpansion res of
+                                                    Right res' -> 
+                                                        case locallyNameless res' of
+                                                            Right res'' -> print res''
+                                                            Left  err   -> print err 
+                                                    Left  err  -> print err
+                                    Nothing  -> putStrLn "Parsing Failed"
+
+-- | Reads the file and performs parsing, type expansion, locally nameless and desugaring.
+--
+-- === Example
+-- >>> desugaredFile "examples/Source/Arithmetic.ep"
+desugaredFile :: String -> IO()
+desugaredFile filePath = do
+        result <- try (readFile filePath) :: IO (Either IOException String)
+        case result of
+            Left ioException -> putStrLn ("I/O error: " ++ show ioException)
+            Right code       -> 
+                case parseImplementation code of
+                    Just res -> 
+                        case typeAliasExpansion res of
+                            Right res' -> 
+                                case locallyNameless res' of
+                                    Right res'' -> 
+                                            case desugarSource res'' of
+                                                Right res''' -> print res'''
+                                                Left err     -> print err
+                                    Left  err   -> print err 
+                            Left  err  -> print err
+                    Nothing  -> putStrLn "Parsing Failed"

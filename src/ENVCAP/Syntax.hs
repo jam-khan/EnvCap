@@ -109,11 +109,10 @@ data SourceTm   =   TmCtx                               -- Query
                 |   TmFix       SourceTyp SourceTm
                 |   TmNil       SourceTyp
                 |   TmCons      SourceTm SourceTm
+                |   TmTag       (String, [SourceTm]) SourceTyp
+                |   TmCase      SourceTm [(Pattern, SourceTm)]
                 |   TmBinOp     BinaryOp SourceTm SourceTm
                 |   TmUnOp      UnaryOp SourceTm
-                |   TmCase      SourceTm [SourceTm]
-                |   TmInL       SourceTm
-                |   TmInR       SourceTm
                 -- Not sure if tagging is needed at source level -- can be simply added during elaboration to core
                 |   TmAnno      SourceTm SourceTyp
                 |   TmTuple     [SourceTm]
