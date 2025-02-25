@@ -136,7 +136,7 @@ runFile filePath = do
         --   return $ Left (InterpreterFailed $ "I/O error: " ++ show ioException)
         -- Right code ->  return $ interpreter code
 
--- | Simply reads and parses the file (Testing purposes)
+-- | Reads and parses the file (Testing purposes)
 --
 -- === Example
 -- >>> parseFile "examples/Source/Arithmetic.ep"
@@ -148,3 +148,18 @@ parseFile filePath = do
             Right code       -> case parseImplementation code of
                                     Just res   -> print res
                                     Nothing    -> putStrLn "Parsing failed"
+
+-- | Reads the file and performs parsing and type expansion.
+-- 
+-- === Example
+-- >>> expandFile "examples/Source/Arithmetic.ep"
+expandFile :: String -> IO()
+expandFile filePath = do
+        result <- try (readFile filePath) :: IO (Either IOException String)
+        case result of
+            Left ioException -> putStrLn ("I/O error: " ++ show ioException)
+            Right code       -> case parseImplementation code of
+                                    Just res -> case typeAliasExpansion res of
+                                                    Right res' -> print res'
+                                                    Left  err  -> print err
+                                    Nothing  -> putStrLn "Parsing Failed"
