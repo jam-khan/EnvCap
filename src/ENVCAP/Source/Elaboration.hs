@@ -5,6 +5,7 @@ module ENVCAP.Source.Elaboration where
 import ENVCAP.Syntax
 import ENVCAP.Source.Errors 
 
+
 elaborateTyp :: SourceTyp -> CoreTyp
 elaborateTyp TySUnit               = TyCUnit
 elaborateTyp TySInt                = TyCInt
@@ -159,15 +160,62 @@ elaborateCase ctx variantTy ((label, bindings), tm) =
                                                 Right ((label, bindings), caseTy, caseTm')
                                         Left err                -> Left err
 
-elaborateCases :: SourceTyp -> SourceTyp -> [(Pattern, SourceTm)] -> Either SourceTypeError [(SourceTyp, CoreTyp)]
-elaborateCases ctx variantTy cases      =       
-                        patternCasesLength $
-                                Right []
-                        where   patternCasesLength next = 
-                                        if countLabels variantTy == Right (length cases) 
-                                        then next 
-                                        else Left (STypeError "Number of cases don't match the possible patterns in the match statement")
+-- | `elaborateCases` is a utility function that elaborates all the cases in the match statement.
+--
+-- === Example:
+-- >>> elaborateCasesCheck TySUnit TySInt (TySAnd (TySRecord "Num" TySInt) (TySRecord "Var" TySString)) [(("Var", ["x"]), (TmLit 1)), (("Num", ["x"]), (TmLit 1))]
+-- Right [(("Var",["x"]),Lit 1),(("Num",["x"]),Lit 1)]
+-- 
+-- >>> elaborateCasesCheck TySUnit TySInt (TySAnd (TySRecord "Num" TySInt) (TySRecord "Var" TySString)) [(("Var", ["x"]), (TmProj TmCtx 0)), (("Var", ["x"]), (TmProj TmCtx 0))]
+-- Left (STypeError "Types don't match for all the case branches")
+elaborateCasesCheck :: SourceTyp -> SourceTyp -> SourceTyp -> [(Pattern, SourceTm)] -> Either SourceTypeError [(Pattern, CoreTm)]
+elaborateCasesCheck _ _ _ [] = Right []
+elaborateCasesCheck ctx ty1 variantTy (x:xs)    
+        = case elaborateCase ctx variantTy x of
+                Right (pattern, ty', ctm1)      -> 
+                        if ty1 == ty' 
+                                then elaborateCasesCheck ctx ty1 variantTy xs >>=
+                                        \xs'    -> return ((pattern, ctm1):xs')
+                                else Left $ STypeError "Types don't match for all the case branches"
+                Left err          -> Left err
 
+{--
+        Problem: Introduce a separate type for the variant
+        Why?    1. 
+                Because the below case could also type check if
+                the x in (match x of ...) is a record that fits
+                the criteria of each branch. Hence, it is important
+                to wrap the type with a variant, then a well-formedness check
+                could be made on the variant.
+
+--}
+
+-- `elaborateMatch` is a function that elaborates the match statement.
+--
+-- === Example:
+-- >>> elaborateMatch TySUnit (TmCase (Lit 1) [(("Var", ["x"]), (TmProj TmCtx 0)), (("Var", ["x"]), (TmProj TmCtx 0))])
+elaborateMatch :: SourceTyp -> SourceTm -> Either SourceTypeError Elab
+elaborateMatch _          (TmCase _ [])        = Left $ STypeError "Match statement must have atleast one case"
+elaborateMatch ctx (TmCase tm (fstcase:cases)) =
+        case elaborateInfer ctx tm of
+                Right (variantTy, tm')  ->
+                        if countLabels variantTy == Right (length cases + 1) && isUnique (fstcase:cases)
+                                then    case elaborateCase ctx variantTy fstcase of
+                                                Right (pattern, ty1, tm1)       -> 
+                                                        elaborateCasesCheck ctx ty1 variantTy cases 
+                                                                >>= \cases' -> return (ty1, Case tm' ((pattern, tm1):cases'))
+                                                Left err        -> Left err
+                                else    Left $ STypeError "Fewer cases present in the match than the constructors in the ADT"
+                Left err                -> Left err
+        where   isUnique ls     = case ls of
+                                        ((constructor, _), _ ):xs       -> 
+                                                notFound constructor xs && isUnique xs
+                                        []      -> True
+                                        where 
+                                                notFound l ls'   = case ls' of
+                                                        ((constructor', _), _):xs        -> 
+                                                                l /= constructor' && notFound l xs
+                                                        []      -> True
 
 elaborateInfer :: SourceTyp -> SourceTm -> Either SourceTypeError Elab
 elaborateInfer ctx TmCtx           = Right (ctx, Ctx)
@@ -175,6 +223,7 @@ elaborateInfer _ TmUnit            = Right (TySUnit, Unit)
 elaborateInfer _ (TmLit i)         = Right (TySInt, Lit i)
 elaborateInfer _ (TmBool b)        = Right (TySBool, EBool b)
 elaborateInfer _ (TmString s)      = Right (TySString, EString s)
+
 elaborateInfer ctx (TmLam tA tm)     = 
                 case elaborateInfer (TySAnd ctx tA) tm of
                         Right (tB, tm') -> Right (TySArrow tA tB, Lam (elaborateTyp tA) tm')
@@ -182,6 +231,7 @@ elaborateInfer ctx (TmLam tA tm)     =
                                 Left $ generateError ctx tm
                                         "Couldn't infer the type of the term inside abstraction."
                                         ("Check the term inside abstraction. \n \n-----Further info-----\n \n" ++ err)
+
 elaborateInfer ctx (TmClos e1 tA e2) = 
                 case elaborateInfer TySUnit e1 of
                         Right (gamma', e1') ->
@@ -200,6 +250,7 @@ elaborateInfer ctx (TmRec l tm)     =
                                 Right (TySRecord l tA, Rec l tm')
                         Left  (STypeError err)  -> 
                                 Left $ generateError ctx (TmRec l tm) "Typecheck failed at a record/assignment." err
+
 elaborateInfer ctx (TmRProj tm l)   = 
                 case elaborateInfer ctx tm of
                         Right (tB, tm') -> 
@@ -214,6 +265,7 @@ elaborateInfer ctx (TmRProj tm l)   =
                                                                 "Lookup failed. Label doesn't exists!" 
                                                                 ("Check whether label " ++ show l ++ " exists in the record.")
                         Left err        -> Left err
+
 elaborateInfer ctx (TmProj tm n)    = 
                 case elaborateInfer ctx tm of
                         Right (tB, tm')         -> case lookupt tB n of
@@ -224,6 +276,7 @@ elaborateInfer ctx (TmProj tm n)    =
                         Left (STypeError err)   -> Left $ generateError ctx tm 
                                                                 "Type error on term for projection."
                                                                 ("Make sure that term is correct before projecting\n \n-----Further info-----\n \n" ++ err)
+
 elaborateInfer ctx (TmApp tm1 tm2)  
                 = case elaborateInfer ctx tm1 of
                         Right (typ, tm1')       
@@ -250,6 +303,7 @@ elaborateInfer ctx (TmApp tm1 tm2)
                                 Left $ generateError ctx tm1 
                                         "Type error on application"
                                         ("Check the function \n \n-----Further info-----\n \n" ++ err)
+
 elaborateInfer ctx (TmMrg tm1 tm2)  
                 = case elaborateInfer ctx tm1 of
                         Right (ty1, tm1')      -> 
@@ -262,6 +316,7 @@ elaborateInfer ctx (TmMrg tm1 tm2)
                                 Left $  generateError ctx (TmMrg tm1 tm2) 
                                         "Type error on first-part of merge."
                                         ("Check if first part of merge is well-defined. \n \n-----Further info-----\n \n" ++ err)
+
 elaborateInfer ctx (TmBox tm1 tm2)  
                 = case elaborateInfer ctx tm1 of
                         Right (ctx', tm1') -> 
@@ -276,6 +331,7 @@ elaborateInfer ctx (TmBox tm1 tm2)
                                 Left $ generateError ctx tm1 
                                         "Type error on box construct"
                                         ("Make sure that the environment for box construct is correct.\n \n-----Further info-----\n \n" ++ err)
+
 elaborateInfer ctx (TmIf tm1 tm2 tm3) 
                 = case elaborateCheck ctx tm1 TySBool of
                         Right tm1'      ->
@@ -296,6 +352,7 @@ elaborateInfer ctx (TmIf tm1 tm2 tm3)
                                 Left $ generateError ctx tm1
                                                 "Type error on condition: condition must be of type Bool"
                                                 ("Fix the condition and make sure it is of type Bool.\n \n-----Further info-----\n \n" ++ err)   
+
 elaborateInfer ctx (TmFix ty tm) = 
                 case elaborateCheck (TySAnd ctx ty) tm ty of
                         Right  tm'       ->     Right (ty, Fix (elaborateTyp ty) tm')
@@ -303,6 +360,7 @@ elaborateInfer ctx (TmFix ty tm) =
                                         -> Left $ generateError ctx (TmFix ty tm) 
                                                 "Type error on fixpoint"
                                                 err
+
 elaborateInfer ctx (TmStruct tyA tm)=
                 case elaborateInfer (TySAnd TySUnit tyA) tm of
                         Right (tyB, tm')       -> Right (TySSig tyA tyB, Box Unit (Lam (elaborateTyp tyA) tm'))
@@ -310,6 +368,7 @@ elaborateInfer ctx (TmStruct tyA tm)=
                                                         (TmStruct tyA tm)
                                                         "Type error on module."
                                                         ("Fix the module.\n \n-----Further info-----\n \n" ++ err)
+
 elaborateInfer ctx (TmTag tm ty)=
                 case elaborateInfer ctx tm of
                         Right (TySRecord _ ty', Rec l tm') -> 
@@ -321,18 +380,9 @@ elaborateInfer ctx (TmTag tm ty)=
                         _       -> Left $ generateError ctx tm
                                         "Type error on algebraic data type instance."
                                         "Only an ADT constructor can be tagged."
--- elaborateInfer ctx (TmCase tm cases)
---                 = case elaborateInfer ctx tm of
---                         Right (variantTy, tm') -> 
---                                 case elaborateCases ctx variantTy cases of
---                                         Right 
---                                 Left $ generateError ctx tm
---                                                         "Type error on case"
---                                                         ""
---                         Left (STypeError err)        
---                                         -> Left $ generateError ctx tm
---                                                         "Type error on case"
---                                                         (show err)
+
+elaborateInfer ctx (TmCase tm cases)=elaborateMatch ctx (TmCase tm cases)
+
 elaborateInfer ctx (TmBinOp (Arith op) tm1 tm2) =
                 case elaborateCheck ctx tm1 TySInt of
                         Right tm1' -> 
@@ -347,6 +397,7 @@ elaborateInfer ctx (TmBinOp (Arith op) tm1 tm2) =
                                 Left $ generateError ctx tm1 
                                         ("Type error on first operand of the operator" ++ show op)
                                         ("First operand has type error.\n \n-----Further info-----\n \n" ++ show err)
+
 elaborateInfer ctx (TmBinOp (Comp op) tm1 tm2) =
                 case elaborateInfer ctx tm1 of
                         Right (TySInt, tm1') -> 
@@ -381,6 +432,7 @@ elaborateInfer ctx (TmBinOp (Comp op) tm1 tm2) =
                                 Left $ generateError ctx tm1 
                                         ("Type error on first operand of the comparison operator" ++ show op)
                                         ("First operand has type error.\n \n-----Further info-----\n \n" ++ err)
+
 elaborateInfer ctx (TmBinOp (Logic op) tm1 tm2) =
                 case elaborateCheck ctx tm1 TySBool of
                         Right tm1' ->
@@ -395,10 +447,12 @@ elaborateInfer ctx (TmBinOp (Logic op) tm1 tm2) =
                                 Left $ generateError ctx tm1 
                                         ("Type error on first operand of the logic operator" ++ show op)
                                         ("First operand has type error.\n \n-----Further info-----\n \n" ++ err)
-elaborateInfer ctx (TmUnOp Not tm)     =
+
+elaborateInfer ctx (TmUnOp Not tm)      =
                 case elaborateInfer ctx tm of
                         Right (ty, tm')         -> Right (ty, UnOp Not tm')
                         Left err                -> Left err
+
 elaborateInfer ctx (TmAnno tm typ)      =
                 case elaborateCheck ctx tm typ of
                         Right tm'       -> Right (typ, tm')
