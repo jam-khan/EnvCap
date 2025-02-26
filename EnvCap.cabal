@@ -24,7 +24,7 @@ library
     exposed-modules:    ENVCAP.Interpreter ENVCAP.Utils ENVCAP.Interface ENVCAP.Parser.Parser 
                         ENVCAP.Sepcomp ENVCAP.Parser.Implementation.ParseImp ENVCAP.Parser.Interface.ParseInterface 
                         ENVCAP.Syntax ENVCAP.Core.Evaluator ENVCAP.Core.TypeChecker
-                        ENVCAP.Core.Step ENVCAP.Core.PrettyPrint ENVCAP.Source.Elaboration
+                        ENVCAP.Core.Step ENVCAP.Source.Elaboration
     -- Modules included in this library but not exported.
     -- other-modules:
 

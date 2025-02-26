@@ -20,6 +20,11 @@ rlookupv (VMrg v1 v2) label =
         (_, _)                  -> Nothing
 rlookupv _ _ = Nothing
 
+getCase :: String -> [(Pattern, CoreTm)] -> Maybe CoreTm
+getCase _ []                    = Nothing
+getCase l (((l', _), tm):xs)    = 
+        if l == l' then Just tm else getCase l xs
+
 eval :: Value -> CoreTm -> Maybe Value
 eval _ (Lit n)                  = Just (VInt n)
 eval _ Unit                     = Just VUnit
@@ -59,6 +64,15 @@ eval env (BinOp (Arith op) e1 e2)
                                                                 VInt  <$> arithOp op v1 v2   
                                                         _         -> Nothing
                                         _       ->  Nothing
+eval env (Tag tm ty)            = eval env tm 
+                                        >>= \v -> return $ VTag v ty
+eval env (Case tm cases)        = eval env tm >>=
+                                        \case 
+                                                (VTag (VRcd l v) _)     ->
+                                                        case getCase l cases of
+                                                                Just tm' -> eval (VMrg env v) tm'
+                                                                Nothing -> Nothing
+                                                _       -> Nothing
 eval env (BinOp (Comp op) e1 e2)
                                 = eval env e1 >>= 
                                         \v1 -> eval env e2 >>= 
@@ -78,4 +92,3 @@ eval env (BinOp (Logic op) e1 e2)
 eval env (UnOp Not e1)          = case eval env e1 of
                                         Just (VBool b)       -> Just (VBool (not b))
                                         _                    -> Nothing
-eval _ _                        = Nothing

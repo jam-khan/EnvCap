@@ -134,7 +134,7 @@ ConstructedTerm     : Projection            %prec proj  { $1 }
 
 Tagging        : ADTInstance 'as' Type            { SADTInst $1 $3 }
 
-ADTInstance    : var                              { ($1, []) }
+ADTInstance    : var                              { ($1, [SUnit]) }
                | '{' var Terms '}'                { ($2, $3) }
 
 Terms          : BaseTerm                Terms    { $1 : $2 }
@@ -147,7 +147,7 @@ Match          : 'match' Term 'of' Cases          { SCase $2 $4 }
 Cases          :  Case    Cases                             { $1 : $2}
                |  Case                                      { [$1] }
 
-Case           :  'case' Pattern '=>' '{' Term '}'   { ($2, $5) }
+Case           : 'case' Pattern '=>' '{' Term '}'   { ($2, $5) }
 
 Pattern        : var                         { ($1, []) }
                | '(' var Identifiers ')'     { ($2, $3) }

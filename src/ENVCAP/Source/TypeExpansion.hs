@@ -181,7 +181,6 @@ expandAliasLetArgs ctx ((x, ty, tm):xs) =
 expandAliasTypParams :: SurfaceTyp -> Params -> Either TypeExpansionError Params
 expandAliasTypParams _ []                 = Right []
 expandAliasTypParams ctx ((x, ty):xs)     = 
-        do
-                ty'     <- expandTyAlias ctx ty
+        do      ty'     <- expandTyAlias ctx ty
                 rest    <- expandAliasTypParams ctx xs
                 return $ (x, ty') : rest

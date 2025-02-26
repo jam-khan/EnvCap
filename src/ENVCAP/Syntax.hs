@@ -174,15 +174,11 @@ data CoreTyp    =   TyCUnit                       -- Unit type for empty environ
 
 data Value =    VUnit                      -- Unit value
         |       VInt    Integer            -- Integer value
-        |       VClos   Value CoreTm          -- Closure
+        |       VClos   Value CoreTm       -- Closure
         |       VRcd    String Value       -- Single-field record value
         |       VMrg    Value Value        -- Merge of two values
+        |       VTag    Value CoreTyp      
         -- Extensions
         |       VBool   Bool               -- Boolean Value
         |       VString String             -- String Value
-        |       VPair   Value Value        -- Pair value
-        |       VInL    CoreTyp Value      -- tagged value (left)
-        |       VInR    CoreTyp Value      -- tagged value (right)
-        |       VNil    CoreTyp            -- nil list
-        |       VCons   Value Value        -- List
         deriving (Show, Eq)

@@ -1,11 +1,4 @@
-type Day    = Monday | AnotherDay String Int;
 
-val value   = Monday as Day;
-
-function test(value: Day): Int {
-    match value of
-        case Monday                  => { 1 }
-        case (AnotherDay msg num)    => { num } 
-};
-
-val result  = test({AnotherDay "Tuesday" 2} as Day)
+val result =    match ({AnotherDay 2} as (Monday | AnotherDay Int)) of
+                    case Monday              => { 1 }
+                    case (AnotherDay num)    => { num * 10 } 
