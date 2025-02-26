@@ -181,8 +181,8 @@ Constructor    : var                         { STRecord $1 STUnit }
                | var BaseType                { STRecord $1 $2 }
                | var ProductTypes            { STRecord $1 $2 }
 
-ProductTypes   : BaseType ProductTypes       { STAnd $1 $2 }
-               | BaseType BaseType           { STAnd $1 $2 }
+ProductTypes   : ProductTypes BaseType       { STAnd $1 $2 }
+               | BaseType     BaseType       { STAnd $1 $2 }
 
 IntersectionType    : Type ',' IntersectionType      { STAnd $1 $3 }
                     | Type ',' Type                  { STAnd $1 $3 }

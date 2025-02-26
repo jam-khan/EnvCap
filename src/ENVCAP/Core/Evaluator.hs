@@ -49,23 +49,6 @@ eval env (If cond e1 e2)        = eval env cond >>= \case
                                                         VBool True   -> eval env e1
                                                         VBool False  -> eval env e2
                                                         _            -> Nothing
-eval env (Pair e1 e2)           = VPair <$> eval env e1 <*> eval env e2
-eval env (Fst e)                = eval env e >>= \case  VPair v1 _ -> return v1
-                                                        _          -> Nothing
-eval env (Snd e)                = eval env e >>= \case  VPair _ v2 -> return v2
-                                                        _          -> Nothing
-eval env (InL t e)              = VInL t <$> eval env e
-eval env (InR t e)              = VInR t <$> eval env e
-eval env (Case e1 e2 e3)        = eval env e1 >>= \case
-                                        VInL _ v1 -> eval (VMrg env v1) e2
-                                        VInR _ v1 -> eval (VMrg env v1) e3
-                                        _         -> Nothing
-eval _   (Nil tA)               = Just (VNil tA) 
-eval env (Cons e1 e2)           = eval env e1 >>= \v1 -> eval env e2 >>= \v2 -> return $ VCons v1 v2
-eval env (LCase e1 e2 e3)       = eval env e1 >>= \case
-                                                        VNil _          -> eval env e2
-                                                        VCons v1 v2      -> eval (VMrg (VMrg env v1) v2) e3
-                                                        _                -> Nothing
 eval env (BinOp (Arith op) e1 e2)
                                 = eval env e1 >>= 
                                         \case 
@@ -95,3 +78,4 @@ eval env (BinOp (Logic op) e1 e2)
 eval env (UnOp Not e1)          = case eval env e1 of
                                         Just (VBool b)       -> Just (VBool (not b))
                                         _                    -> Nothing
+eval _ _                        = Nothing

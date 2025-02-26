@@ -195,11 +195,12 @@ desugar (SADTInst (label, terms) ty)
                         =   do
                                 terms' <- desugarMultipleTerms terms
                                 ty'    <- desugarTyp ty
-                                return $ TmTag (label, terms') ty'
+                                return $ TmTag (TmRec label (foldl1 TmMrg terms')) ty'
 desugar (SCase tm cases)=   do
                                 cases'  <- desugarCases cases
                                 tm'     <- desugar tm
                                 return $ TmCase tm' cases'
+
 
 -- desugar (SADTInst (label, terms) ty)
 --                         =  do
@@ -209,6 +210,7 @@ desugar (SCase tm cases)=   do
 
 desugar _sourceTerm     =
     Left $ DesugarFailed "Function not implemented completely.\n" 
+
 
 desugarCases :: Cases -> Either DesugarError [(Pattern, SourceTm)]
 desugarCases []     = Right []

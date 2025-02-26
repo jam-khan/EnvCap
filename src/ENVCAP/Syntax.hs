@@ -72,6 +72,7 @@ data SurfaceTm
         |   STuple     [SurfaceTm]
         |   SSwitch    SurfaceTm [(SurfaceTm, SurfaceTm)]
         |   SADTInst   (String, [SurfaceTm]) SurfaceTyp 
+        -- Cases = [(Pattern, SurfaceTm)]
         |   SCase      SurfaceTm Cases
         deriving (Eq, Show)
 
@@ -109,7 +110,8 @@ data SourceTm   =   TmCtx                               -- Query
                 |   TmFix       SourceTyp SourceTm
                 |   TmNil       SourceTyp
                 |   TmCons      SourceTm SourceTm
-                |   TmTag       (String, [SourceTm]) SourceTyp
+                -- [SourceTm] should become merges
+                |   TmTag       SourceTm SourceTyp
                 |   TmCase      SourceTm [(Pattern, SourceTm)]
                 |   TmBinOp     BinaryOp SourceTm SourceTm
                 |   TmUnOp      UnaryOp SourceTm
@@ -135,7 +137,6 @@ data SourceTyp  =   TySUnit                             -- Unit type for empty e
                 |   TySIden     String                  -- Simply an alias
                 deriving (Eq, Show)
 
-
 data CoreTm     =   Ctx                                 -- Context
                 |   Unit                                -- Unit
                 |   Lit    Integer                      -- Integer literal
@@ -152,15 +153,8 @@ data CoreTm     =   Ctx                                 -- Context
                 |   EString String                      -- String Term
                 |   If     CoreTm CoreTm CoreTm         -- Conditionals
                 |   Fix    CoreTyp CoreTm               -- Recursion
-                |   Pair   CoreTm CoreTm                -- Pair
-                |   Fst    CoreTm                       -- First Projection
-                |   Snd    CoreTm                       -- Second Projection
-                |   InL    CoreTyp CoreTm               -- Tagging Left
-                |   InR    CoreTyp CoreTm               -- Tagging Right
-                |   Case   CoreTm CoreTm CoreTm         -- Case of Sums
-                |   Nil    CoreTyp                      -- Nil typ, e.g. [] of Int
-                |   Cons   CoreTm CoreTm                -- Cons for List
-                |   LCase  CoreTm CoreTm CoreTm         -- Case of List
+                |   Tag    CoreTm CoreTyp
+                |   Case   CoreTm [(Pattern, CoreTm)]
                 |   BinOp  BinaryOp CoreTm CoreTm       -- Binary operations
                 |   UnOp   UnaryOp CoreTm               -- Unary operations
                 deriving (Eq, Show)

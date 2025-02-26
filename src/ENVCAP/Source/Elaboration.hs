@@ -1,4 +1,6 @@
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use >=>" #-}
 module ENVCAP.Source.Elaboration where
 import ENVCAP.Syntax
 import ENVCAP.Source.Errors 
@@ -15,13 +17,6 @@ elaborateTyp (TySList ty)          = TyCList (elaborateTyp ty)
 elaborateTyp (TySSum ty1 ty2)      = TyCSum  (elaborateTyp ty1) (elaborateTyp ty2)
 elaborateTyp (TySPair ty1 ty2)     = TyCPair (elaborateTyp ty1) (elaborateTyp ty2)
 elaborateTyp (TySSig tA tB)        = TyCArrow (elaborateTyp tA) (elaborateTyp tB)
-
--- unescape :: String -> String
--- unescape [] = []
--- unescape ('\\' : 'n' : xs) = '\n' : unescape xs  -- Replace `\n` with newline
--- unescape ('\\' : '\\' : xs) = '\\' : unescape xs -- Replace `\\` with `\`
--- unescape ('\\' : '\"' : xs) = '\"' : unescape xs -- Replace `\"` with `"`
--- unescape (x : xs) = x : unescape xs
 
 type Elab = (SourceTyp, CoreTm)
 
@@ -59,7 +54,15 @@ containment (TySRecord l tA) (TySAnd tB tC)
                                     (containment (TySRecord l tA) tC && not (isLabel l tB))
 containment _ _                 = False
 
--- Lookup based on label
+-- | `rlookupt` is the record lookup function in the type-directed elaboration rules.
+-- It is used to perform label projection on the context.
+--
+-- === Example:
+-- >>> rlookupt (TySAnd (TySRecord "Num" TySInt) (TySRecord "Var" TySString)) "Num"
+-- Just TySInt
+--
+-- >>> rlookupt (TySAnd (TySRecord "Val" TySBool) TySInt) "Val"
+-- Just TySBool
 rlookupt :: SourceTyp -> String -> Maybe SourceTyp
 rlookupt (TySRecord l t) label
     | l == label = Just t
@@ -69,8 +72,105 @@ rlookupt (TySAnd tA tB) label
                                 Nothing   -> rlookupt tA label
 rlookupt _ _            = Nothing
 
+-- | `countLabels` is a utility function that ensures well-formedness of the variant type
+--   and returns the count of labels present in the variant type.
+--
+-- === Example:
+-- >>> countLabels (TySRecord "x" TyInt)
+-- Right 1
+countLabels :: SourceTyp -> Either SourceTypeError Int
+countLabels (TySRecord _ _)     = Right 1
+countLabels (TySAnd tA tB)      = 
+        do      left    <- countLabels tA
+                right   <- countLabels tB
+                return $ left + right
+countLabels _                   = 
+        Left $ STypeError "Variant Type must be restricted to only records with intersection"
+
+-- | `countTypesInConstructor` is a utility function that returns the count of types
+-- inside an intersection type.
+--
+-- === Example:
+-- >>> countTypesInConstructor (TySAnd TySInt TySInt)
+-- Right 2
+--
+-- >>> countTypesInConstructor (TySAnd (TySAnd TySInt TySTring) TySInt))
+-- Right 3
+countTypesInConstructor :: SourceTyp -> Either SourceTypeError Int
+countTypesInConstructor (TySAnd tA _)   =
+        countTypesInConstructor tA >>= \left -> return $ left + 1
+countTypesInConstructor _               = 
+        Right 1
+
+-- | `isPatternPresentInVariantTy` is a utility function that ensures each case in a match statement
+--   is well typed and returns the corresponding type of constructor from the variant type
+--   via a type label lookup.
+--
+-- === Example:
+-- >>> isPatternPresentInVariantTy (TySAnd (TySRecord "Num" TySInt) (TySRecord "Var" TySString)) ("Var", ["x"])
+-- Right TySString
+--
+-- >>> isPatternPresentInVariantTy (TySAnd (TySRecord "Num" TySInt) (TySRecord "Var" TySString)) ("Var", ["x", "y"])
+-- Left (STypeError "The number of bindings in the case Var do not match the data type constructor")
+--
+-- >>> isPatternPresentInVariantTy (TySAnd (TySRecord "Num" TySUnit) (TySRecord "Var" TySString)) ("Num", [])
+-- Right TySUnit
+isPatternPresentInVariantTy :: SourceTyp -> Pattern -> Either SourceTypeError SourceTyp
+isPatternPresentInVariantTy variantTy (label, bindings) =
+        -- Firstly, a label lookup is performed on the variantTy
+        case rlookupt variantTy label of
+                Just ty         -> 
+                        -- This gives the type, but we need to ensure containment for uniqueness
+                        if containment (TySRecord label ty) variantTy  then    
+                                if (ty == TySUnit && countBindings == 0) || 
+                                        (countTypesInConstructor ty == Right countBindings) 
+                                        then Right ty
+                                        else Left $ STypeError ("The number of bindings in the case " ++ label ++ " do not match the data type constructor")  
+                                else    Left  $ STypeError ("Duplicate constructor found in the variant type: " ++ show variantTy)
+                Nothing         ->
+                        Left $ STypeError ("Constructor " ++ label ++ " not present in the variant type: " ++ show variantTy)
+        where countBindings = length bindings
+-- | `insertIntersectionContext` is a utility function that inserts an intersection type in the context
+-- correct.
+--
+-- === Example:
+-- >>> insertIntersectionContext (TySAnd TySUnit TySInt) (TySAnd (TySAnd TySString TySInt) TySBool)
+-- Right (TySAnd (TySAnd (TySAnd (TySAnd TySUnit TySInt) TySString) TySInt) TySBool)
+insertIntersectionContext :: SourceTyp -> SourceTyp -> Either SourceTypeError SourceTyp
+insertIntersectionContext ctx (TySAnd tA tB)
+                = insertIntersectionContext ctx tA >>= \left -> return $ TySAnd left tB
+insertIntersectionContext ctx ty 
+                = Right $ TySAnd ctx ty
+
+-- | `elaborateCase` is a utility function that elaborates single case/pattern in the match statement.
+-- 
+-- === Example:
+-- >>> elaborateCase TySUnit (TySAnd (TySRecord "Num" TySInt) (TySRecord "Var" TySString)) (("Num", ["x"]), (TmLit 1))
+-- Right (("Num",["x"]),TySInt,Lit 1)
+--
+-- >>> elaborateCase TySUnit (TySAnd (TySRecord "Num" TySInt) (TySRecord "Var" TySString)) (("Var", ["x"]), (TmLit 1))
+-- Right (("Var",["x"]),TySInt,Lit 1)
+elaborateCase :: SourceTyp -> SourceTyp -> (Pattern, SourceTm) -> Either SourceTypeError (Pattern, SourceTyp, CoreTm)
+elaborateCase ctx variantTy ((label, bindings), tm) =
+                isPatternPresentInVariantTy variantTy (label, bindings) >>= \ty' ->
+                        insertIntersectionContext ctx ty' >>= \ctx' ->
+                                case elaborateInfer ctx' tm of
+                                        Right (caseTy, caseTm') -> 
+                                                Right ((label, bindings), caseTy, caseTm')
+                                        Left err                -> Left err
+
+elaborateCases :: SourceTyp -> SourceTyp -> [(Pattern, SourceTm)] -> Either SourceTypeError [(SourceTyp, CoreTyp)]
+elaborateCases ctx variantTy cases      =       
+                        patternCasesLength $
+                                Right []
+                        where   patternCasesLength next = 
+                                        if countLabels variantTy == Right (length cases) 
+                                        then next 
+                                        else Left (STypeError "Number of cases don't match the possible patterns in the match statement")
+
+
 elaborateInfer :: SourceTyp -> SourceTm -> Either SourceTypeError Elab
-elaborateInfer ctx TmCtx             = Right (ctx, Ctx)
+elaborateInfer ctx TmCtx           = Right (ctx, Ctx)
 elaborateInfer _ TmUnit            = Right (TySUnit, Unit)
 elaborateInfer _ (TmLit i)         = Right (TySInt, Lit i)
 elaborateInfer _ (TmBool b)        = Right (TySBool, EBool b)
@@ -210,6 +310,29 @@ elaborateInfer ctx (TmStruct tyA tm)=
                                                         (TmStruct tyA tm)
                                                         "Type error on module."
                                                         ("Fix the module.\n \n-----Further info-----\n \n" ++ err)
+elaborateInfer ctx (TmTag tm ty)=
+                case elaborateInfer ctx tm of
+                        Right (TySRecord _ ty', Rec l tm') -> 
+                                if containment (TySRecord l ty') ty
+                                        then    Right (ty, Tag (Rec l tm') (elaborateTyp ty'))
+                                        else    Left $ generateError ctx tm 
+                                                        "Type error on ADT"
+                                                        "Ambiguous label in ADT"
+                        _       -> Left $ generateError ctx tm
+                                        "Type error on algebraic data type instance."
+                                        "Only an ADT constructor can be tagged."
+-- elaborateInfer ctx (TmCase tm cases)
+--                 = case elaborateInfer ctx tm of
+--                         Right (variantTy, tm') -> 
+--                                 case elaborateCases ctx variantTy cases of
+--                                         Right 
+--                                 Left $ generateError ctx tm
+--                                                         "Type error on case"
+--                                                         ""
+--                         Left (STypeError err)        
+--                                         -> Left $ generateError ctx tm
+--                                                         "Type error on case"
+--                                                         (show err)
 elaborateInfer ctx (TmBinOp (Arith op) tm1 tm2) =
                 case elaborateCheck ctx tm1 TySInt of
                         Right tm1' -> 

@@ -204,3 +204,28 @@ desugaredFile filePath = do
                                     Left  err   -> print err 
                             Left  err  -> print err
                     Nothing  -> putStrLn "Parsing Failed"
+
+-- | Reads the file and performs parsing, type exapansion, locally nameless, desugaring and elaboration.
+--
+-- === Example
+-- >>> desugaredFile "examples/Source/Arithmetic.ep"
+elaboratedFile :: String -> IO()
+elaboratedFile filePath = do
+        result <- try (readFile filePath) :: IO (Either IOException String)
+        case result of
+            Left ioException -> putStrLn ("I/O error: " ++ show ioException)
+            Right code       -> 
+                case parseImplementation code of
+                    Just res -> 
+                        case typeAliasExpansion res of
+                            Right res' -> 
+                                case locallyNameless res' of
+                                    Right res'' -> 
+                                            case desugarSource res'' of
+                                                Right res''' -> case elaboration res''' of
+                                                                    Right final -> print final
+                                                                    Left err    -> print err
+                                                Left err     -> print err
+                                    Left  err   -> print err 
+                            Left  err  -> print err
+                    Nothing  -> putStrLn "Parsing Failed"

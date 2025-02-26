@@ -17,26 +17,9 @@ prettyPrintExp (Mrg e1 e2)      = prettyPrintExp e1 ++ "\n ,, \n" ++ prettyPrint
 prettyPrintExp (Box e1 e2)      = "Box[(" ++ prettyPrintExp e1 ++ " ▷ " ++ prettyPrintExp e2 ++ ")]"
 prettyPrintExp (If e1 e2 e3)    = "If (" ++ prettyPrintExp e1 ++ ") then {" ++ prettyPrintExp e2 ++ " } else {" ++ prettyPrintExp e3 ++ "}"
 prettyPrintExp (Fix ty e)       = "Fix (" ++ prettyPrintTyp ty ++ ") (\n" ++ prettyPrintExp e ++ "\n)"
-prettyPrintExp (Pair e1 e2)     = "(" ++ prettyPrintExp e1 ++ ", " ++ prettyPrintExp e2 ++ ")"
-prettyPrintExp (Fst e)          = "Fst(" ++ prettyPrintExp e ++ ")"
-prettyPrintExp (Snd e)          = "Snd(" ++ prettyPrintExp e ++ ")"
-prettyPrintExp (InL typ e)      = "Left(" ++ prettyPrintTyp typ ++ ", " ++ prettyPrintExp e ++ ")"
-prettyPrintExp (InR typ e)      = "Right(" ++ prettyPrintTyp typ ++ ", " ++ prettyPrintExp e ++ ")"       
-prettyPrintExp (Case e1 e2 e3)  = "Case (" ++ prettyPrintExp e1 ++ ") of \n" ++
-                                            " inl _ _ => " ++ prettyPrintExp e2 ++ "\n" ++
-                                            " inr _ _ => " ++ prettyPrintExp e3 ++ "\n"
-prettyPrintExp (Nil tA)         = "List<[" ++ show tA ++"]>"
-prettyPrintExp (Cons h rest)    = "List<[" ++ prettyPrintList (Cons h rest)
 prettyPrintExp (BinOp op e1 e2) = "(" ++ prettyPrintExp e1 ++ " " ++ show op ++ " " ++ prettyPrintExp e2 ++ ")"
 prettyPrintExp (UnOp op e)      = show op ++ "(" ++ prettyPrintExp e ++ ")"
-prettyPrintExp (LCase e1 e2 e3) = "Case (" ++ prettyPrintExp e1 ++ ") of \n" ++
-                                            " []        => " ++ prettyPrintExp e2 ++ "\n" ++
-                                            " (x:xs)    => " ++ prettyPrintExp e3 ++ "\n"
-
-prettyPrintList :: CoreTm -> String
-prettyPrintList (Cons h rest)   = prettyPrintExp h ++ ", " ++ prettyPrintList rest 
-prettyPrintList (Nil _)         = "]>"
-prettyPrintList _               = error "Shouldn't print anything except list"
+prettyPrintExp _                = "Nothing"
 
 prettyPrintVal :: Value -> String
 prettyPrintVal VUnit              = "ε"
