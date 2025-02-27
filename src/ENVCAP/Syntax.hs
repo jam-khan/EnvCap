@@ -167,9 +167,10 @@ data CoreTyp    =   TyCUnit                       -- Unit type for empty environ
                 -- Extensions
                 |   TyCBool                       -- Boolean type
                 |   TyCString                     -- String type
-                |   TyCList       CoreTyp         -- Type for built-in list
-                |   TyCSum        CoreTyp CoreTyp -- Type for sums
-                |   TyCPair       CoreTyp CoreTyp
+                |   TyVariant CoreTyp
+                -- |   TyCList       CoreTyp         -- Type for built-in list
+                -- |   TyCSum        CoreTyp CoreTyp -- Type for sums
+                -- |   TyCPair       CoreTyp CoreTyp
                 deriving (Eq, Show)
 
 data Value =    VUnit                      -- Unit value

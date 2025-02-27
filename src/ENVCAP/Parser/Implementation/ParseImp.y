@@ -91,7 +91,7 @@ import ENVCAP.Syntax
 
 Program        : Statements                       { $1 }
 
-Statements     : Statement ';' Statements         { SMrg $1 $3 }
+Statements     : Statements ';' Statement         { SMrg $1 $3 }
                | Statement                        { $1 }
 
 Statement      : Function                         { $1 }
@@ -175,16 +175,21 @@ BaseType       : 'Unit'                            { STUnit }
                | 'String'                          { STString } 
 
 ADT            : Constructor '|' Constructor   { STAnd $1 $3 }
-               | Constructor '|' ADT           { STAnd $1 $3 } 
+               | ADT         '|' Constructor   { STAnd $1 $3 } 
 
 Constructor    : var                         { STRecord $1 STUnit }
                | var BaseType                { STRecord $1 $2 }
+               | var '(' Type ')'            { STRecord $1 $3 }
                | var ProductTypes            { STRecord $1 $2 }
 
 ProductTypes   : ProductTypes BaseType       { STAnd $1 $2 }
+               | ProductTypes '(' Type ')'   { STAnd $1 $3 }
+               | '(' Type ')' BaseType       { STAnd $2 $4 }
+               | BaseType '(' Type ')'       { STAnd $1 $3 }
+               | '(' Type ')' '(' Type ')'   { STAnd $2 $5 }
                | BaseType     BaseType       { STAnd $1 $2 }
 
-IntersectionType    : Type ',' IntersectionType      { STAnd $1 $3 }
+IntersectionType    : IntersectionType ',' Type      { STAnd $1 $3 }
                     | Type ',' Type                  { STAnd $1 $3 }
 
 Projection          : Term '.' int                     {SProj $1 $3}
@@ -222,7 +227,7 @@ TyAlias        : 'type' var '=' Type                   { SAliasTyp $2 $4 }
 
 DependentMerge           : '(' DependentMergeElements ')'        { $2 }
 
-DependentMergeElements   : Term ',,' DependentMergeElements      { SMrg $1 $3 }
+DependentMergeElements   : DependentMergeElements ',,' Term      { SMrg $1 $3 }
                          | Term ',,' Term                        { SMrg $1 $3 }
 
 Tuple                    : '(' TupleElements ')'                 { STuple $2 }

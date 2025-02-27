@@ -5,6 +5,7 @@ dist-newstyle/*
 Literature/*
 extra/*
 src/Addition.hs
+src/FullIsorec/*
 .vscode/*
 proofs/core/*.aux
 proofs/core/*.glob

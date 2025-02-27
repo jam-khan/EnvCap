@@ -70,8 +70,13 @@ eval env (Case tm cases)        = eval env tm >>=
                                         \case 
                                                 (VTag (VRcd l v) _)     ->
                                                         case getCase l cases of
-                                                                Just tm' -> eval (VMrg env v) tm'
+                                                                Just tm' -> eval (mergeEnvTuple env v) tm'
                                                                 Nothing -> Nothing
+
+                                                                where mergeEnvTuple env' v' =
+                                                                        case v' of
+                                                                                VMrg v1 v2 -> VMrg (mergeEnvTuple env' v1) v2
+                                                                                _          -> VMrg env' v'
                                                 _       -> Nothing
 eval env (BinOp (Comp op) e1 e2)
                                 = eval env e1 >>= 

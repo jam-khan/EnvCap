@@ -14,9 +14,6 @@ elaborateTyp TySString             = TyCString
 elaborateTyp (TySAnd ty1 ty2)      = TyCAnd (elaborateTyp ty1) (elaborateTyp ty2)
 elaborateTyp (TySArrow ty1 ty2)    = TyCArrow (elaborateTyp ty1) (elaborateTyp ty2)
 elaborateTyp (TySRecord label ty)  = TyCRecord label (elaborateTyp ty)
-elaborateTyp (TySList ty)          = TyCList (elaborateTyp ty)
-elaborateTyp (TySSum ty1 ty2)      = TyCSum  (elaborateTyp ty1) (elaborateTyp ty2)
-elaborateTyp (TySPair ty1 ty2)     = TyCPair (elaborateTyp ty1) (elaborateTyp ty2)
 elaborateTyp (TySSig tA tB)        = TyCArrow (elaborateTyp tA) (elaborateTyp tB)
 
 type Elab = (SourceTyp, CoreTm)

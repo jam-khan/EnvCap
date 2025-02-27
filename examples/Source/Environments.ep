@@ -3,3 +3,4 @@ val temp = ({"y" = 3} ,, 2 ,, {"x" = 2});
 let {   x: Int = 1;
         y: Bool = True
     } in {  x - (with temp in { env.x })  }
+
