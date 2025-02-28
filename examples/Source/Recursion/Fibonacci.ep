@@ -7,4 +7,4 @@ function fibonacci(n: Int, subOne : Int -> Int, subTwo : Int -> Int) : Int {
     }
 };
 
-fibonacci(5, \(n:Int) => { n - 1 } , \(n:Int) => { n - 2 } )
+fibonacci(5, \(n:Int) => { n - 1 } , \(n:Int) => { n - 2 })
