@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-module ENVCAP.Interface where
+module ENVCAP.Manager.Interface where
 import ENVCAP.Source.Errors
 import ENVCAP.Parser.Interface.ParseInterface (parseInterface)
 import ENVCAP.Syntax

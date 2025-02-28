@@ -7,7 +7,7 @@ import ENVCAP.Interpreter
 import Control.Monad (liftM2)
 import ENVCAP.Source.Elaboration (elaborateInfer)
 import Data.List (delete)
-import ENVCAP.Interface
+import ENVCAP.Manager.Interface
 
 getImplementation :: String -> Either InterpreterError SourceTm
 getImplementation code =
