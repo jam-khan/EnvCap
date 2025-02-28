@@ -141,15 +141,39 @@ expandAlias ctx (SAnno tm ty)   =
                                 SAnno <$> expandAlias ctx tm <*> expandTyAlias ctx ty
 expandAlias ctx (SIf tm1 tm2 tm3)
                                 = SIf <$> expandAlias ctx tm1 <*> expandAlias ctx tm2 <*> expandAlias ctx tm3
+expandAlias ctx (SADTInst (l, terms) typ)
+                                = do
+                                        terms'  <- expandAliasTerms ctx terms
+                                        typ'    <- expandTyAlias ctx typ
+                                        return $ SADTInst (l, terms') typ'
+expandAlias ctx (SCase tm cases)
+                                = do    tm'     <- expandAlias ctx tm
+                                        cases'  <- expandAliasCases ctx cases
+                                        return $ SCase tm' cases'
 expandAlias _   (SAliasTyp l ty)= 
                         Left $ TypeExpansionFailed ("Unresolved type alias detected. Only declare as part of merge: " ++ l ++ " as " ++ show ty)
 expandAlias _ctx tm              = 
                         Left $ TypeExpansionFailed ("Expansion function not completed." ++ show tm)
 
+expandAliasCases :: SurfaceTyp -> Cases -> Either TypeExpansionError Cases
+expandAliasCases _ []                   = Right []
+expandAliasCases ctx ((l, tm):rest)     = 
+                do
+                        rest'   <-      expandAliasCases ctx rest
+                        tm'     <-      expandAlias ctx tm
+                        return $ (l, tm'):rest'
+
+expandAliasTerms :: SurfaceTyp -> [SurfaceTm] -> Either TypeExpansionError [SurfaceTm]
+expandAliasTerms _ []           = Right []
+expandAliasTerms ctx (x:xs)     = 
+        do      xs'     <- expandAliasTerms ctx xs
+                x'      <- expandAlias ctx x
+                return $ x':xs'
+
 expandAliasLetArgs   :: SurfaceTyp -> [(String, SurfaceTyp, SurfaceTm)] -> Either TypeExpansionError [(String, SurfaceTyp, SurfaceTm)]
 expandAliasLetArgs _ []                 = Right []
 expandAliasLetArgs ctx ((x, ty, tm):xs) =
-        do
+                do
                 ty'     <- expandTyAlias ctx ty
                 rest    <- expandAliasLetArgs ctx xs
                 return $ (x, ty', tm) : rest
@@ -157,7 +181,6 @@ expandAliasLetArgs ctx ((x, ty, tm):xs) =
 expandAliasTypParams :: SurfaceTyp -> Params -> Either TypeExpansionError Params
 expandAliasTypParams _ []                 = Right []
 expandAliasTypParams ctx ((x, ty):xs)     = 
-        do
-                ty'     <- expandTyAlias ctx ty
+        do      ty'     <- expandTyAlias ctx ty
                 rest    <- expandAliasTypParams ctx xs
                 return $ (x, ty') : rest

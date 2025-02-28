@@ -116,7 +116,7 @@ interpreter code =
         if check TyCUnit coreAST (elaborateTyp sourceTy)
             then evaluate coreAST
             else Left $ InterpreterFailed "Type checking faile at core level"
-            
+
 -- | Runs a file by reading its contents. Handles potential I/O errors.
 --
 -- Reads the file at the given 'filePath'. Returns 'Right ()' if successful,
@@ -136,3 +136,99 @@ runFile filePath = do
         --   return $ Left (InterpreterFailed $ "I/O error: " ++ show ioException)
         -- Right code ->  return $ interpreter code
 
+-- | Reads and parses the file (Testing purposes)
+--
+-- === Example
+-- >>> parseFile "examples/Source/Arithmetic.ep"
+parseFile :: String -> IO()
+parseFile filePath = do
+        result <- try (readFile filePath) :: IO (Either IOException String)
+        case result of
+            Left ioException -> putStrLn ("I/O error: " ++ show ioException)
+            Right code       -> case parseImplementation code of
+                                    Just res   -> print res
+                                    Nothing    -> putStrLn "Parsing failed"
+
+-- | Reads the file and performs parsing and type expansion.
+-- 
+-- === Example
+-- >>> expandFile "examples/Source/Arithmetic.ep"
+expandFile :: String -> IO()
+expandFile filePath = do
+        result <- try (readFile filePath) :: IO (Either IOException String)
+        case result of
+            Left ioException -> putStrLn ("I/O error: " ++ show ioException)
+            Right code       -> case parseImplementation code of
+                                    Just res -> case typeAliasExpansion res of
+                                                    Right res' -> print res'
+                                                    Left  err  -> print err
+                                    Nothing  -> putStrLn "Parsing Failed"
+
+-- | Reads the file and performs parsing, type expansion and locally nameless.
+-- 
+-- === Example
+-- >>> namelessFile "examples/Source/Arithmetic.ep"
+namelessFile :: String -> IO()
+namelessFile filePath = do
+        result <- try (readFile filePath) :: IO (Either IOException String)
+        case result of
+            Left ioException -> putStrLn ("I/O error: " ++ show ioException)
+            Right code       -> case parseImplementation code of
+                                    Just res -> case typeAliasExpansion res of
+                                                    Right res' -> 
+                                                        case locallyNameless res' of
+                                                            Right res'' -> print res''
+                                                            Left  err   -> print err 
+                                                    Left  err  -> print err
+                                    Nothing  -> putStrLn "Parsing Failed"
+
+-- | Reads the file and performs parsing, type expansion, locally nameless and desugaring.
+--
+-- === Example
+-- >>> desugaredFile "examples/Source/Arithmetic.ep"
+desugaredFile :: String -> IO()
+desugaredFile filePath = do
+        result <- try (readFile filePath) :: IO (Either IOException String)
+        case result of
+            Left ioException -> putStrLn ("I/O error: " ++ show ioException)
+            Right code       -> 
+                case parseImplementation code of
+                    Just res -> 
+                        case typeAliasExpansion res of
+                            Right res' -> 
+                                case locallyNameless res' of
+                                    Right res'' -> 
+                                            case desugarSource res'' of
+                                                Right res''' -> print res'''
+                                                Left err     -> print err
+                                    Left  err   -> print err 
+                            Left  err  -> print err
+                    Nothing  -> putStrLn "Parsing Failed"
+
+-- | Reads the file and performs parsing, type exapansion, locally nameless, desugaring and elaboration.
+--
+-- === Example
+-- >>> desugaredFile "examples/Source/Arithmetic.ep"
+elaboratedFile :: String -> IO()
+elaboratedFile filePath = do
+        result <- try (readFile filePath) :: IO (Either IOException String)
+        case result of
+            Left ioException -> putStrLn ("I/O error: " ++ show ioException)
+            Right code       -> 
+                case parseImplementation code of
+                    Just res -> 
+                        case typeAliasExpansion res of
+                            Right res' -> 
+                                case locallyNameless res' of
+                                    Right res'' -> 
+                                            case desugarSource res'' of
+                                                Right res''' -> case elaboration res''' of
+                                                                    Right (_, final) -> 
+                                                                        case evaluate final of
+                                                                            Right final' -> print final'
+                                                                            Left  err    -> print err
+                                                                    Left err    -> print err
+                                                Left err     -> print err
+                                    Left  err   -> print err 
+                            Left  err  -> print err
+                    Nothing  -> putStrLn "Parsing Failed"

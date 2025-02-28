@@ -26,6 +26,8 @@ data LogicOp = And | Or
 type Params       = [(String, SurfaceTyp)]
 type Letargs      = [(String, SurfaceTyp, SurfaceTm)] 
 type Name         = String
+type Pattern      = (String, [String])
+type Cases        = [(Pattern, SurfaceTm)]
 
 data Interface  
         =       IAliasTyp       String SurfaceTyp
@@ -67,11 +69,11 @@ data SurfaceTm
         |   SSnd       SurfaceTm
         |   SNil       SurfaceTyp
         |   SCons      SurfaceTm SurfaceTm
-        |   SCase      SurfaceTm
-        |   SInL       SurfaceTm
-        |   SInR       SurfaceTm
         |   STuple     [SurfaceTm]
         |   SSwitch    SurfaceTm [(SurfaceTm, SurfaceTm)]
+        |   SADTInst   (String, [SurfaceTm]) SurfaceTyp 
+        -- Cases = [(Pattern, SurfaceTm)]
+        |   SCase      SurfaceTm Cases
         deriving (Eq, Show)
 
 -- Types
@@ -108,11 +110,11 @@ data SourceTm   =   TmCtx                               -- Query
                 |   TmFix       SourceTyp SourceTm
                 |   TmNil       SourceTyp
                 |   TmCons      SourceTm SourceTm
+                -- [SourceTm] should become merges
+                |   TmTag       SourceTm SourceTyp
+                |   TmCase      SourceTm [(Pattern, SourceTm)]
                 |   TmBinOp     BinaryOp SourceTm SourceTm
                 |   TmUnOp      UnaryOp SourceTm
-                |   TmCase      SourceTm [SourceTm]
-                |   TmInL       SourceTm
-                |   TmInR       SourceTm
                 -- Not sure if tagging is needed at source level -- can be simply added during elaboration to core
                 |   TmAnno      SourceTm SourceTyp
                 |   TmTuple     [SourceTm]
@@ -121,20 +123,19 @@ data SourceTm   =   TmCtx                               -- Query
                 deriving (Eq, Show)
 
 -- Types
-data SourceTyp  =   TySUnit                  -- Unit type for empty environment
-                |   TySInt                   -- Integer type
-                |   TySAnd      SourceTyp SourceTyp           -- Intersection type
-                |   TySArrow    SourceTyp SourceTyp         -- Arrow type, e.g. A -> B
-                |   TySRecord   String SourceTyp     -- Single-Field Record Type
-                |   TySBool                  -- Boolean type
-                |   TySString                -- String type
-                |   TySList     SourceTyp             -- Type for built-in list 
-                |   TySSum      SourceTyp SourceTyp         -- Type for sums
-                |   TySPair     SourceTyp SourceTyp         -- Type for pairs
-                |   TySSig      SourceTyp SourceTyp         -- Sig Type End
-                |   TySIden     String          -- Simply an alias
+data SourceTyp  =   TySUnit                             -- Unit type for empty environment
+                |   TySInt                              -- Integer type
+                |   TySAnd      SourceTyp SourceTyp     -- Intersection type
+                |   TySArrow    SourceTyp SourceTyp     -- Arrow type, e.g. A -> B
+                |   TySRecord   String SourceTyp        -- Single-Field Record Type
+                |   TySBool                             -- Boolean type
+                |   TySString                           -- String type
+                |   TySList     SourceTyp               -- Type for built-in list 
+                |   TySSum      SourceTyp SourceTyp     -- Type for sums
+                |   TySPair     SourceTyp SourceTyp     -- Type for pairs
+                |   TySSig      SourceTyp SourceTyp     -- Sig Type End
+                |   TySIden     String                  -- Simply an alias
                 deriving (Eq, Show)
-
 
 data CoreTm     =   Ctx                                 -- Context
                 |   Unit                                -- Unit
@@ -152,15 +153,8 @@ data CoreTm     =   Ctx                                 -- Context
                 |   EString String                      -- String Term
                 |   If     CoreTm CoreTm CoreTm         -- Conditionals
                 |   Fix    CoreTyp CoreTm               -- Recursion
-                |   Pair   CoreTm CoreTm                -- Pair
-                |   Fst    CoreTm                       -- First Projection
-                |   Snd    CoreTm                       -- Second Projection
-                |   InL    CoreTyp CoreTm               -- Tagging Left
-                |   InR    CoreTyp CoreTm               -- Tagging Right
-                |   Case   CoreTm CoreTm CoreTm         -- Case of Sums
-                |   Nil    CoreTyp                      -- Nil typ, e.g. [] of Int
-                |   Cons   CoreTm CoreTm                -- Cons for List
-                |   LCase  CoreTm CoreTm CoreTm         -- Case of List
+                |   Tag    CoreTm CoreTyp
+                |   Case   CoreTm [(Pattern, CoreTm)]
                 |   BinOp  BinaryOp CoreTm CoreTm       -- Binary operations
                 |   UnOp   UnaryOp CoreTm               -- Unary operations
                 deriving (Eq, Show)
@@ -173,22 +167,19 @@ data CoreTyp    =   TyCUnit                       -- Unit type for empty environ
                 -- Extensions
                 |   TyCBool                       -- Boolean type
                 |   TyCString                     -- String type
-                |   TyCList       CoreTyp         -- Type for built-in list
-                |   TyCSum        CoreTyp CoreTyp -- Type for sums
-                |   TyCPair       CoreTyp CoreTyp
+                |   TyVariant CoreTyp
+                -- |   TyCList       CoreTyp         -- Type for built-in list
+                -- |   TyCSum        CoreTyp CoreTyp -- Type for sums
+                -- |   TyCPair       CoreTyp CoreTyp
                 deriving (Eq, Show)
 
 data Value =    VUnit                      -- Unit value
         |       VInt    Integer            -- Integer value
-        |       VClos   Value CoreTm          -- Closure
+        |       VClos   Value CoreTm       -- Closure
         |       VRcd    String Value       -- Single-field record value
         |       VMrg    Value Value        -- Merge of two values
+        |       VTag    Value CoreTyp      
         -- Extensions
         |       VBool   Bool               -- Boolean Value
         |       VString String             -- String Value
-        |       VPair   Value Value        -- Pair value
-        |       VInL    CoreTyp Value      -- tagged value (left)
-        |       VInR    CoreTyp Value      -- tagged value (right)
-        |       VNil    CoreTyp            -- nil list
-        |       VCons   Value Value        -- List
         deriving (Show, Eq)

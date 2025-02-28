@@ -19,14 +19,15 @@ data STm    =   SCtx                    -- ?
             |   SRec String STm         -- {l = E}
             |   SStruct STyp STm        -- struct A {E}
             |   SMApp STm STm           -- mod application E1 ^ E2
+            |   SFix  STyp STm
         deriving (Eq, Show)
 
 data STyp   =   STyUnit                 -- unit
             |   STyInt                  -- int
-            |   STyAnd STyp STyp        -- ty & ty
-            |   STyArrow STyp STyp      -- ty -> ty
-            |   STyRecord String STyp   -- {l : ty}
-            |   STySig   STyp STyp      -- Sig[A, B]
+            |   STyAnd      STyp STyp   -- ty & ty
+            |   STyArrow    STyp STyp   -- ty -> ty
+            |   STyRecord   String STyp -- {l : ty}
+            |   STySig      STyp STyp   -- Sig[A, B]
         deriving (Eq, Show)
 
 
@@ -68,6 +69,13 @@ genSRProj =  do
                 l <- elements ["a", "b", "c", "d", "e"]
                 SRProj <$> (SDMrg SUnit <$> genSDMergeWithRcd l) <*> return l
 
+-- |   SFix  STyp STm
+genSFix :: Gen STm
+genSFix = do
+            tm <- genSAbstraction
+            case elaborateInfer STUnit of
+                Just ty -> return $ SFix ty tm
+                Nothing -> Nothing
 
 genModule :: Gen STm
 genModule = SStruct <$> genSTy <*> genSTm
@@ -312,6 +320,7 @@ data CTm    =   Ctx                     -- ?
             |   Box CTm CTm             -- e1 ▷ e2
             |   RProj CTm String        -- e.l
             |   Rec String CTm          -- {l = e}
+            |   Fix CTyp CTm            -- Fix A e
         deriving (Eq, Show)
 
 data CTyp   =   TyUnit                  -- unit

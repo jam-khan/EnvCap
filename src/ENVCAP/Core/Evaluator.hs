@@ -2,8 +2,28 @@
 module ENVCAP.Core.Evaluator where
 
 import ENVCAP.Syntax
-import ENVCAP.Core.Util  (compareOp, lookupv, rlookupv, arithOp)
+import ENVCAP.Utils  (compareOp, arithOp)
 
+
+lookupv :: Value -> Integer -> Maybe Value
+lookupv (VMrg _  v2) 0 = Just v2
+lookupv (VMrg v1 _ ) n = lookupv v1 (n - 1)
+lookupv _ _            = Nothing
+
+rlookupv :: Value -> String -> Maybe Value
+rlookupv (VRcd l v) label
+    | l == label = Just v
+rlookupv (VMrg v1 v2) label =
+    case (rlookupv v1 label, rlookupv v2 label) of
+        (Just vL, Nothing)      -> Just vL
+        (Nothing, Just vR)      -> Just vR
+        (_, _)                  -> Nothing
+rlookupv _ _ = Nothing
+
+getCase :: String -> [(Pattern, CoreTm)] -> Maybe CoreTm
+getCase _ []                    = Nothing
+getCase l (((l', _), tm):xs)    = 
+        if l == l' then Just tm else getCase l xs
 
 eval :: Value -> CoreTm -> Maybe Value
 eval _ (Lit n)                  = Just (VInt n)
@@ -34,23 +54,6 @@ eval env (If cond e1 e2)        = eval env cond >>= \case
                                                         VBool True   -> eval env e1
                                                         VBool False  -> eval env e2
                                                         _            -> Nothing
-eval env (Pair e1 e2)           = VPair <$> eval env e1 <*> eval env e2
-eval env (Fst e)                = eval env e >>= \case  VPair v1 _ -> return v1
-                                                        _          -> Nothing
-eval env (Snd e)                = eval env e >>= \case  VPair _ v2 -> return v2
-                                                        _          -> Nothing
-eval env (InL t e)              = VInL t <$> eval env e
-eval env (InR t e)              = VInR t <$> eval env e
-eval env (Case e1 e2 e3)        = eval env e1 >>= \case
-                                        VInL _ v1 -> eval (VMrg env v1) e2
-                                        VInR _ v1 -> eval (VMrg env v1) e3
-                                        _         -> Nothing
-eval _   (Nil tA)               = Just (VNil tA) 
-eval env (Cons e1 e2)           = eval env e1 >>= \v1 -> eval env e2 >>= \v2 -> return $ VCons v1 v2
-eval env (LCase e1 e2 e3)       = eval env e1 >>= \case
-                                                        VNil _          -> eval env e2
-                                                        VCons v1 v2      -> eval (VMrg (VMrg env v1) v2) e3
-                                                        _                -> Nothing
 eval env (BinOp (Arith op) e1 e2)
                                 = eval env e1 >>= 
                                         \case 
@@ -61,6 +64,20 @@ eval env (BinOp (Arith op) e1 e2)
                                                                 VInt  <$> arithOp op v1 v2   
                                                         _         -> Nothing
                                         _       ->  Nothing
+eval env (Tag tm ty)            = eval env tm 
+                                        >>= \v -> return $ VTag v ty
+eval env (Case tm cases)        = eval env tm >>=
+                                        \case 
+                                                (VTag (VRcd l v) _)     ->
+                                                        case getCase l cases of
+                                                                Just tm' -> eval (mergeEnvTuple env v) tm'
+                                                                Nothing -> Nothing
+
+                                                                where mergeEnvTuple env' v' =
+                                                                        case v' of
+                                                                                VMrg v1 v2 -> VMrg (mergeEnvTuple env' v1) v2
+                                                                                _          -> VMrg env' v'
+                                                _       -> Nothing
 eval env (BinOp (Comp op) e1 e2)
                                 = eval env e1 >>= 
                                         \v1 -> eval env e2 >>= 

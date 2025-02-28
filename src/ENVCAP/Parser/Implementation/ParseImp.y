@@ -6,18 +6,19 @@ import ENVCAP.Syntax
 }
 
 %name implementationParser
-%tokentype     { Token        }
-%error         { parseError   }
+%tokentype          { Token        }
+%error              { parseError   }
 
 %token
      int            { TokenInt $$       }
      var            { TokenVar $$       }
-     'Sig'          { TokenSig          }          
+     'unit'         { TokenUnit         }
+     'Sig'          { TokenSig          }  
+     'Unit'         { TokenTyUnit       }        
      'Int'          { TokenTypeInt      }
      'Bool'         { TokenTypeBool     }
      'String'       { TokenTypeString   }
      '->'           { TokenTypeArrow    }
-     '&'            { TokenTypeAnd      }
      'False'        { TokenFalse        }
      'True'         { TokenTrue         }
      'if'           { TokenIf           }
@@ -31,6 +32,11 @@ import ENVCAP.Syntax
      'function'     { TokenFunc         }
      'struct'       { TokenStruct       }
      'module'       { TokenModule       }
+     'with'         { TokenBox          }
+     'as'           { TokenAs }
+     'match'        { TokenMatch        }
+     'case'         { TokenCase         }
+     'of'           { TokenMatchOf      }
      '[]'           { TokenEmptyList    }
      '['            { TokenOpenSqBracket  }
      ']'            { TokenCloseSqBracket }
@@ -53,6 +59,7 @@ import ENVCAP.Syntax
      '<='           { TokenLe           }
      '&&'           { TokenAnd          }
      '||'           { TokenOr           }
+     '|'            { TokenUnion        }
      ';'            { TokenSemicolon    }
      ':'            { TokenColon        }
      '='            { TokenEq           }
@@ -64,18 +71,19 @@ import ENVCAP.Syntax
      '=>'           { TokenArrow        }
      ',,'           { TokenDepMerge }
 
+
 %right '='
 %right '=>'
-%right '::'
 %left '.'
+%left '::'
 %left proj
 %left TokenElse
 %left application_prec
 %left '->'
-%left '&'
 %left '||'
 %left '&&'
 %left '>=' '>' '==' '!=' '<' '<='
+%left '|'
 %left '+' '-'
 %left '*' '/' '%'
 
@@ -83,7 +91,7 @@ import ENVCAP.Syntax
 
 Program        : Statements                       { $1 }
 
-Statements     : Statement ';' Statements         { SMrg $1 $3 }
+Statements     : Statements ';' Statement         { SMrg $1 $3 }
                | Statement                        { $1 }
 
 Statement      : Function                         { $1 }
@@ -92,57 +100,115 @@ Statement      : Function                         { $1 }
                | TyAlias                          { $1 }
                | Term                             { $1 }
 
-Term           : 'env'                             { SCtx }
-               | FunctionApplication               { $1 }
-               | Bool                              { $1 }
-               | String                            { $1} 
-               | Projection            %prec proj  { $1 }
-               | int                               { SLit $1 }
-               | var                               { SVar $1 } -- Parsed into a general variable that will later get separated into
-               | ArithmeticOp                      { $1 }
-               | ComparisonOp                      { $1 }
-               | BooleanOp                         { $1 }
-               | IfThenElse                        { $1 }
-               | Lambda                            { $1 }
-               | Struct                            { $1 }
-               | Let                               { $1 }
-               | Letrec                            { $1 }
-               | List                              { $1 }
-               | ListCons                          { $1 }
-               | Record                            { $1 }
-               | Tuple                             { $1 }
-               | DependentMerge                    { $1 }
+Term           : BaseTerm                          { $1 }
+               | ConstructedTerm                   { $1 }
                | Parens                            { $1 }
                | error                             { parseError [$1] }
 
-Type           : 'Int'                             { STInt }
-               | 'Bool'                            { STBool }
-               | 'String'                          { STString }
+BaseTerm            : 'env'                             { SCtx }
+                    | 'unit'                            { SUnit }
+                    | FunctionApplication               { $1 }
+                    | Bool                              { $1 }
+                    | String                            { $1 } 
+                    | int                               { SLit $1 }
+                    | var                               { SVar $1 } -- Parsed into a general variable that will later get separated into
+
+ConstructedTerm     : Projection            %prec proj  { $1 }
+                    | ArithmeticOp                      { $1 }
+                    | ComparisonOp                      { $1 }
+                    | BooleanOp                         { $1 }
+                    | IfThenElse                        { $1 }
+                    | Lambda                            { $1 }
+                    | Struct                            { $1 }
+                    | Match                             { $1 }
+                    | Tagging                           { $1 }
+                    | Let                               { $1 }
+                    | Letrec                            { $1 }
+                    | List                              { $1 }
+                    | ListCons                          { $1 }
+                    | Record                            { $1 }
+                    | Tuple                             { $1 }
+                    | DependentMerge                    { $1 }
+                    | Box                               { $1 }
+               
+
+Tagging        : ADTInstance 'as' Type            { SADTInst $1 $3 }
+
+ADTInstance    : var                              { ($1, [SUnit]) }
+               | '{' var Terms '}'                { ($2, $3) }
+
+Terms          : BaseTerm                Terms    { $1 : $2 }
+               | '(' ConstructedTerm ')' Terms    { $2 : $4 }
+               | BaseTerm                         { [$1] }
+               | '(' ConstructedTerm ')'          { [$2] }
+
+Match          : 'match' Term 'of' Cases          { SCase $2 $4 }
+
+Cases          :  Case    Cases                             { $1 : $2}
+               |  Case                                      { [$1] }
+
+Case           : 'case' Pattern '=>' '{' Term '}'   { ($2, $5) }
+
+Pattern        : var                         { ($1, []) }
+               | '(' var Identifiers ')'     { ($2, $3) }
+
+Identifiers    : var Identifiers             { $1 : $2 }
+               | var                         { [$1] }
+
+-- Tagging        : Type '.' '<' var 
+
+Box            : 'with' Term 'in' '{' Statements '}'   { SBox $2 $5 }
+
+Type           : BaseType                          { $1 }
+               | ADT                               { $1 }
                | Type '->' Type                    { STArrow $1 $3 }
-               | Type '&'  Type                    { STAnd $1 $3 }
                | '[' Type ']'                      { STList $2 }
                | '{' RecordType '}'                { $2 }
+               | '(' IntersectionType ')'          { $2 }
                | Signature                         { $1 }
                | var                               { STIden $1 }
                | '(' Type ')'                      { $2 }
 
-Projection     : Term '.' int                     {SProj $1 $3}
-               | Term '.' var                     {SRProj $1 $3}
+BaseType       : 'Unit'                            { STUnit } 
+               | 'Int'                             { STInt }
+               | 'Bool'                            { STBool }
+               | 'String'                          { STString } 
 
-Module         : 'module' var '(' ParamList ')' '{' Statements '}'    { SModule $2 $4 $7 }
+ADT            : Constructor '|' Constructor   { STAnd $1 $3 }
+               | ADT         '|' Constructor   { STAnd $1 $3 } 
 
-Struct         : 'struct'     '(' ParamList ')' '{' Statements '}'    { SStruct $3 $6 }
+Constructor    : var                         { STRecord $1 STUnit }
+               | var BaseType                { STRecord $1 $2 }
+               | var '(' Type ')'            { STRecord $1 $3 }
+               | var ProductTypes            { STRecord $1 $2 }
 
-Signature      : 'Sig' '[' Type ',' Type ']'                          { STSig $3 $5 }
+ProductTypes   : ProductTypes BaseType       { STAnd $1 $2 }
+               | ProductTypes '(' Type ')'   { STAnd $1 $3 }
+               | '(' Type ')' BaseType       { STAnd $2 $4 }
+               | BaseType '(' Type ')'       { STAnd $1 $3 }
+               | '(' Type ')' '(' Type ')'   { STAnd $2 $5 }
+               | BaseType     BaseType       { STAnd $1 $2 }
 
-Function       : 'function' var '(' ParamList ')' ':' Type '{' Term '}'        { SFunc $2 $4 $7 $9 }
+IntersectionType    : IntersectionType ',' Type      { STAnd $1 $3 }
+                    | Type ',' Type                  { STAnd $1 $3 }
 
-FunctionApplication : var '(' Arguments ')'  %prec application_prec   { SApp (SVar $1) $3 }
+Projection          : Term '.' int                     {SProj $1 $3}
+                    | Term '.' var                     {SRProj $1 $3}
 
-Binding        : 'val' var '=' Term                                   { SRec $2 $4 }
+Module         : 'module' var '(' ParamList ')' '{' Statements '}'         { SModule $2 $4 $7 }
 
-Lambda         : '(' Lambda ')' '(' Arguments ')'                     { SApp $2 $5 }
-               | '\\(' ParamList ')' '=>' '{' Statements '}'          { SLam $2 $6 }
+Struct         : 'struct'     '(' ParamList ')' '{' Statements '}'         { SStruct $3 $6 }
+
+Signature      : 'Sig' '[' Type ',' Type ']'                               { STSig $3 $5 }
+
+Function       : 'function' var '(' ParamList ')' ':' Type '{' Term '}'    { SFunc $2 $4 $7 $9 }
+
+FunctionApplication : var '(' Arguments ')'  %prec application_prec        { SApp (SVar $1) $3 }
+
+Binding        : 'val' var '=' Term                                        { SRec $2 $4 }
+
+Lambda         : '(' Lambda ')' '(' Arguments ')'                          { SApp $2 $5 }
+               | '\\(' ParamList ')' '=>' '{' Statements '}'               { SLam $2 $6 }
 
 Bool           : 'False' { SBool False }
                | 'True'  { SBool True }
@@ -158,21 +224,24 @@ TyAlias        : 'type' var '=' Type                   { SAliasTyp $2 $4 }
 -- it will create ambiguities, so must have atleast two elements
 
 -- It must have atleast two elements
-DependentMerge           : '(' DependentMergeElements ')'   { $2 }
-DependentMergeElements   : Term ',,' DependentMergeElements { SMrg $1 $3 }
-                         | Term ',,' Term                   { SMrg $1 $3 }
 
-Tuple          : '(' TupleElements ')'                 { STuple $2 }
+DependentMerge           : '(' DependentMergeElements ')'        { $2 }
 
-TupleElements  : Term ',' TupleElements                { $1 : $3 }
-               | Term ',' Term                         { $1 : [$3] }
+DependentMergeElements   : DependentMergeElements ',,' Term      { SMrg $1 $3 }
+                         | Term ',,' Term                        { SMrg $1 $3 }
 
-RecordType     : Param ',' RecordType                  { STAnd $1 $3 }
-               | Param                                 { $1 }
+Tuple                    : '(' TupleElements ')'                 { STuple $2 }
+
+TupleElements            : Term ',' TupleElements                { $1 : $3 }
+                         | Term ',' Term                         { $1 : [$3] }
+
+RecordType               : Param ',' RecordType                  { STAnd $1 $3 }
+                         | Param                                 { $1 }
 
 Param          : var ':' Type                          { STRecord $1 $3 }   
 
 Record         : '{' Records '}'                       { $2 }
+
 Records        : '"' var '"' '=' Term ',' Records      { SMrg (SRec $2 $5) $7 }
                | '"' var '"' '=' Term                  { SRec $2 $5 }
                | '\'' var '\'' '=' Term ',' Records    { SMrg (SRec $2 $5) $7 }
@@ -200,11 +269,11 @@ Elements       : Term ',' Elements                     { SCons $1 $3 }
 Arguments      : Term ',' Arguments                    { $1 : $3 }
                | Term                                  { [$1] }
 
-Parens      : '(' Term ')'                             { $2 }
+Parens         : '(' Term ')'                             { $2 }
 
-CurlyParens : '{' Statements '}'                       { $2 }
+CurlyParens    : '{' Statements '}'                       { $2 }
 
-IfThenElse : 'if' Parens 'then' CurlyParens 'else' CurlyParens { SIf $2 $4 $6 }
+IfThenElse     : 'if' Parens 'then' CurlyParens 'else' CurlyParens { SIf $2 $4 $6 }
 
 ComparisonOp   :  Term    '>='    Term                 { SBinOp (Comp  Ge)   $1 $3 }
                |  Term    '>'     Term                 { SBinOp (Comp  Gt)   $1 $3 }
@@ -224,6 +293,7 @@ ArithmeticOp   :    Term    '+'     Term               { SBinOp (Arith Add)  $1 
 
 
 {
+
 parseError :: [Token] -> a
 parseError (x:xs)   = error ("Parse Error: Token Failed" ++ show x)
 parseError []       = error ("Parser Error: No Tokens")
@@ -270,7 +340,6 @@ data Token =   TokenInt Integer       -- Lit i
           |    TokenTypeBool          -- 'Bool'
           |    TokenTypeString        -- 'String'
           |    TokenTypeArrow         -- '->'
-          |    TokenTypeAnd           -- '&'
           |    TokenTyAlias           -- 'type'
           |    TokenComma             -- ','
           |    TokenOpenSqBracket     -- '['
@@ -281,6 +350,15 @@ data Token =   TokenInt Integer       -- Lit i
           |    TokenDoubleQuote       -- "
           |    TokenDepMerge          -- ,,
           |    TokenProjection
+          |    TokenBox               -- "with"
+          |    TokenUnit              -- 'unit'
+          |    TokenTyUnit            -- 'Unit'
+          |    TokenMatch             -- 'match'
+          |    TokenCase              -- 'case'
+          |    TokenMatchOf           -- 'of'
+          |    TokenAs                -- 'as'
+          |    TokenUnion             -- '|'
+          |    TokenSpace
           deriving Show
 
 lexer :: String -> [Token]
@@ -294,9 +372,9 @@ lexer ('-':cs)      =
      case cs of
           ('>':cs')      -> TokenTypeArrow   : lexer cs'
           _              -> TokenMinus       : lexer cs
-lexer ('*':cs)      = TokenTimes    : lexer cs
-lexer ('/':cs)      = TokenDiv      : lexer cs
-lexer ('%':cs)      = TokenMod      : lexer cs
+lexer ('*':cs)      = TokenTimes             : lexer cs
+lexer ('/':cs)      = TokenDiv               : lexer cs
+lexer ('%':cs)      = TokenMod               : lexer cs 
 lexer ('\\':cs)     = case cs of 
                          ('(':cs') -> TokenLambda   : lexer cs' 
 lexer ('=':cs)      = case cs of
@@ -307,9 +385,9 @@ lexer ('!':cs)      = case cs of
                          ('=':cs') -> TokenNeq : lexer cs'
 lexer ('&':cs)      = case cs of
                          ('&':cs') -> TokenAnd         : lexer cs'
-                         _         -> TokenTypeAnd     : lexer cs
 lexer ('|':cs)      = case cs of
-                         ('|':cs') -> TokenOr  : lexer cs'
+                         ('|':cs') -> TokenOr     : lexer cs'
+                         _         -> TokenUnion  : lexer cs
 lexer ('>':cs)      = case cs of
                          ('=':cs') -> TokenGe  : lexer cs'
                          _         -> TokenGt  : lexer cs
@@ -340,8 +418,14 @@ lexNum cs = TokenInt (read num) : lexer rest
 lexVar cs = case span isAlpha cs of
                ("Int",        rest)     -> TokenTypeInt     : lexer rest
                ("Bool",       rest)     -> TokenTypeBool    : lexer rest
-               ("Sig",        rest)     -> TokenSig         : lexer rest
                ("String",     rest)     -> TokenTypeString  : lexer rest
+               ("unit",       rest)     -> TokenUnit        : lexer rest
+               ("Sig",        rest)     -> TokenSig         : lexer rest
+               ("Unit",       rest)     -> TokenTyUnit      : lexer rest
+               ("with",       rest)     -> TokenBox         : lexer rest
+               ("match",      rest)     -> TokenMatch       : lexer rest
+               ("of",         rest)     -> TokenMatchOf     : lexer rest
+               ("case",       rest)     -> TokenCase        : lexer rest         
                ("True",       rest)     -> TokenTrue        : lexer rest
                ("env",        rest)     -> TokenQuery       : lexer rest
                ("False",      rest)     -> TokenFalse       : lexer rest
@@ -356,6 +440,7 @@ lexVar cs = case span isAlpha cs of
                ("if",         rest)     -> TokenIf          : lexer rest
                ("then",       rest)     -> TokenThen        : lexer rest
                ("else",       rest)     -> TokenElse        : lexer rest
+               ("as",         rest)     -> TokenAs          : lexer rest
                (var,          rest)     -> TokenVar var     : lexer rest
 
 parseImplementation :: String -> Maybe SurfaceTm
@@ -390,7 +475,7 @@ test_cases = [  ("env", SCtx)
                                                   (SBinOp (Arith Mul) (SVar "x") (SLit 2))
                                                   (SBinOp (Arith Div) (SVar "y") (SLit 4)))
                                              (SLit 3))
-              , ("1 ; (x * 2) + (y / 4) >= 3", SMrg (SLit 1) (SBinOp (Comp Ge)
+              ,  ("1 ; (x * 2) + (y / 4) >= 3", SMrg (SLit 1) (SBinOp (Comp Ge)
                                                                  (SBinOp (Arith Add)
                                                                       (SBinOp (Arith Mul) (SVar "x") (SLit 2))
                                                                       (SBinOp (Arith Div) (SVar "y") (SLit 4)))
