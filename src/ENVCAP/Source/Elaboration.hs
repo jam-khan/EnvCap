@@ -114,13 +114,13 @@ countTypesInConstructor _               =
 --   via a type label lookup.
 --
 -- === Example:
--- >>> isPatternPresentInVariantTy (TySAnd (TySRecord "Num" TySInt) (TySRecord "Var" TySString)) ("Var", ["x"])
+-- >>> isPatternPresentInVariantTy (TySUnion (TySRecord "Num" TySInt) (TySRecord "Var" TySString)) ("Var", ["x"])
 -- Right TySString
 --
--- >>> isPatternPresentInVariantTy (TySAnd (TySRecord "Num" TySInt) (TySRecord "Var" TySString)) ("Var", ["x", "y"])
+-- >>> isPatternPresentInVariantTy (TySUnion (TySRecord "Num" TySInt) (TySRecord "Var" TySString)) ("Var", ["x", "y"])
 -- Left (STypeError "The number of bindings in the case Var do not match the data type constructor")
 --
--- >>> isPatternPresentInVariantTy (TySAnd (TySRecord "Num" TySUnit) (TySRecord "Var" TySString)) ("Num", [])
+-- >>> isPatternPresentInVariantTy (TySUnion (TySRecord "Num" TySUnit) (TySRecord "Var" TySString)) ("Num", [])
 -- Right TySUnit
 isPatternPresentInVariantTy :: SourceTyp -> Pattern -> Either SourceTypeError SourceTyp
 isPatternPresentInVariantTy variantTy (label, bindings) =
@@ -200,8 +200,8 @@ elaborateCasesCheck ctx ty1 variantTy (x:xs)
 -- === Example:
 -- >>> elaborateMatch TySUnit (TmCase (Lit 1) [(("Var", ["x"]), (TmProj TmCtx 0)), (("Var", ["x"]), (TmProj TmCtx 0))])
 elaborateMatch :: SourceTyp -> SourceTm -> Either SourceTypeError Elab
-elaborateMatch _          (TmCase _ [])        = Left $ STypeError "Match statement must have atleast one case"
-elaborateMatch ctx (TmCase tm (fstcase:cases)) =
+elaborateMatch _   (TmCase _ [])                = Left $ STypeError "Match statement must have atleast one case"
+elaborateMatch ctx (TmCase tm (fstcase:cases))  =
         case elaborateInfer ctx tm of
                 Right (variantTy@(TySUnion _ _), tm')  ->
                         if countLabels variantTy == Right (length cases + 1) && isUnique (fstcase:cases)
@@ -221,7 +221,7 @@ elaborateMatch ctx (TmCase tm (fstcase:cases)) =
                                                         ((constructor', _), _):xs        -> 
                                                                 l /= constructor' && notFound l xs
                                                         []      -> True
-                
+
 
 elaborateInfer :: SourceTyp -> SourceTm -> Either SourceTypeError Elab
 elaborateInfer ctx TmCtx           = Right (ctx, Ctx)
@@ -229,7 +229,6 @@ elaborateInfer _ TmUnit            = Right (TySUnit, Unit)
 elaborateInfer _ (TmLit i)         = Right (TySInt, Lit i)
 elaborateInfer _ (TmBool b)        = Right (TySBool, EBool b)
 elaborateInfer _ (TmString s)      = Right (TySString, EString s)
-
 elaborateInfer ctx (TmLam tA tm)     = 
                 case elaborateInfer (TySAnd ctx tA) tm of
                         Right (tB, tm') -> Right (TySArrow tA tB, Lam (elaborateTyp tA) tm')
