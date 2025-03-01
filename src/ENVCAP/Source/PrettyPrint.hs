@@ -14,10 +14,10 @@ colorReset = "\x1b[0m"
 
 -- Pretty print SurfaceTm
 prettySurfaceTm :: SurfaceTm -> String
-prettySurfaceTm (SCtx) = "ctx"
-prettySurfaceTm (SUnit) = "()"
-prettySurfaceTm (SLit n) = show n
-prettySurfaceTm (SBool b) = show b
+prettySurfaceTm (SCtx)      = "ctx"
+prettySurfaceTm (SUnit)     = "()"
+prettySurfaceTm (SLit n)    = show n
+prettySurfaceTm (SBool b)   = show b
 prettySurfaceTm (SString s) = show s
 prettySurfaceTm (SLam params body) =
     let paramStr = intercalate ", " (map (\(name, typ) -> name ++ " : " ++ prettySurfaceTyp typ) params)
@@ -102,8 +102,8 @@ prettySurfaceTyp STBool = "Bool"
 prettySurfaceTyp STString = "String"
 prettySurfaceTyp (STList typ) =
     printf "List[%s]" (prettySurfaceTyp typ)
-prettySurfaceTyp (STSum typ1 typ2) =
-    printf "%s + %s" (prettySurfaceTyp typ1) (prettySurfaceTyp typ2)
+prettySurfaceTyp (STUnion typ1 typ2) =
+    printf "%s | %s" (prettySurfaceTyp typ1) (prettySurfaceTyp typ2)
 prettySurfaceTyp (STPair typ1 typ2) =
     printf "(%s, %s)" (prettySurfaceTyp typ1) (prettySurfaceTyp typ2)
 prettySurfaceTyp (STSig typ1 typ2) =

@@ -226,8 +226,10 @@ elaboratedFile filePath = do
                                                                     Right (_, final) -> 
                                                                         case evaluate final of
                                                                             Right final' -> print final'
-                                                                            Left  err    -> print err
-                                                                    Left err    -> print err
+                                                                            Left  (InterpreterFailed err)    -> 
+                                                                                    print err
+                                                                    Left (InterpreterFailed err)    ->
+                                                                        print err
                                                 Left err     -> print err
                                     Left  err   -> print err 
                             Left  err  -> print err

@@ -79,14 +79,14 @@ data SurfaceTm
 -- Types
 data SurfaceTyp =   STUnit                              -- Unit type for empty environment
                 |   STInt                               -- Integer type
-                |   STAnd SurfaceTyp SurfaceTyp         -- Intersection type
-                |   STArrow SurfaceTyp SurfaceTyp       -- Arrow type, e.g. A -> B
-                |   STRecord String SurfaceTyp          -- Single-Field Record Type
+                |   STAnd       SurfaceTyp SurfaceTyp   -- Intersection type
+                |   STArrow     SurfaceTyp SurfaceTyp   -- Arrow type, e.g. A -> B
+                |   STRecord    String     SurfaceTyp   -- Single-Field Record Type
+                |   STUnion     SurfaceTyp SurfaceTyp   -- Union
                 -- Extensions
                 |   STBool                              -- Boolean type
                 |   STString                            -- String type
                 |   STList  SurfaceTyp                  -- Type for built-in list 
-                |   STSum   SurfaceTyp SurfaceTyp       -- Type for sums
                 |   STPair  SurfaceTyp SurfaceTyp
                 |   STSig   SurfaceTyp SurfaceTyp       -- Sig Type End
                 |   STIden  String                      -- Simply an alias
@@ -131,7 +131,7 @@ data SourceTyp  =   TySUnit                             -- Unit type for empty e
                 |   TySBool                             -- Boolean type
                 |   TySString                           -- String type
                 |   TySList     SourceTyp               -- Type for built-in list 
-                |   TySSum      SourceTyp SourceTyp     -- Type for sums
+                |   TySUnion    SourceTyp SourceTyp     -- Type for sums
                 |   TySPair     SourceTyp SourceTyp     -- Type for pairs
                 |   TySSig      SourceTyp SourceTyp     -- Sig Type End
                 |   TySIden     String                  -- Simply an alias
@@ -164,13 +164,10 @@ data CoreTyp    =   TyCUnit                       -- Unit type for empty environ
                 |   TyCAnd        CoreTyp CoreTyp -- Intersection type
                 |   TyCArrow      CoreTyp CoreTyp -- Arrow type, e.g. A -> B
                 |   TyCRecord     String  CoreTyp -- Single-Field Record Type
+                |   TyCUnion      CoreTyp CoreTyp -- Union type
                 -- Extensions
                 |   TyCBool                       -- Boolean type
                 |   TyCString                     -- String type
-                |   TyVariant CoreTyp
-                -- |   TyCList       CoreTyp         -- Type for built-in list
-                -- |   TyCSum        CoreTyp CoreTyp -- Type for sums
-                -- |   TyCPair       CoreTyp CoreTyp
                 deriving (Eq, Show)
 
 data Value =    VUnit                      -- Unit value

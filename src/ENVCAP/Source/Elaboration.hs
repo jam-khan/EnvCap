@@ -11,25 +11,26 @@ elaborateTyp TySUnit               = TyCUnit
 elaborateTyp TySInt                = TyCInt
 elaborateTyp TySBool               = TyCBool
 elaborateTyp TySString             = TyCString
-elaborateTyp (TySAnd ty1 ty2)      = TyCAnd (elaborateTyp ty1) (elaborateTyp ty2)
-elaborateTyp (TySArrow ty1 ty2)    = TyCArrow (elaborateTyp ty1) (elaborateTyp ty2)
 elaborateTyp (TySRecord label ty)  = TyCRecord label (elaborateTyp ty)
-elaborateTyp (TySSig tA tB)        = TyCArrow (elaborateTyp tA) (elaborateTyp tB)
+elaborateTyp (TySAnd    ty1 ty2)   = TyCAnd     (elaborateTyp ty1) (elaborateTyp ty2)
+elaborateTyp (TySUnion  ty1 ty2)   = TyCAnd     (elaborateTyp ty1) (elaborateTyp ty2)
+elaborateTyp (TySArrow  ty1 ty2)   = TyCArrow   (elaborateTyp ty1) (elaborateTyp ty2)
+elaborateTyp (TySSig    tA tB)     = TyCArrow   (elaborateTyp tA) (elaborateTyp tB)
 
-type Elab = (SourceTyp, CoreTm)
-
+type Elab       = (SourceTyp, CoreTm)
 type Context    = SourceTyp
 type Message    = String
 type Suggestion = String
 
+-- | `generateError` is a utility function used to construct error message for
+-- type checking error at source level during elaboration.
 generateError :: Context -> SourceTm -> Message -> Suggestion -> SourceTypeError
 generateError ctx tm msg sugg =
-        STypeError
-                ("Typechecking failed at Source level\n\n" ++
-                "Context: " ++ show ctx ++ "\n" ++
-                "Expression: " ++ show tm ++ "\n" ++
-                msg     ++ "\n" ++
-                sugg    ++ "\n")
+        STypeError      ("Typechecking failed at Source level\n\n" ++
+                        "Context: " ++ show ctx ++ "\n" ++
+                        "Expression: " ++ show tm ++ "\n" ++
+                        msg     ++ "\n" ++
+                        sugg    ++ "\n")
 
 -- Lookup based on indexing
 lookupt :: SourceTyp -> Integer -> Maybe SourceTyp
@@ -51,6 +52,14 @@ containment (TySRecord l tA) (TySAnd tB tC)
                                 =   (containment (TySRecord l tA) tB && not (isLabel l tC)) ||
                                     (containment (TySRecord l tA) tC && not (isLabel l tB))
 containment _ _                 = False
+
+containmentUnion :: SourceTyp -> SourceTyp -> Bool
+containmentUnion (TySRecord l tA) (TySRecord label typ ) 
+                                = l == label && tA == typ
+containmentUnion (TySRecord l tA) (TySUnion tB tC) 
+                                =       (containmentUnion (TySRecord l tA) tB && not (isLabel l tC)) ||
+                                        (containmentUnion (TySRecord l tA) tC && not (isLabel l tB))
+containmentUnion _ _            = False
 
 -- | `rlookupt` is the record lookup function in the type-directed elaboration rules.
 -- It is used to perform label projection on the context.
@@ -78,12 +87,12 @@ rlookupt _ _            = Nothing
 -- Right 1
 countLabels :: SourceTyp -> Either SourceTypeError Int
 countLabels (TySRecord _ _)     = Right 1
-countLabels (TySAnd tA tB)      = 
+countLabels (TySUnion tA tB)      = 
         do      left    <- countLabels tA
                 right   <- countLabels tB
                 return $ left + right
 countLabels _                   = 
-        Left $ STypeError "Variant Type must be restricted to only records with intersection"
+        Left $ STypeError "Variant Type must be restricted to only records with unions"
 
 -- | `countTypesInConstructor` is a utility function that returns the count of types
 -- inside an intersection type.
@@ -116,10 +125,10 @@ countTypesInConstructor _               =
 isPatternPresentInVariantTy :: SourceTyp -> Pattern -> Either SourceTypeError SourceTyp
 isPatternPresentInVariantTy variantTy (label, bindings) =
         -- Firstly, a label lookup is performed on the variantTy
-        case rlookupt variantTy label of
+        case rlookupVariant variantTy of
                 Just ty         -> 
                         -- This gives the type, but we need to ensure containment for uniqueness
-                        if containment (TySRecord label ty) variantTy  then    
+                        if containmentUnion (TySRecord label ty) variantTy  then    
                                 if (ty == TySUnit && countBindings == 0) || 
                                         (countTypesInConstructor ty == Right countBindings) 
                                         then Right ty
@@ -127,7 +136,16 @@ isPatternPresentInVariantTy variantTy (label, bindings) =
                                 else    Left  $ STypeError ("Duplicate constructor found in the variant type: " ++ show variantTy)
                 Nothing         ->
                         Left $ STypeError ("Constructor " ++ label ++ " not present in the variant type: " ++ show variantTy)
-        where countBindings = length bindings
+        where   countBindings = length bindings
+                rlookupVariant :: SourceTyp -> Maybe SourceTyp
+                rlookupVariant (TySRecord l t)
+                        | l == label = Just t
+                rlookupVariant (TySUnion tA tB)
+                        = case rlookupVariant tB of
+                                Just t  -> Just t
+                                Nothing -> rlookupVariant tA
+                rlookupVariant _        = Nothing
+
 -- | `insertIntersectionContext` is a utility function that inserts an intersection type in the context
 -- correct.
 --
@@ -163,8 +181,9 @@ elaborateCase ctx variantTy ((label, bindings), tm) =
 -- >>> elaborateCasesCheck TySUnit TySInt (TySAnd (TySRecord "Num" TySInt) (TySRecord "Var" TySString)) [(("Var", ["x"]), (TmLit 1)), (("Num", ["x"]), (TmLit 1))]
 -- Right [(("Var",["x"]),Lit 1),(("Num",["x"]),Lit 1)]
 -- 
--- >>> elaborateCasesCheck TySUnit TySInt (TySAnd (TySRecord "Num" TySInt) (TySRecord "Var" TySString)) [(("Var", ["x"]), (TmProj TmCtx 0)), (("Var", ["x"]), (TmProj TmCtx 0))]
--- Left (STypeError "Types don't match for all the case branches")
+-- >>> elaborateCasesCheck TySUnit TySInt (TySUnion (TySRecord "Num" TySInt) (TySRecord "Var" TySString)) [(("Var", ["x"]), (TmProj TmCtx 0)), (("Var", ["x"]), (TmProj TmCtx 0))]
+-- Data constructor not in scope:
+--   TySUnion :: SourceTyp -> SourceTyp -> SourceTyp
 elaborateCasesCheck :: SourceTyp -> SourceTyp -> SourceTyp -> [(Pattern, SourceTm)] -> Either SourceTypeError [(Pattern, CoreTm)]
 elaborateCasesCheck _ _ _ [] = Right []
 elaborateCasesCheck ctx ty1 variantTy (x:xs)    
@@ -176,17 +195,6 @@ elaborateCasesCheck ctx ty1 variantTy (x:xs)
                                 else Left $ STypeError "Types don't match for all the case branches"
                 Left err          -> Left err
 
-{--
-        Problem: Introduce a separate type for the variant
-        Why?    1. 
-                Because the below case could also type check if
-                the x in (match x of ...) is a record that fits
-                the criteria of each branch. Hence, it is important
-                to wrap the type with a variant, then a well-formedness check
-                could be made on the variant.
-
---}
-
 -- `elaborateMatch` is a function that elaborates the match statement.
 --
 -- === Example:
@@ -195,7 +203,7 @@ elaborateMatch :: SourceTyp -> SourceTm -> Either SourceTypeError Elab
 elaborateMatch _          (TmCase _ [])        = Left $ STypeError "Match statement must have atleast one case"
 elaborateMatch ctx (TmCase tm (fstcase:cases)) =
         case elaborateInfer ctx tm of
-                Right (variantTy, tm')  ->
+                Right (variantTy@(TySUnion _ _), tm')  ->
                         if countLabels variantTy == Right (length cases + 1) && isUnique (fstcase:cases)
                                 then    case elaborateCase ctx variantTy fstcase of
                                                 Right (pattern, ty1, tm1)       -> 
@@ -213,6 +221,7 @@ elaborateMatch ctx (TmCase tm (fstcase:cases)) =
                                                         ((constructor', _), _):xs        -> 
                                                                 l /= constructor' && notFound l xs
                                                         []      -> True
+                
 
 elaborateInfer :: SourceTyp -> SourceTm -> Either SourceTypeError Elab
 elaborateInfer ctx TmCtx           = Right (ctx, Ctx)
@@ -369,7 +378,7 @@ elaborateInfer ctx (TmStruct tyA tm)=
 elaborateInfer ctx (TmTag tm ty)=
                 case elaborateInfer ctx tm of
                         Right (TySRecord _ ty', Rec l tm') -> 
-                                if containment (TySRecord l ty') ty
+                                if containmentUnion (TySRecord l ty') ty
                                         then    Right (ty, Tag (Rec l tm') (elaborateTyp ty'))
                                         else    Left $ generateError ctx tm 
                                                         "Type error on ADT"
