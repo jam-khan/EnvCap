@@ -2,25 +2,31 @@
 {-# LANGUAGE GADTs #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use camelCase" #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module ENVCAP.Syntax where
+--Added Imports
+import qualified Data.ByteString.Lazy as BL  -- For efficient binary I/O
+import Data.Binary (encode, decode, Binary, decodeOrFail)   -- For serialization/deserialization
+import Control.Exception (try, SomeException)   -- Added import for try (error handiling)
+import GHC.Generics (Generic)
 
 data UnaryOp    =       Not
-        deriving (Eq, Show)
+        deriving (Eq, Show, Generic)
 
 data BinaryOp  =        Arith ArithOp   -- Arithmetic
                 |       Comp  CompOp    -- CompOp
                 |       Logic LogicOp   -- Boolean Logic
-                deriving (Eq, Show)
+                deriving (Eq, Show, Generic)
 
 data ArithOp = Add | Sub | Mul | Div | Mod
-        deriving (Eq, Show)
+        deriving (Eq, Show, Generic)
 
 data CompOp  = Eql | Neq | Lt | Le | Gt | Ge
-        deriving (Eq, Show)
+        deriving (Eq, Show, Generic)
 
 data LogicOp = And | Or
-        deriving (Eq, Show)
+        deriving (Eq, Show, Generic)
 
 
 type Params       = [(String, SurfaceTyp)]
@@ -157,7 +163,7 @@ data CoreTm     =   Ctx                                 -- Context
                 |   Case   CoreTm [(Pattern, CoreTm)]
                 |   BinOp  BinaryOp CoreTm CoreTm       -- Binary operations
                 |   UnOp   UnaryOp CoreTm               -- Unary operations
-                deriving (Eq, Show)
+                deriving (Eq, Show, Generic)
 
 data CoreTyp    =   TyCUnit                       -- Unit type for empty environment
                 |   TyCInt                        -- Integer type
@@ -168,7 +174,7 @@ data CoreTyp    =   TyCUnit                       -- Unit type for empty environ
                 -- Extensions
                 |   TyCBool                       -- Boolean type
                 |   TyCString                     -- String type
-                deriving (Eq, Show)
+                deriving (Eq, Show, Generic)
 
 data Value =    VUnit                      -- Unit value
         |       VInt    Integer            -- Integer value
@@ -179,4 +185,4 @@ data Value =    VUnit                      -- Unit value
         -- Extensions
         |       VBool   Bool               -- Boolean Value
         |       VString String             -- String Value
-        deriving (Show, Eq)
+        deriving (Show, Eq, Generic)

@@ -36,6 +36,10 @@ getNameFromPath path    = takeBaseName $ takeFileName path
 
 -- `getImplementationAST` is a function that parses, expands type aliases, transforms AST
 -- into a locally nameless representation and desugars the AST into source level AST.
+--
+-- === Example:
+-- >>> getImplementationAST "val x = 1"
+-- Right (TmRec "x" (TmLit 1))
 getImplementationAST    :: Code                             -- ^ Implementation code
                         -> Either InterpreterError SourceTm -- ^ SourceAST or Interpreter Error with message
 getImplementationAST code =

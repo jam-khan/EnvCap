@@ -42,7 +42,9 @@ library
                       haskeline >= 0.8,
                       filepath,
                       directory,
-                      configurator
+                      configurator,
+                      bytestring,
+                      binary
     hs-source-dirs:   src, test, examples
     ghc-options:      -Wall
     default-language: Haskell2010
