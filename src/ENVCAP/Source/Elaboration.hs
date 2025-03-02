@@ -13,7 +13,7 @@ elaborateTyp TySBool               = TyCBool
 elaborateTyp TySString             = TyCString
 elaborateTyp (TySRecord label ty)  = TyCRecord label (elaborateTyp ty)
 elaborateTyp (TySAnd    ty1 ty2)   = TyCAnd     (elaborateTyp ty1) (elaborateTyp ty2)
-elaborateTyp (TySUnion  ty1 ty2)   = TyCAnd     (elaborateTyp ty1) (elaborateTyp ty2)
+elaborateTyp (TySUnion  ty1 ty2)   = TyCUnion   (elaborateTyp ty1) (elaborateTyp ty2)
 elaborateTyp (TySArrow  ty1 ty2)   = TyCArrow   (elaborateTyp ty1) (elaborateTyp ty2)
 elaborateTyp (TySSig    tA tB)     = TyCArrow   (elaborateTyp tA) (elaborateTyp tB)
 
@@ -378,7 +378,7 @@ elaborateInfer ctx (TmTag tm ty)=
                 case elaborateInfer ctx tm of
                         Right (TySRecord _ ty', Rec l tm') -> 
                                 if containmentUnion (TySRecord l ty') ty
-                                        then    Right (ty, Tag (Rec l tm') (elaborateTyp ty'))
+                                        then    Right (ty, Tag (Rec l tm') (elaborateTyp ty))
                                         else    Left $ generateError ctx tm 
                                                         "Type error on ADT"
                                                         "Ambiguous label in ADT"

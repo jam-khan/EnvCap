@@ -8,7 +8,7 @@ import ENVCAP.Source.Errors
 import ENVCAP.Source.Desugar (desugar)
 import ENVCAP.Source.Elaboration (Elab, elaborateInfer, elaborateTyp)
 import ENVCAP.Core.Evaluator (eval)
-import ENVCAP.Core.TypeChecker (check)
+import ENVCAP.Core.TypeChecker (check, infer)
 
 
 -- | Parses a string of code into a 'SurfaceTm' or returns an 'InterpreterError' on failure.
@@ -115,7 +115,7 @@ interpreter code =
         (sourceTy, coreAST)         <- elaboration sourceASTDesugared
         if check TyCUnit coreAST (elaborateTyp sourceTy)
             then evaluate coreAST
-            else Left $ InterpreterFailed "Type checking faile at core level"
+            else Left $ InterpreterFailed ("Type checking faile at core level" ++ show (infer TyCUnit coreAST))
 
 -- | Runs a file by reading its contents. Handles potential I/O errors.
 --

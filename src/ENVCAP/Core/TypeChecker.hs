@@ -147,61 +147,52 @@ insertIntersectionContext ctx (TyCAnd tA tB)
 insertIntersectionContext ctx ty 
                 = Right $ TyCAnd ctx ty
 
-inferCase :: CoreTyp -> CoreTyp -> (Pattern, CoreTm) -> Either TypeError (Pattern, CoreTyp, CoreTm)
+inferCase :: CoreTyp -> CoreTyp -> (Pattern, CoreTm) -> Either TypeError CoreTyp
 inferCase ctx variantTy ((label, bindings), tm) =
                 isPatternPresentInVariantTy variantTy (label, bindings) >>= \ty' ->
                         insertIntersectionContext ctx ty' >>= \ctx' ->
-                                case elaborateInfer ctx' tm of
-                                        Right (caseTy, caseTm') -> 
-                                                Right ((label, bindings), caseTy, caseTm')
+                                case infer ctx' tm of
+                                        Right caseTy -> 
+                                                Right caseTy
                                         Left err                -> Left err
 
-inferMatch :: CoreTyp -> CoreTm -> Either TypeError Elab
-inferMatch _   (TmCase _ [])                = Left $ TypeError "Match statement must have atleast one case"
-inferMatch ctx (TmCase tm (fstcase:cases))  =
-        case infer ctx tm of
-                Right (variantTy@(TySUnion _ _))  ->
-                        if countLabels variantTy == Right (length cases + 1) && isUnique (fstcase:cases)
-                                then    case elaborateCase ctx variantTy fstcase of
-                                                Right (pattern, ty1, tm1)       -> 
-                                                        elaborateCasesCheck ctx ty1 variantTy cases 
-                                                                >>= \cases' -> return (ty1, Case tm' ((pattern, tm1):cases'))
-                                                Left err        -> Left err
-                                else    Left $ TypeError "Fewer cases present in the match than the constructors in the ADT"
-                Left err                -> Left err
-        where   isUnique ls     = case ls of
-                                        ((constructor, _), _ ):xs       -> 
-                                                notFound constructor xs && isUnique xs
-                                        []      -> True
-                                        where 
-                                                notFound l ls'   = case ls' of
-                                                        ((constructor', _), _):xs        -> 
-                                                                l /= constructor' && notFound l xs
-                                                        []      -> True
 
-casesCheck :: CoreTyp -> CoreTyp -> CoreTyp -> [(Pattern, CoreTm)] -> Either TypeError [(Pattern, CoreTm)]
-casesCheck _ _ _ []                 = Right []
-casesCheck ctx ty1 variantTy (x:xs)
-        = case inferCase ctx variantTy x of
-            Right (pattern, ty', ctm1)   ->
-                if ty1 == ty'
-                    then casesCheck ctx ty1 variantTy xs >>=
-                        \xs'    -> return ((pattern, ctm1):xs')
-                    else Left $ TypeError "Types don't match for all case at core level. Shouldn't fail if elaboration is SOUND!"
-            Left err    -> Left err
+checkCases :: CoreTyp -> CoreTyp -> CoreTyp -> [(Pattern, CoreTm)] -> Either TypeError CoreTyp
+checkCases _ ty _ []                 = Right ty
+checkCases ctx ty1 variantTy (x:xs)
+        =   if checkEach (x:xs) then Right ty1 else
+                Left $ TypeError "Types of each case don't match. Elaboration not sound."
+                where 
+                    checkEach []            = True
+                    checkEach (fstcase:rest)    =
+                        case inferCase ctx variantTy fstcase of
+                            Right ty'   -> ty1 == ty' && checkEach rest
+                            Left _      -> False
 
--- `inferMatch` infers the type of the match statement.
---
--- === Example:
--- >>> inferMatch 
+
 inferMatch :: CoreTyp -> CoreTm -> Either TypeError CoreTyp
-inferMatch _    (Case _ [])                 = 
-    Left $ TypeError "Match statement failed at core type check. Shouldn't occur if elaboration is sound."
+inferMatch _    (Case _ [])             = 
+    Left $ TypeError "Match statement must have atleast one case. Elaboration is not sound."
 inferMatch ctx  (Case tm (fstcase:cases))   =
     case infer ctx tm of
-        Right (variantTy@(TySUnion _ _), tm')   ->
-            if countLabels variantTy == Right (length cases + 1) && isUnique
-
+        Right variantTy@(TyCUnion _ _)    ->
+            if countLabels variantTy == Right (length cases + 1) && isUnique (fstcase:cases)
+                then    
+                    inferCase ctx variantTy fstcase >>= \ty1 ->
+                        checkCases ctx ty1 variantTy cases
+                else    Left $ TypeError "Fewer cases present in the match than the constructors in the ADT."
+        Right _         -> Left $ TypeError "match can only be called on variant"
+        Left    err     -> Left err
+    where isUnique ls   = case ls of
+                            ((constructor, _), _):xs    ->
+                                notFound constructor xs && isUnique xs
+                            []  -> True
+                            where   notFound l ls'  = case ls' of
+                                        ((constructor', _), _):xs ->
+                                            l /= constructor' && notFound l xs
+                                        []  -> True
+inferMatch _ _ =
+    Left $ TypeError ""
 -- `infer` infers the type of the expression.
 --
 -- === Example:
@@ -248,13 +239,14 @@ infer ctx (If cond e1 e2)       = if check ctx cond TyCBool
                                                             then Right t1 
                                                             else Left $ TypeError "Branches of if must have the same type"  
                                         else Left $ TypeError "Condition must be of type Bool"
--- infer ctx (Tag  tm ty)          = 
---     case infer ctx tm of
---         Right (TyCRecord _ ty')  ->
---             if containmentUnion (TyCRecord l ty) ty
---                 then    Right (ty, Tag (Rec l tm') (elaborateTyp ty'))
---                 else    Left $ generat
--- -- infer ctx (Case tm cases)
+infer ctx (Tag  tm ty)          = case infer ctx tm of
+                                    Right tm'@(TyCRecord _ _)   ->
+                                        if containmentUnion tm' ty
+                                            then    Right ty
+                                            else    Left $ TypeError ("Ambiguous label on ADT. Elaboration FAILED. " ++ show (Tag tm ty))
+                                    Right _                     -> Left $ TypeError "Value can't be tagged with ADT" 
+                                    Left _      ->   Left $ TypeError "Elaboration Failed"
+infer ctx (Case tm cases)       = inferMatch ctx (Case tm cases)
 infer ctx (BinOp (Arith _) e1 e2) 
                                 = infer ctx e1 >>= \t1 ->
                                         infer ctx e2 >>= \t2 ->
