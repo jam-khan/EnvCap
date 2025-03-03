@@ -83,19 +83,18 @@ data SurfaceTm
         deriving (Eq, Show)
 
 -- Types
-data SurfaceTyp =   STUnit                              -- Unit type for empty environment
-                |   STInt                               -- Integer type
-                |   STAnd       SurfaceTyp SurfaceTyp   -- Intersection type
-                |   STArrow     SurfaceTyp SurfaceTyp   -- Arrow type, e.g. A -> B
-                |   STRecord    String     SurfaceTyp   -- Single-Field Record Type
-                |   STUnion     SurfaceTyp SurfaceTyp   -- Union
+data SurfaceTyp =   STUnit                              -- ^ Unit type for empty environment
+                |   STInt                               -- ^ Integer type
+                |   STAnd       SurfaceTyp SurfaceTyp   -- ^ Intersection type
+                |   STArrow     SurfaceTyp SurfaceTyp   -- ^ Arrow type, e.g. A -> B
+                |   STRecord    String     SurfaceTyp   -- ^ Single-Field Record Type
+                |   STUnion     SurfaceTyp SurfaceTyp   -- ^ Union
                 -- Extensions
-                |   STBool                              -- Boolean type
-                |   STString                            -- String type
-                |   STList  SurfaceTyp                  -- Type for built-in list 
-                |   STPair  SurfaceTyp SurfaceTyp
-                |   STSig   SurfaceTyp SurfaceTyp       -- Sig Type End
-                |   STIden  String                      -- Simply an alias
+                |   STBool                              -- ^ Boolean type
+                |   STString                            -- ^ String type
+                |   STList      SurfaceTyp              -- ^ Type for built-in list 
+                |   STSig       SurfaceTyp SurfaceTyp   -- ^ Sig Type End
+                |   STIden      String                  -- ^ Simply an alias
                 deriving (Eq, Show)
 
 data SourceTm   =   TmCtx                               -- Query

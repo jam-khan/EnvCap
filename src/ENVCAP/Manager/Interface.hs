@@ -1,3 +1,17 @@
+{-|
+Module      : ENVCAP.Manager.Interface
+Description : Module is responsible for parsing and loading of multiple interface files.
+Copyright   : (c) Jam Kabeer Ali Khan, 2025
+License     : MIT
+Maintainer  : jamkhan@connect.hku.hk
+Stability   : experimental
+
+Key functionalities:
+- Functionality 1: Parse interface files.
+- Functionality 2: Structure interface files.
+
+For more details, see the individual function documentation.
+-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 module ENVCAP.Manager.Interface where
 import ENVCAP.Source.Errors
@@ -5,59 +19,78 @@ import ENVCAP.Parser.Interface.ParseInterface (parseInterface)
 import ENVCAP.Syntax
 import ENVCAP.Source.TypeExpansion (expandTyAlias, expandAliasTypParams)
 import ENVCAP.Source.Desugar (getFixpointType, desugarTyp)
+import ENVCAP.Source.Errors (SeparateCompilationError(SepCompError))
 
--- | Performs type expansion on the interface
---  Returns `Right Interface AST` or SepCompError if couldn't parse interface correctly
-interfaceTypeExpansion :: SurfaceTyp -> Interface -> Either SeparateCompilationError Interface
-interfaceTypeExpansion _ (IAliasTyp name ty)  =
-                        Left  $ SepCompError ("Type Alias: type "
-                            ++ name ++ " = " ++ show ty
-                            ++ " not expanded properly.")
-interfaceTypeExpansion tyGamma (IType     ty)
-                =   case expandTyAlias tyGamma ty of
-                        Right ty'   -> Right    $ IType ty'
-                        Left  _     -> Left     $ SepCompError ("Type " ++ show ty ++ "did not expand properly")
-interfaceTypeExpansion tyGamma (FunctionTyp name params ty)
-                =   case expandAliasTypParams tyGamma params of
-                        Right params'  ->
-                            case expandTyAlias tyGamma ty of
-                                Right ty'   -> Right $ FunctionTyp name params' ty'
-                                Left  _   ->
-                                    Left  $ SepCompError
-                                            ("Interface Type Expansion Failed during output type expansion of function " ++ name)
-                        Left _    ->
-                                Left  $ SepCompError
-                                            ("Interface Type Expansion Failed during the params expansion of function " ++ name)
-interfaceTypeExpansion tyGamma (ModuleTyp name params ty)
-                =   case expandAliasTypParams tyGamma params of
-                        Right params'   ->
-                            case expandTyAlias tyGamma ty of
-                                Right ty'   ->
-                                    Right $ ModuleTyp name params' ty'
-                                Left _    ->
-                                    Left $ SepCompError
-                                            ("Interface Type Expansion Failed during output type expansion of module " ++ name)
-                        Left _        ->
-                            Left $ SepCompError
-                                            ("Interface Type Expansion Failed during the params expansion of module " ++ name)
-interfaceTypeExpansion tyGamma (Binding name ty)
-                =   case expandTyAlias tyGamma ty of
-                        Right ty'   -> Right $ Binding name ty'
-                        Left _      -> Left  $ SepCompError ("Interface Type Expansion Failed during the type expansion of binding " ++ name)
-interfaceTypeExpansion tyGamma (InterfaceAnd stmt1 stmt2)
-                =   case stmt1 of
-                        (IAliasTyp name ty) ->
-                                        case expandTyAlias tyGamma ty of
-                                            Right ty'   ->
-                                                interfaceTypeExpansion (STAnd tyGamma (STRecord name ty')) stmt2
-                                            Left  _     ->
-                                                Left $ SepCompError ("Interface Type Expansion Failed when expanding type inside the alias " ++ name)
-                        _       -> InterfaceAnd <$> interfaceTypeExpansion tyGamma stmt1 <*> interfaceTypeExpansion tyGamma stmt2
+-- | `expandInterface` is a utility function that performs type alias expansion
+-- on interface files.
+--
+-- === Example:
+--
+-- >>> expandInterface STUnit (InterfaceAnd (IAliasTyp "INT" STInt) (Binding "x" (STIden "INT")))
+-- Right (Binding "x" STInt)
+expandInterface :: SurfaceTyp   -- ^ Typing context for type expansion.
+                -> Interface    -- ^ Interface to be expanded.
+                -> Either SeparateCompilationError Interface    -- ^ Returns error or expanded interface. 
+expandInterface _ (IAliasTyp name ty)  =
+    Left $ SepCompError ("Type Alias: type " ++ name ++ " = " ++ show ty ++ " not expanded properly.")
 
--- | Performs desugaring of interface to a type
+expandInterface tyGamma (IType     ty)  = 
+    case expandTyAlias tyGamma ty of
+        Right ty'   -> Right    $ IType ty'
+        Left  _     -> Left     $ SepCompError ("Type " ++ show ty ++ "did not expand properly.")
+
+expandInterface tyGamma (FunctionTyp name params ty)=
+    case expandAliasTypParams tyGamma params of
+        Right params'  ->
+            case expandTyAlias tyGamma ty of
+                Right ty'   -> Right $ FunctionTyp name params' ty'
+                Left  _   ->
+                    Left  $ SepCompError
+                            ("Interface Type Expansion Failed during output type expansion of function " ++ name)
+        Left _    ->
+                Left  $ SepCompError
+                            ("Interface Type Expansion Failed during the params expansion of function " ++ name)
+
+expandInterface tyGamma (ModuleTyp name params ty)=   
+    case expandAliasTypParams tyGamma params of
+        Right params'   ->
+            case expandTyAlias tyGamma ty of
+                Right ty'   ->
+                    Right $ ModuleTyp name params' ty'
+                Left _    ->
+                    Left $ SepCompError
+                            ("Interface Type Expansion Failed during output type expansion of module " ++ name)
+        Left _        ->
+            Left $ SepCompError
+                            ("Interface Type Expansion Failed during the params expansion of module " ++ name)
+
+expandInterface tyGamma (Binding name ty)=   
+    case expandTyAlias tyGamma ty of
+        Right ty'   -> Right $ Binding name ty'
+        Left _      -> Left  $ SepCompError ("Interface Type Expansion Failed during the type expansion of binding " ++ name)
+
+expandInterface tyGamma (InterfaceAnd stmt1 stmt2)=   
+    case stmt1 of
+        (IAliasTyp name ty) ->
+            case expandTyAlias tyGamma ty of
+                Right ty'   ->
+                    expandInterface (STAnd tyGamma (STRecord name ty')) stmt2
+                Left  _     ->
+                    Left $ SepCompError ("Interface Type Expansion Failed when expanding type inside the alias " ++ name)
+        _       -> InterfaceAnd <$> expandInterface tyGamma stmt1 <*> expandInterface tyGamma stmt2
+
+
+-- | `interfaceToTyp` is a utility function to desugar interface
+-- to a type.
+--
+-- Note: Types and Interfaces are unified.
+--
+-- === Example:
+-- >>> interfaceToTyp (IType (STInt))
+-- Right TySInt
 interfaceToTyp :: Interface -> Either SeparateCompilationError SourceTyp
-interfaceToTyp (IAliasTyp _namee _ty)
-                =   Left (SepCompError "Type Aliase detected at interface desugaring stage (Should not be possible) if expansion done correctly.")
+interfaceToTyp (IAliasTyp _name _ty)
+                =   Left (SepCompError "Type Alias detected at interface desugaring stage (Should not be possible) if expansion done correctly.")
 interfaceToTyp (IType ty)
                 =   case desugarTyp ty of
                         Right ty'                   ->  Right ty'
@@ -85,7 +118,12 @@ interfaceToTyp (Binding name ty)
 interfaceToTyp (InterfaceAnd ty1 ty2)
                 =   TySAnd <$> interfaceToTyp ty1 <*> interfaceToTyp ty2
 
-
+-- | `getModuleInputType` is a utility function that
+-- desugars the parameters of a module to a type.
+--
+-- === Example:
+-- >>> getModuleInputType [("num", STInt)]
+-- Right TySInt
 getModuleInputType :: Params -> Either DesugarError SourceTyp
 getModuleInputType []           =
             Left  $ DesugarFailed "Module must have at least one parameter!"
@@ -94,14 +132,17 @@ getModuleInputType [(_, ty)]    =
 getModuleInputType ((_, ty):xs) =
             TySAnd <$> desugarTyp ty <*> getModuleInputType xs
 
--- | Parses the interface file
---  Returns `Right Interface AST` or SepCompError if couldn't parse interface correctly.
-readInterface :: String -> Either SeparateCompilationError Interface
-readInterface file = case parseInterface file of
-                        Just interface  ->  Right interface
-                        Nothing         ->  Left $ SepCompError "Couldn't read the interface loaded."
 
+-- | `getInterface` is a utility function that parses the interface
+-- and desugars into a type.
+--
+-- === Example:
+-- >>> getInterface "val x : Int"
+-- Right (TySRecord "x" TySInt)
 getInterface :: String -> Either SeparateCompilationError SourceTyp
-getInterface code = readInterface code >>= \res ->
-                        interfaceTypeExpansion STUnit res >>=
-                            \expanded   -> interfaceToTyp expanded
+getInterface code = 
+    case parseInterface code of
+        Just interface ->
+                expandInterface STUnit interface >>=
+                    \expanded   -> interfaceToTyp expanded
+        _   -> Left $ SepCompError "Interface parsing failed."

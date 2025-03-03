@@ -63,8 +63,6 @@ expandTyAlias tyCtx (STList ty)         =
         STList      <$> expandTyAlias tyCtx ty
 expandTyAlias tyCtx (STUnion  ty1 ty2)    =
         STUnion           <$> expandTyAlias tyCtx ty1  <*> expandTyAlias tyCtx ty2
-expandTyAlias tyCtx (STPair ty1 ty2)    =
-        STPair          <$> expandTyAlias tyCtx ty1  <*> expandTyAlias tyCtx ty2
 expandTyAlias tyCtx (STSig  tyA tyB)    =
         STSig           <$> expandTyAlias tyCtx tyA  <*> expandTyAlias tyCtx tyB
 expandTyAlias tyCtx (STIden label)      =
