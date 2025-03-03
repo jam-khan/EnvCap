@@ -89,21 +89,21 @@ import ENVCAP.Syntax
 
 %%
 
-Program        : Statements                       { $1 }
+Program        : Statements                             { $1 }
 
-Statements     : Statements ';' Statement         { SMrg $1 $3 }
-               | Statement                        { $1 }
+Statements     : Statements ';' Statement               { SMrg $1 $3 }
+               | Statement                              { $1 }
 
-Statement      : Function                         { $1 }
-               | Module                           { $1 }
-               | Binding                          { $1 }
-               | TyAlias                          { $1 }
-               | Term                             { $1 }
+Statement      : Function                               { $1 }
+               | Module                                 { $1 }
+               | Binding                                { $1 }
+               | TyAlias                                { $1 }
+               | Term                                   { $1 }
 
-Term           : BaseTerm                          { $1 }
-               | ConstructedTerm                   { $1 }
-               | Parens                            { $1 }
-               | error                             { parseError [$1] }
+Term                : BaseTerm                          { $1 }
+                    | ConstructedTerm                   { $1 }
+                    | Parens                            { $1 }
+                    | error                             { parseError [$1] }
 
 BaseTerm            : 'env'                             { SCtx }
                     | 'unit'                            { SUnit }
@@ -130,52 +130,49 @@ ConstructedTerm     : Projection            %prec proj  { $1 }
                     | Tuple                             { $1 }
                     | DependentMerge                    { $1 }
                     | Box                               { $1 }
-               
 
-Tagging        : ADTInstance 'as' Type            { SADTInst $1 $3 }
+Tagging             : ADTInstance 'as' Type            { SADTInst $1 $3 }
 
-ADTInstance    : var                              { ($1, [SUnit]) }
-               | '{' var Terms '}'                { ($2, $3) }
+ADTInstance         : var                              { ($1, [SUnit]) }
+                    | '{' var Terms '}'                { ($2, $3) }
 
-Terms          : BaseTerm                Terms    { $1 : $2 }
-               | '(' ConstructedTerm ')' Terms    { $2 : $4 }
-               | BaseTerm                         { [$1] }
-               | '(' ConstructedTerm ')'          { [$2] }
+Terms               : BaseTerm                Terms    { $1 : $2 }
+                    | '(' ConstructedTerm ')' Terms    { $2 : $4 }
+                    | BaseTerm                         { [$1] }
+                    | '(' ConstructedTerm ')'          { [$2] }
 
-Match          : 'match' Term 'of' Cases          { SCase $2 $4 }
+Match               : 'match' Term 'of' Cases          { SCase $2 $4 }
 
-Cases          :  Case    Cases                             { $1 : $2}
-               |  Case                                      { [$1] }
+Cases               :  Case    Cases                   { $1 : $2 }
+                    |  Case                            { [$1] }
 
-Case           : 'case' Pattern '=>' '{' Term '}'   { ($2, $5) }
+Case           : 'case' Pattern '=>' '{' Term '}'      { ($2, $5) }
 
-Pattern        : var                         { ($1, []) }
-               | '(' var Identifiers ')'     { ($2, $3) }
+Pattern        : var                                   { ($1, []) }
+               | '(' var Identifiers ')'               { ($2, $3) }
 
-Identifiers    : var Identifiers             { $1 : $2 }
-               | var                         { [$1] }
-
--- Tagging        : Type '.' '<' var 
+Identifiers    : var Identifiers                       { $1 : $2 }
+               | var                                   { [$1] }
 
 Box            : 'with' Term 'in' '{' Statements '}'   { SBox $2 $5 }
 
-Type           : BaseType                          { $1 }
-               | ADT                               { $1 }
-               | Type '->' Type                    { STArrow $1 $3 }
-               | '[' Type ']'                      { STList $2 }
-               | '{' RecordType '}'                { $2 }
-               | '(' IntersectionType ')'          { $2 }
-               | Signature                         { $1 }
-               | var                               { STIden $1 }
-               | '(' Type ')'                      { $2 }
+Type           : BaseType                              { $1 }
+               | ADT                                   { $1 }
+               | Type '->' Type                        { STArrow $1 $3 }
+               | '[' Type ']'                          { STList $2 }
+               | '{' RecordType '}'                    { $2 }
+               | '(' IntersectionType ')'              { $2 }
+               | Signature                             { $1 }
+               | var                                   { STIden $1 }
+               | '(' Type ')'                          { $2 }
 
 BaseType       : 'Unit'                            { STUnit } 
                | 'Int'                             { STInt }
                | 'Bool'                            { STBool }
                | 'String'                          { STString } 
 
-ADT            : Constructor '|' Constructor   { STAnd $1 $3 }
-               | ADT         '|' Constructor   { STAnd $1 $3 } 
+ADT            : Constructor '|' Constructor   { STUnion $1 $3 }
+               | ADT         '|' Constructor   { STUnion $1 $3 } 
 
 Constructor    : var                         { STRecord $1 STUnit }
                | var BaseType                { STRecord $1 $2 }
@@ -189,11 +186,11 @@ ProductTypes   : ProductTypes BaseType       { STAnd $1 $2 }
                | '(' Type ')' '(' Type ')'   { STAnd $2 $5 }
                | BaseType     BaseType       { STAnd $1 $2 }
 
-IntersectionType    : IntersectionType ',' Type      { STAnd $1 $3 }
-                    | Type ',' Type                  { STAnd $1 $3 }
+IntersectionType    : IntersectionType ',' Type        {  STAnd $1 $3  }
+                    | Type ',' Type                    {  STAnd $1 $3  }
 
-Projection          : Term '.' int                     {SProj $1 $3}
-                    | Term '.' var                     {SRProj $1 $3}
+Projection          : Term '.' int                     {  SProj  $1 $3  }
+                    | Term '.' var                     {  SRProj $1 $3  }
 
 Module         : 'module' var '(' ParamList ')' '{' Statements '}'         { SModule $2 $4 $7 }
 
@@ -213,39 +210,39 @@ Lambda         : '(' Lambda ')' '(' Arguments ')'                          { SAp
 Bool           : 'False' { SBool False }
                | 'True'  { SBool True }
 
-String         : '\'' var '\''                         { SString $2 }
-               | '"' var '"'                           { SString $2 }
+String         : '\'' var '\''                                             { SString $2 }
+               | '"' var '"'                                               { SString $2 }
 
-ListCons       : Term '::' Term                        { SCons $1 $3 }
+ListCons       : Term '::' Term                                            { SCons $1 $3 }
 
-TyAlias        : 'type' var '=' Type                   { SAliasTyp $2 $4 }
+TyAlias        : 'type' var '=' Type                                       { SAliasTyp $2 $4 }
 
 -- There must be atleast one element in tuple I guess this satisfies it but
 -- it will create ambiguities, so must have atleast two elements
 
 -- It must have atleast two elements
 
-DependentMerge           : '(' DependentMergeElements ')'        { $2 }
+DependentMerge           : '(' DependentMergeElements ')'             { $2 }
 
-DependentMergeElements   : DependentMergeElements ',,' Term      { SMrg $1 $3 }
-                         | Term ',,' Term                        { SMrg $1 $3 }
+DependentMergeElements   : DependentMergeElements ',,' Term           { SMrg $1 $3 }
+                         | Term ',,' Term                             { SMrg $1 $3 }
 
-Tuple                    : '(' TupleElements ')'                 { STuple $2 }
+Tuple                    : '(' TupleElements ')'                      { STuple $2 }
 
-TupleElements            : Term ',' TupleElements                { $1 : $3 }
-                         | Term ',' Term                         { $1 : [$3] }
+TupleElements            : Term ',' TupleElements                     { $1 : $3 }
+                         | Term ',' Term                              { $1 : [$3] }
 
-RecordType               : Param ',' RecordType                  { STAnd $1 $3 }
-                         | Param                                 { $1 }
+RecordType               : Param ',' RecordType                       { STAnd $1 $3 }
+                         | Param                                      { $1 }
 
-Param          : var ':' Type                          { STRecord $1 $3 }   
+Param                    : var ':' Type                               { STRecord $1 $3 }   
 
-Record         : '{' Records '}'                       { $2 }
+Record                   : '{' Records '}'                       { $2 }
 
-Records        : '"' var '"' '=' Term ',' Records      { SMrg (SRec $2 $5) $7 }
-               | '"' var '"' '=' Term                  { SRec $2 $5 }
-               | '\'' var '\'' '=' Term ',' Records    { SMrg (SRec $2 $5) $7 }
-               | '\'' var '\'' '=' Term                { SRec $2 $5 }
+Records                  : '"' var '"' '=' Term ',' Records      { SMrg (SRec $2 $5) $7 }
+                         | '"' var '"' '=' Term                  { SRec $2 $5 }
+                         | '\'' var '\'' '=' Term ',' Records    { SMrg (SRec $2 $5) $7 }
+                         | '\'' var '\'' '=' Term                { SRec $2 $5 }
 
 ParamList      : ParamL ',' ParamList                  { $1 : $3 }
                | ParamL                                { [$1] }

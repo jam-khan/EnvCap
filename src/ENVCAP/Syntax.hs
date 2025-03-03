@@ -2,25 +2,31 @@
 {-# LANGUAGE GADTs #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use camelCase" #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module ENVCAP.Syntax where
+--Added Imports
+import qualified Data.ByteString.Lazy as BL  -- For efficient binary I/O
+import Data.Binary (encode, decode, Binary, decodeOrFail)   -- For serialization/deserialization
+import Control.Exception (try, SomeException)   -- Added import for try (error handiling)
+import GHC.Generics (Generic)
 
 data UnaryOp    =       Not
-        deriving (Eq, Show)
+        deriving (Eq, Show, Generic)
 
 data BinaryOp  =        Arith ArithOp   -- Arithmetic
                 |       Comp  CompOp    -- CompOp
                 |       Logic LogicOp   -- Boolean Logic
-                deriving (Eq, Show)
+                deriving (Eq, Show, Generic)
 
 data ArithOp = Add | Sub | Mul | Div | Mod
-        deriving (Eq, Show)
+        deriving (Eq, Show, Generic)
 
 data CompOp  = Eql | Neq | Lt | Le | Gt | Ge
-        deriving (Eq, Show)
+        deriving (Eq, Show, Generic)
 
 data LogicOp = And | Or
-        deriving (Eq, Show)
+        deriving (Eq, Show, Generic)
 
 
 type Params       = [(String, SurfaceTyp)]
@@ -79,14 +85,14 @@ data SurfaceTm
 -- Types
 data SurfaceTyp =   STUnit                              -- Unit type for empty environment
                 |   STInt                               -- Integer type
-                |   STAnd SurfaceTyp SurfaceTyp         -- Intersection type
-                |   STArrow SurfaceTyp SurfaceTyp       -- Arrow type, e.g. A -> B
-                |   STRecord String SurfaceTyp          -- Single-Field Record Type
+                |   STAnd       SurfaceTyp SurfaceTyp   -- Intersection type
+                |   STArrow     SurfaceTyp SurfaceTyp   -- Arrow type, e.g. A -> B
+                |   STRecord    String     SurfaceTyp   -- Single-Field Record Type
+                |   STUnion     SurfaceTyp SurfaceTyp   -- Union
                 -- Extensions
                 |   STBool                              -- Boolean type
                 |   STString                            -- String type
                 |   STList  SurfaceTyp                  -- Type for built-in list 
-                |   STSum   SurfaceTyp SurfaceTyp       -- Type for sums
                 |   STPair  SurfaceTyp SurfaceTyp
                 |   STSig   SurfaceTyp SurfaceTyp       -- Sig Type End
                 |   STIden  String                      -- Simply an alias
@@ -131,7 +137,7 @@ data SourceTyp  =   TySUnit                             -- Unit type for empty e
                 |   TySBool                             -- Boolean type
                 |   TySString                           -- String type
                 |   TySList     SourceTyp               -- Type for built-in list 
-                |   TySSum      SourceTyp SourceTyp     -- Type for sums
+                |   TySUnion    SourceTyp SourceTyp     -- Type for sums
                 |   TySPair     SourceTyp SourceTyp     -- Type for pairs
                 |   TySSig      SourceTyp SourceTyp     -- Sig Type End
                 |   TySIden     String                  -- Simply an alias
@@ -157,21 +163,18 @@ data CoreTm     =   Ctx                                 -- Context
                 |   Case   CoreTm [(Pattern, CoreTm)]
                 |   BinOp  BinaryOp CoreTm CoreTm       -- Binary operations
                 |   UnOp   UnaryOp CoreTm               -- Unary operations
-                deriving (Eq, Show)
+                deriving (Eq, Show, Generic)
 
 data CoreTyp    =   TyCUnit                       -- Unit type for empty environment
                 |   TyCInt                        -- Integer type
                 |   TyCAnd        CoreTyp CoreTyp -- Intersection type
                 |   TyCArrow      CoreTyp CoreTyp -- Arrow type, e.g. A -> B
                 |   TyCRecord     String  CoreTyp -- Single-Field Record Type
+                |   TyCUnion      CoreTyp CoreTyp -- Union type
                 -- Extensions
                 |   TyCBool                       -- Boolean type
                 |   TyCString                     -- String type
-                |   TyVariant CoreTyp
-                -- |   TyCList       CoreTyp         -- Type for built-in list
-                -- |   TyCSum        CoreTyp CoreTyp -- Type for sums
-                -- |   TyCPair       CoreTyp CoreTyp
-                deriving (Eq, Show)
+                deriving (Eq, Show, Generic)
 
 data Value =    VUnit                      -- Unit value
         |       VInt    Integer            -- Integer value
@@ -182,4 +185,4 @@ data Value =    VUnit                      -- Unit value
         -- Extensions
         |       VBool   Bool               -- Boolean Value
         |       VString String             -- String Value
-        deriving (Show, Eq)
+        deriving (Show, Eq, Generic)

@@ -119,8 +119,8 @@ desugarTyp (STRecord l ty)      =
     TySRecord l <$> desugarTyp ty
 desugarTyp (STList ty)          =
     TySList   <$> desugarTyp ty
-desugarTyp (STSum  ty1 ty2)     =
-    TySSum    <$> desugarTyp ty1 <*> desugarTyp ty2
+desugarTyp (STUnion  ty1 ty2)     =
+    TySUnion    <$> desugarTyp ty1 <*> desugarTyp ty2
 desugarTyp (STPair ty1 ty2)     =
     TySPair   <$> desugarTyp ty1 <*> desugarTyp ty2
 desugarTyp (STSig ty1 ty2)      =

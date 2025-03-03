@@ -1,6 +1,7 @@
+val double = 10;
 
 function square( double : Int -> Int , n : Int ) : Int {
-    double(n)
+    double(0)
 };
 
 function fancy ( n : Int ) : (Int -> Int){

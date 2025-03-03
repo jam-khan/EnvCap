@@ -61,8 +61,8 @@ expandTyAlias tyGamma (STRecord l ty)   =
         STRecord l  <$> expandTyAlias tyGamma ty
 expandTyAlias tyCtx (STList ty)         =
         STList      <$> expandTyAlias tyCtx ty
-expandTyAlias tyCtx (STSum  ty1 ty2)    =
-        STSum           <$> expandTyAlias tyCtx ty1  <*> expandTyAlias tyCtx ty2
+expandTyAlias tyCtx (STUnion  ty1 ty2)    =
+        STUnion           <$> expandTyAlias tyCtx ty1  <*> expandTyAlias tyCtx ty2
 expandTyAlias tyCtx (STPair ty1 ty2)    =
         STPair          <$> expandTyAlias tyCtx ty1  <*> expandTyAlias tyCtx ty2
 expandTyAlias tyCtx (STSig  tyA tyB)    =
@@ -98,7 +98,7 @@ expandAlias _ (SLit i)          = Right (SLit i)
 expandAlias _ (SBool b)         = Right (SBool b)
 expandAlias _ (SString s)       = Right (SString s)
 expandAlias ctx (SLam params tm)= 
-        SLam  <$> expandAliasTypParams ctx params <*> expandAlias ctx tm
+                SLam  <$> expandAliasTypParams ctx params <*> expandAlias ctx tm
 expandAlias ctx (SClos tm1 params tm2)
                                 = SClos <$> expandAlias ctx tm1 
                                         <*> expandAliasTypParams ctx params 
