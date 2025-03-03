@@ -14,7 +14,7 @@ type Count      = Int
 type SortOrder  = [FilePath]
 type Files      = [FilePath]
 
--- `getNodes` collects all nodes from the graph.
+-- | `getNodes` collects all nodes from the graph.
 --
 -- === Example:
 -- >>> getNodes cyclicGraph
@@ -22,7 +22,7 @@ type Files      = [FilePath]
 getNodes :: Graph -> [FilePath]
 getNodes graph = S.toList $ S.unions (M.keysSet graph : map S.fromList (M.elems graph))
 
--- `reverseGraph` simply returns reversed graph
+-- | `reverseGraph` simply returns reversed graph
 --
 -- === Example:
 -- >>> reverseGraph cyclicGraph
@@ -34,7 +34,7 @@ reverseGraph :: Graph -> Graph
 reverseGraph graph  =   M.fromListWith (++)
                         [ (dep, [node]) | (node, deps) <- M.toList graph, dep <- deps]
 
--- `in-degree` calculates the initial in-degree of all nodes
+-- | `in-degree` calculates the initial in-degree of all nodes
 --
 -- === Example:
 -- >>> inDegree (reverseGraph validGraph)
@@ -45,9 +45,28 @@ inDegree graph  = M.fromListWith (+)
                     `M.union`
                     M.fromList [(n, 0) | n <- getNodes graph]
 
+-- | `initialQueue` is a utility function that returns the queue filled
+-- with nodes of indegree 0.
+--
+-- === Example:
+-- >>> initialQueue (reverseGraph validGraph)
+-- ["C"]
+--
+-- >>> initialQueue (reverseGraph cyclicGraph)
+-- []
 initialQueue :: Graph -> [FilePath]
 initialQueue graph = [file | (file, degree) <- M.toList (inDegree graph), degree == 0]
 
+-- | `updateQueueInDegree` is a utility function that decrements in-degree
+-- of each file present in the `Files` input and appends files with 0 in-degree
+-- into the queue.
+--
+-- === Example:
+-- >>> updateQueueInDegree [] (inDegree (reverseGraph validGraph)) ["C"]
+-- ([],fromList [("A",1),("B",1),("C",-1)])
+--
+-- >>> updateQueueInDegree [] (inDegree (reverseGraph cyclicGraph)) ["C"]
+-- (["C"],fromList [("A",1),("B",1),("C",0)])
 updateQueueInDegree :: Queue -> InDegree -> Files -> (Queue, InDegree)
 updateQueueInDegree queue indegree []            = (queue, indegree)
 updateQueueInDegree queue indegree (file: rest)  = 
@@ -58,6 +77,11 @@ updateQueueInDegree queue indegree (file: rest)  =
         else
             updateQueueInDegree queue newInDegree rest
 
+-- | `topologicalSort` returns the topological sort of the graph
+--
+-- === Example:
+-- >>> topologicalSort [] (inDegree (reverseGraph validGraph)) validGraph 0 []
+-- (0,[])
 topologicalSort :: Queue -> InDegree  -> Graph -> Count -> SortOrder -> (Count, SortOrder)
 topologicalSort []  _ _ count result                        = (count, result)
 topologicalSort (curr:queue) indegree graph  count result   =
@@ -66,6 +90,14 @@ topologicalSort (curr:queue) indegree graph  count result   =
     in
         topologicalSort newQueue newInDegree graph (count + 1) (result ++ [curr])
 
+-- | `getDependencyOrder` returns dependency resolution order of the modules.
+--
+-- === Examples:
+-- >>> getDependencyOrder validGraph
+-- Right ["C","B","A"]
+--
+-- >>> getDependencyOrder cyclicGraph
+-- Left "Cyclic dependencies detected."
 getDependencyOrder :: Graph -> Either String [FilePath]
 getDependencyOrder graph =
     let
@@ -78,39 +110,7 @@ getDependencyOrder graph =
         else
             Left "Cyclic dependencies detected."
 
-
-
--- topologicalSort :: Graph -> Either String [FilePath]
--- topologicalSort graph =
---     let
---         allNodes        = getNodes graph
---         reversedGraph   = reverseGraph graph
---         queue           = initialQueue reversedGraph
---         -- Kahn's algorithm implementation
---         process :: [FilePath]   -- ^ Work queue 
---                 -> [FilePath]   -- ^ Result accumulator (reversed)
---                 -> M.Map FilePath Integer   -- ^ Current in-degree state
---                 -> Either String [FilePath]
---         process [] sorted inDegMap
---             | length sorted     == length allNodes = Right (reverse sorted)
---             | otherwise         = Left "Cyclic modules dependencies detected."
---         process (n:ns) sorted inDegMap =
---             let -- Get all nodes that depend on this node
---                 dependents              = fromMaybe [] (M.lookup n reversedGraph)
---                 (newInDeg, newQueue)    = foldl' (updateInDegree n) (inDegMap, ns) dependents
---             in process newQueue (n:sorted) newInDeg
---         updateInDegree  :: FilePath
---                         -> (M.Map FilePath Integer, [FilePath])
---                         -> FilePath
---                         -> (M.Map FilePath Integer, [FilePath])
---         updateInDegree current (inDeg, q) dep =
---             let newInDeg' = M.adjust (subtract 1) dep inDeg
---                 newDegree = fromMaybe 0 (M.lookup dep newInDeg')
---             in if newDegree == 0
---                     then (newInDeg', dep : q)
---                     else (newInDeg', q)
---         in process initialQueue [] (inDegree graph)
-
+-- Example 1
 validGraph :: Graph
 validGraph = M.fromList
   [ ("A", ["B"])
@@ -118,17 +118,10 @@ validGraph = M.fromList
   , ("C", [])
   ]
 
--- Cyclic graph
+-- Example 2
 cyclicGraph :: Graph
 cyclicGraph = M.fromList
   [ ("A", ["B"])
   , ("B", ["C"])
   , ("C", ["A"])
   ]
-
--- main :: IO ()
--- main = do
---   print $ topologicalSort validGraph
---   -- Right ["C","B","A"]
-  
---   print $ topologicalSort cyclicGraph
