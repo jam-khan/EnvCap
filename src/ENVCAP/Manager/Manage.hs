@@ -138,8 +138,7 @@ saveCoreTmFile projectName (fileName, coreTm)   =
 -- | `loadCoreTmFile` loads a CoreTm expression from a .epc file.
 loadCoreTmFile :: ProjectName -> String -> IO (Either String CoreTm)
 loadCoreTmFile projectName fileName = 
-    do
-        baseDir     <- getBaseDir
+    do  baseDir     <- getBaseDir
         let filePath = baseDir </> projectName </> "compiled" </> (fileName ++ ".epc")
         fileExists  <- doesFileExist filePath
         if not fileExists

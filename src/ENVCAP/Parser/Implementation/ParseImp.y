@@ -14,6 +14,9 @@ import ENVCAP.Syntax
      var            { TokenVar $$       }
      '@pure'        { TokenPure         }
      '@resource'    { TokenResource     }
+     'interface'    { TokenInterface    }
+     'import'       { TokenImport       }
+     'require'      { TokenRequire      }
      'unit'         { TokenUnit         }
      'Sig'          { TokenSig          }  
      'Unit'         { TokenTyUnit       }        
@@ -91,8 +94,25 @@ import ENVCAP.Syntax
 
 %%
 
-Program             : '@pure'      Statements                { $2 }
-                    | '@resource'  Statements                { $2 }
+Program             :    Fragment                                     { $1 }
+
+Fragment            :    '@pure'      Import Required Statements      { Fragment Pure     $2 $3 $4 }
+                    |    '@resource'  Import Required Statements      { Fragment Resource $2 $3 $4 }
+
+Import              :                                                 { [] }
+                    |    'import' FileNames ';'                       { $2 }
+
+FileNames           :    var FileNames                                { $1 : $2 }
+                    |    var                                          { [$1]    }
+
+Required            :                                                 { [] }
+                    |    'require' Requirements ';'                   { $2 }
+
+Requirements        :    Requirement                                  { [$1]  }
+                    |    Requirement ',' Requirements                 { $1:$3 }
+
+Requirement         :    var ':' Type                                 { Explicit $1 $3 }
+                    |    var ':' 'interface' var                      { Implicit $1 $4 }
 
 Statements          : Statements ';' Statement          { SMrg $1 $3 }
                     | Statement                         { $1 }
@@ -149,76 +169,76 @@ Match               : 'match' Term 'of' Cases           { SCase $2 $4 }
 Cases               :  Case    Cases                    { $1 : $2 }
                     |  Case                             { [$1] }
 
-Case           : 'case' Pattern '=>' '{' Term '}'       { ($2, $5) }
+Case                : 'case' Pattern '=>' '{' Term '}'  { ($2, $5) }
 
-Pattern        : var                                    { ($1, []) }
-               | '(' var Identifiers ')'                { ($2, $3) }
+Pattern             : var                               { ($1, []) }
+                    | '(' var Identifiers ')'           { ($2, $3) }
 
-Identifiers    : var Identifiers                        { $1 : $2 }
-               | var                                    { [$1] }
+Identifiers         : var Identifiers                   { $1 : $2 }
+                    | var                               { [$1] }
 
-Box            : 'with' Term 'in' '{' Statements '}'    { SBox $2 $5 }
+Box                 : 'with' Term 'in' '{' Statements '}'    { SBox $2 $5 }
 
-Type           : BaseType                               { $1 }
-               | ADT                                    { $1 }
-               | Type '->' Type                         { STArrow $1 $3 }
-               | '[' Type ']'                           { STList $2 }
-               | '{' RecordType '}'                     { $2 }
-               | '(' IntersectionType ')'               { $2 }
-               | Signature                              { $1 }
-               | var                                    { STIden $1 }
-               | '(' Type ')'                           { $2 }
+Type                : BaseType                               { $1 }
+                    | ADT                                    { $1 }
+                    | Type '->' Type                         { STArrow $1 $3 }
+                    | '[' Type ']'                           { STList $2 }
+                    | '{' RecordType '}'                     { $2 }
+                    | '(' IntersectionType ')'               { $2 }
+                    | Signature                              { $1 }
+                    | var                                    { STIden $1 }
+                    | '(' Type ')'                           { $2 }
 
-BaseType       : 'Unit'                                 { STUnit } 
-               | 'Int'                                  { STInt }
-               | 'Bool'                                 { STBool }
-               | 'String'                               { STString } 
+BaseType            : 'Unit'                                { STUnit } 
+                    | 'Int'                                 { STInt }
+                    | 'Bool'                                { STBool }
+                    | 'String'                              { STString } 
 
-ADT            : Constructor '|' Constructor            { STUnion $1 $3 }
-               | ADT         '|' Constructor            { STUnion $1 $3 } 
+ADT                 : Constructor '|' Constructor           { STUnion $1 $3 }
+                    | ADT         '|' Constructor           { STUnion $1 $3 } 
 
-Constructor    : var                                   { STRecord $1 STUnit }
-               | var BaseType                          { STRecord $1 $2 }
-               | var '(' Type ')'                      { STRecord $1 $3 }
-               | var ProductTypes                      { STRecord $1 $2 }
+Constructor         : var                                   { STRecord $1 STUnit }
+                    | var BaseType                          { STRecord $1 $2 }
+                    | var '(' Type ')'                      { STRecord $1 $3 }
+                    | var ProductTypes                      { STRecord $1 $2 }
 
-ProductTypes   : ProductTypes BaseType                 { STAnd $1 $2 }
-               | ProductTypes '(' Type ')'             { STAnd $1 $3 }
-               | '(' Type ')' BaseType                 { STAnd $2 $4 }
-               | BaseType '(' Type ')'                 { STAnd $1 $3 }
-               | '(' Type ')' '(' Type ')'             { STAnd $2 $5 }
-               | BaseType     BaseType                 { STAnd $1 $2 }
+ProductTypes        : ProductTypes BaseType                 { STAnd $1 $2 }
+                    | ProductTypes '(' Type ')'             { STAnd $1 $3 }
+                    | '(' Type ')' BaseType                 { STAnd $2 $4 }
+                    | BaseType '(' Type ')'                 { STAnd $1 $3 }
+                    | '(' Type ')' '(' Type ')'             { STAnd $2 $5 }
+                    | BaseType     BaseType                 { STAnd $1 $2 }
 
-IntersectionType    : IntersectionType ',' Type        {  STAnd $1 $3  }
-                    | Type ',' Type                    {  STAnd $1 $3  }
+IntersectionType    : IntersectionType ',' Type             {  STAnd $1 $3  }
+                    | Type ',' Type                         {  STAnd $1 $3  }
 
-Projection          : Term '.' int                     {  SProj  $1 $3  }
-                    | Term '.' var                     {  SRProj $1 $3  }
+Projection          : Term '.' int                          {  SProj  $1 $3  }
+                    | Term '.' var                          {  SRProj $1 $3  }
 
-Module         : 'module' var '(' ParamList ')' '{' Statements '}'         { SModule $2 $4 $7 }
+Module              : 'module' var '(' ParamList ')' '{' Statements '}'         { SModule $2 $4 $7 }
 
-Struct         : 'struct'     '(' ParamList ')' '{' Statements '}'         { SStruct $3 $6 }
+Struct              : 'struct'     '(' ParamList ')' '{' Statements '}'         { SStruct $3 $6 }
 
-Signature      : 'Sig' '[' Type ',' Type ']'                               { STSig $3 $5 }
+Signature           : 'Sig' '[' Type ',' Type ']'                               { STSig $3 $5 }
 
-Function       : 'function' var '(' ParamList ')' ':' Type '{' Term '}'    { SFunc $2 $4 $7 $9 }
+Function            : 'function' var '(' ParamList ')' ':' Type '{' Term '}'    { SFunc $2 $4 $7 $9 }
 
-FunctionApplication : var '(' Arguments ')'  %prec application_prec        { SApp (SVar $1) $3 }
+FunctionApplication : var '(' Arguments ')'  %prec application_prec             { SApp (SVar $1) $3 }
 
-Binding        : 'val' var '=' Term                                        { SRec $2 $4 }
+Binding             : 'val' var '=' Term                                        { SRec $2 $4 }
 
-Lambda         : '(' Lambda ')' '(' Arguments ')'                          { SApp $2 $5 }
-               | '\\(' ParamList ')' '=>' '{' Statements '}'               { SLam $2 $6 }
+Lambda              : '(' Lambda ')' '(' Arguments ')'                          { SApp $2 $5 }
+                    | '\\(' ParamList ')' '=>' '{' Statements '}'               { SLam $2 $6 }
 
-Bool           : 'False' { SBool False }
-               | 'True'  { SBool True }
+Bool                : 'False' { SBool False }
+                    | 'True'  { SBool True }
 
-String         : '\'' var '\''                                             { SString $2 }
-               | '"' var '"'                                               { SString $2 }
+String              : '\'' var '\''                                             { SString $2 }
+                    | '"' var '"'                                               { SString $2 }
 
-ListCons       : Term '::' Term                                            { SCons $1 $3 }
+ListCons            : Term '::' Term                                            { SCons $1 $3 }
 
-TyAlias        : 'type' var '=' Type                                       { SAliasTyp $2 $4 }
+TyAlias             : 'type' var '=' Type                                       { SAliasTyp $2 $4 }
 
 -- There must be atleast one element in tuple I guess this satisfies it but
 -- it will create ambiguities, so must have atleast two elements
@@ -361,6 +381,9 @@ data Token =   TokenInt Integer       -- Lit i
           |    TokenSpace
           |    TokenPure              -- '@pure'
           |    TokenResource          -- '@resource'
+          |    TokenImport            -- 'import'
+          |    TokenRequire           -- 'require'
+          |    TokenInterface         -- 'interface'
           deriving Show
 
 lexer :: String -> [Token]
@@ -421,6 +444,9 @@ lexer ('@':cs)      = case span isAlpha cs of
 lexNum cs = TokenInt (read num) : lexer rest
                     where (num, rest) = span isDigit cs
 lexVar cs = case span isAlpha cs of
+               ("import",     rest)     -> TokenImport      : lexer rest
+               ("require",    rest)     -> TokenRequire     : lexer rest
+               ("interface",  rest)     -> TokenInterface   : lexer rest
                ("Int",        rest)     -> TokenTypeInt     : lexer rest
                ("Bool",       rest)     -> TokenTypeBool    : lexer rest
                ("String",     rest)     -> TokenTypeString  : lexer rest
