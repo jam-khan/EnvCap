@@ -2,7 +2,6 @@ module ENVCAP.Manager.Sort where
 
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
-import Data.List    (foldl')
 import Data.Maybe   (fromMaybe)
 
 type Node       = FilePath
@@ -19,7 +18,8 @@ type Files      = [FilePath]
 -- === Example:
 -- >>> getNodes cyclicGraph
 -- ["A","B","C"]
-getNodes :: Graph -> [FilePath]
+getNodes    :: Graph 
+            -> [FilePath]
 getNodes graph = S.toList $ S.unions (M.keysSet graph : map S.fromList (M.elems graph))
 
 -- | `reverseGraph` simply returns reversed graph
@@ -30,7 +30,8 @@ getNodes graph = S.toList $ S.unions (M.keysSet graph : map S.fromList (M.elems 
 --
 -- >>> reverseGraph validGraph
 -- fromList [("B",["A"]),("C",["B","A"])]
-reverseGraph :: Graph -> Graph
+reverseGraph    :: Graph 
+                -> Graph
 reverseGraph graph  =   M.fromListWith (++)
                         [ (dep, [node]) | (node, deps) <- M.toList graph, dep <- deps]
 
@@ -39,7 +40,8 @@ reverseGraph graph  =   M.fromListWith (++)
 -- === Example:
 -- >>> inDegree (reverseGraph validGraph)
 -- fromList [("A",1),("B",1),("C",0)]
-inDegree :: Graph -> M.Map FilePath Integer
+inDegree    :: Graph 
+            -> InDegree
 inDegree graph  = M.fromListWith (+)
                     [ (dep, 1) | deps <- M.elems graph, dep <- deps]
                     `M.union`
@@ -54,7 +56,8 @@ inDegree graph  = M.fromListWith (+)
 --
 -- >>> initialQueue (reverseGraph cyclicGraph)
 -- []
-initialQueue :: Graph -> [FilePath]
+initialQueue    :: Graph 
+                -> [FilePath]
 initialQueue graph = [file | (file, degree) <- M.toList (inDegree graph), degree == 0]
 
 -- | `updateQueueInDegree` is a utility function that decrements in-degree
@@ -67,7 +70,10 @@ initialQueue graph = [file | (file, degree) <- M.toList (inDegree graph), degree
 --
 -- >>> updateQueueInDegree [] (inDegree (reverseGraph cyclicGraph)) ["C"]
 -- (["C"],fromList [("A",1),("B",1),("C",0)])
-updateQueueInDegree :: Queue -> InDegree -> Files -> (Queue, InDegree)
+updateQueueInDegree :: Queue 
+                    -> InDegree 
+                    -> Files 
+                    -> (Queue, InDegree)
 updateQueueInDegree queue indegree []            = (queue, indegree)
 updateQueueInDegree queue indegree (file: rest)  = 
     let 
@@ -82,7 +88,12 @@ updateQueueInDegree queue indegree (file: rest)  =
 -- === Example:
 -- >>> topologicalSort [] (inDegree (reverseGraph validGraph)) validGraph 0 []
 -- (0,[])
-topologicalSort :: Queue -> InDegree  -> Graph -> Count -> SortOrder -> (Count, SortOrder)
+topologicalSort     :: Queue 
+                    -> InDegree  
+                    -> Graph 
+                    -> Count 
+                    -> SortOrder 
+                    -> (Count, SortOrder)
 topologicalSort []  _ _ count result                        = (count, result)
 topologicalSort (curr:queue) indegree graph  count result   =
     let
@@ -98,7 +109,8 @@ topologicalSort (curr:queue) indegree graph  count result   =
 --
 -- >>> getDependencyOrder cyclicGraph
 -- Left "Cyclic dependencies detected."
-getDependencyOrder :: Graph -> Either String [FilePath]
+getDependencyOrder  :: Graph 
+                    -> Either String [FilePath]
 getDependencyOrder graph =
     let
         reversedGraph   = reverseGraph graph

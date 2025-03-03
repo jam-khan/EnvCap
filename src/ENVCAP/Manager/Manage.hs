@@ -124,8 +124,7 @@ elaborateFragments fragments = elaborateMultiple (fragmentsToRecords fragments)
                         Left err        -> Left err
 
 -- | `saveCoreTmToFile` saves a core expression to a .epc file.
---
--- A core expression is converted into binary file and saved in a `.epc` file.
+-- core expression is converted into binary file and saved in a `.epc` file.
 saveCoreTmFile :: ProjectName   -> (String, CoreTm) -> IO (Either String ())
 saveCoreTmFile projectName (fileName, coreTm)   = 
     do
