@@ -1,3 +1,5 @@
+@pure
+
 type OUT     = {y : Int, f : Int -> Int};
 
 function getFunction(m: Sig[Int, OUT]) : Int -> Int {

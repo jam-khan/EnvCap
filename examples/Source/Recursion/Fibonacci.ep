@@ -1,3 +1,4 @@
+@pure
 
 function fibonacci(n: Int, subOne : Int -> Int, subTwo : Int -> Int) : Int {
     if (n == 0 || n == 1) then {

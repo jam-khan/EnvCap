@@ -40,10 +40,6 @@ eval env (App e1 e2)            = eval env e1 >>= \case
                                                 _                       -> Nothing
 eval env (Lam t e)              = Just (VClos env (Lam t e))
 eval env (Fix ty e)             = Just (VClos env (Fix ty e))
--- case ty of
---                                         (TyCArrow _ _)  -> 
---                 -- Be very careful with the below rule (WARNING: More attention required.)
-                                        -- _               -> eval (VMrg env VUnit) e
 eval env (Rec s e)              = eval env e >>= \v -> return $ VRcd s v
 eval env (RProj e s)            = eval env e >>= \v1 -> rlookupv v1 s
 eval env (Mrg e1 e2)            = eval env e1 >>= \v1 -> eval (VMrg env v1) e2 >>= \v2 -> return $ VMrg v1 v2

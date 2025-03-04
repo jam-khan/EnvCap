@@ -133,8 +133,6 @@ runFile filePath = do
         Right code       -> case interpreter code of
                                 Right res                       -> print res
                                 Left (InterpreterFailed err)    -> putStrLn err
-        --   return $ Left (InterpreterFailed $ "I/O error: " ++ show ioException)
-        -- Right code ->  return $ interpreter code
 
 -- | Reads and parses the file (Testing purposes)
 --

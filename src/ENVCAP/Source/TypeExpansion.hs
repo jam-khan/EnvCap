@@ -3,6 +3,19 @@ module ENVCAP.Source.TypeExpansion where
 import ENVCAP.Syntax
 import ENVCAP.Source.Errors 
 
+
+
+{-- 
+
+        PROBLEM: Type expansion is left associative, but expansion depends on right associativity.
+
+        Potential solution:
+                Parse right-associative
+                        -> Expand
+                                -> Left associative ~~> elaboration
+
+--}
+
 -- | Finds a `SurfaceTyp` by its alias (`label`) in a nested `STAnd` / `STRecord` type context.
 --
 -- This function searches for a type alias (`label`) in a type context composed of nested `STAnd`
@@ -63,8 +76,6 @@ expandTyAlias tyCtx (STList ty)         =
         STList      <$> expandTyAlias tyCtx ty
 expandTyAlias tyCtx (STUnion  ty1 ty2)    =
         STUnion           <$> expandTyAlias tyCtx ty1  <*> expandTyAlias tyCtx ty2
-expandTyAlias tyCtx (STPair ty1 ty2)    =
-        STPair          <$> expandTyAlias tyCtx ty1  <*> expandTyAlias tyCtx ty2
 expandTyAlias tyCtx (STSig  tyA tyB)    =
         STSig           <$> expandTyAlias tyCtx tyA  <*> expandTyAlias tyCtx tyB
 expandTyAlias tyCtx (STIden label)      =
@@ -92,11 +103,12 @@ expandTyAlias tyCtx (STIden label)      =
 -- * The function is recursive and handles all possible `SurfaceTyp` constructors.
 -- * The type context `tyGamma` is expected to be well-formed; otherwise, a `TypeContextError` may occur.
 expandAlias :: SurfaceTyp -> SurfaceTm -> Either TypeExpansionError SurfaceTm
-expandAlias _ SCtx              = Right SCtx
-expandAlias _ SUnit             = Right SUnit
-expandAlias _ (SLit i)          = Right (SLit i)
-expandAlias _ (SBool b)         = Right (SBool b)
-expandAlias _ (SString s)       = Right (SString s)
+expandAlias ctx (Fragment _ _ _ tm)     = expandAlias ctx tm 
+expandAlias _ SCtx                      = Right SCtx
+expandAlias _ SUnit                     = Right SUnit
+expandAlias _ (SLit i)                  = Right (SLit i)
+expandAlias _ (SBool b)                 = Right (SBool b)
+expandAlias _ (SString s)               = Right (SString s)
 expandAlias ctx (SLam params tm)= 
                 SLam  <$> expandAliasTypParams ctx params <*> expandAlias ctx tm
 expandAlias ctx (SClos tm1 params tm2)
@@ -113,7 +125,9 @@ expandAlias ctx (SApp tm params)= SApp  <$> expandAlias ctx tm
 expandAlias ctx (SMrg tm1 tm2)  = 
                 case tm1 of
                         (SAliasTyp l ty) -> 
-                                expandTyAlias ctx ty >>= (`expandAlias` tm2) . STAnd ctx . STRecord l
+                                expandTyAlias ctx ty >>= \ty' ->
+                                        expandAlias (STAnd ctx (STRecord l ty')) tm2
+                                        
                         _                ->
                                 SMrg <$> expandAlias ctx tm1 <*> expandAlias ctx tm2
 expandAlias ctx (SBox tm1 tm2)  = 
@@ -150,8 +164,9 @@ expandAlias ctx (SCase tm cases)
                                 = do    tm'     <- expandAlias ctx tm
                                         cases'  <- expandAliasCases ctx cases
                                         return $ SCase tm' cases'
-expandAlias _   (SAliasTyp l ty)= 
-                        Left $ TypeExpansionFailed ("Unresolved type alias detected. Only declare as part of merge: " ++ l ++ " as " ++ show ty)
+expandAlias ctx   (SAliasTyp l ty)
+                                = SAliasTyp l <$> expandTyAlias ctx ty 
+                        -- Left $ TypeExpansionFailed ("Unresolved type alias detected. Only declare as part of merge: " ++ l ++ " as " ++ show ty)
 expandAlias _ctx tm              = 
                         Left $ TypeExpansionFailed ("Expansion function not completed." ++ show tm)
 

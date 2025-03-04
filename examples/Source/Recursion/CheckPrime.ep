@@ -1,3 +1,5 @@
+@pure
+
 function isPrime(n : Int, i : Int) : Bool {
     if (n <= 2) then {
         if (n == 2) then {

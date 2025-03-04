@@ -14,19 +14,19 @@ import GHC.Generics (Generic)
 data UnaryOp    =       Not
         deriving (Eq, Show, Generic)
 
-data BinaryOp  =        Arith ArithOp   -- Arithmetic
+data BinaryOp   =       Arith ArithOp   -- Arithmetic
                 |       Comp  CompOp    -- CompOp
                 |       Logic LogicOp   -- Boolean Logic
                 deriving (Eq, Show, Generic)
 
-data ArithOp = Add | Sub | Mul | Div | Mod
-        deriving (Eq, Show, Generic)
+data ArithOp    = Add | Sub | Mul | Div | Mod
+                deriving (Eq, Show, Generic)
 
-data CompOp  = Eql | Neq | Lt | Le | Gt | Ge
-        deriving (Eq, Show, Generic)
+data CompOp     = Eql | Neq | Lt | Le | Gt | Ge
+                deriving (Eq, Show, Generic)
 
-data LogicOp = And | Or
-        deriving (Eq, Show, Generic)
+data LogicOp    = And | Or
+                deriving (Eq, Show, Generic)
 
 
 type Params       = [(String, SurfaceTyp)]
@@ -35,67 +35,70 @@ type Name         = String
 type Pattern      = (String, [String])
 type Cases        = [(Pattern, SurfaceTm)]
 
-data Interface  
-        =       IAliasTyp       String SurfaceTyp
-        |       IType           SurfaceTyp
-        |       FunctionTyp     Name Params SurfaceTyp
-        |       ModuleTyp       Name Params SurfaceTyp
-        |       Binding         Name SurfaceTyp
-        |       InterfaceAnd    Interface Interface
-        deriving (Eq, Show)
+data Interface  =       IAliasTyp       String SurfaceTyp
+                |       IType           SurfaceTyp
+                |       FunctionTyp     Name Params SurfaceTyp
+                |       ModuleTyp       Name Params SurfaceTyp
+                |       Binding         Name SurfaceTyp
+                |       InterfaceAnd    Interface Interface
+                deriving (Eq, Show)
 
-data SurfaceTm 
-        =   SCtx                                        -- Query
-        |   SUnit                                       -- Unit
-        |   SLit       Integer                          -- Integer Literal
-        |   SBool      Bool                             -- Boolean Literal
-        |   SString    String                           -- String  Literal
-        |   SLam       Params SurfaceTm                   -- Abstraction with binding
-        |   SClos      SurfaceTm Params SurfaceTm
-        |   SRec       String SurfaceTm
-        |   SRProj     SurfaceTm String
-        |   SProj      SurfaceTm Integer                -- Projection on Expression
-        |   SApp       SurfaceTm [SurfaceTm]
-        |   SMrg       SurfaceTm SurfaceTm
-        |   SBox       SurfaceTm SurfaceTm
-        |   SVar       String
-        |   SStruct    Params SurfaceTm
-        |   SFunc      Name Params SurfaceTyp SurfaceTm
-        |   SModule    Name Params SurfaceTm
-        |   SAliasTyp  String SurfaceTyp
-        |   SLet       Letargs SurfaceTm
-        |   SLetrec    Letargs SurfaceTm
-        |   SBinOp     BinaryOp SurfaceTm SurfaceTm
-        |   SUnOp      UnaryOp SurfaceTm
-        |   SAnno      SurfaceTm SurfaceTyp
-        |   SIf        SurfaceTm SurfaceTm SurfaceTm
-        -- Extra parts
-        |   SPair      SurfaceTm SurfaceTm
-        |   SFst       SurfaceTm
-        |   SSnd       SurfaceTm
-        |   SNil       SurfaceTyp
-        |   SCons      SurfaceTm SurfaceTm
-        |   STuple     [SurfaceTm]
-        |   SSwitch    SurfaceTm [(SurfaceTm, SurfaceTm)]
-        |   SADTInst   (String, [SurfaceTm]) SurfaceTyp 
-        -- Cases = [(Pattern, SurfaceTm)]
-        |   SCase      SurfaceTm Cases
-        deriving (Eq, Show)
+data SecurityLevel      = Pure | Resource deriving (Eq, Show)
+
+type Imports            = [String]
+data Requirement        = Implicit String String | Explicit String SurfaceTyp
+                        deriving (Eq, Show)
+type Requirements       = [Requirement]
+
+data SurfaceTm          =   Fragment   SecurityLevel Imports Requirements SurfaceTm
+                        |   SCtx                                        -- Query
+                        |   SUnit                                       -- Unit
+                        |   SLit       Integer                          -- Integer Literal
+                        |   SBool      Bool                             -- Boolean Literal
+                        |   SString    String                           -- String  Literal
+                        |   SLam       Params SurfaceTm                   -- Abstraction with binding
+                        |   SClos      SurfaceTm Params SurfaceTm
+                        |   SRec       String SurfaceTm
+                        |   SRProj     SurfaceTm String
+                        |   SProj      SurfaceTm Integer                -- Projection on Expression
+                        |   SApp       SurfaceTm [SurfaceTm]
+                        |   SMrg       SurfaceTm SurfaceTm
+                        |   SBox       SurfaceTm SurfaceTm
+                        |   SVar       String
+                        |   SStruct    Params SurfaceTm
+                        |   SFunc      Name Params SurfaceTyp SurfaceTm
+                        |   SModule    Name Params SurfaceTm
+                        |   SAliasTyp  String SurfaceTyp
+                        |   SLet       Letargs SurfaceTm
+                        |   SLetrec    Letargs SurfaceTm
+                        |   SBinOp     BinaryOp SurfaceTm SurfaceTm
+                        |   SUnOp      UnaryOp SurfaceTm
+                        |   SAnno      SurfaceTm SurfaceTyp
+                        |   SIf        SurfaceTm SurfaceTm SurfaceTm
+                        |   SPair      SurfaceTm SurfaceTm
+                        |   SFst       SurfaceTm
+                        |   SSnd       SurfaceTm
+                        |   SNil       SurfaceTyp
+                        |   SCons      SurfaceTm SurfaceTm
+                        |   STuple     [SurfaceTm]
+                        |   SSwitch    SurfaceTm [(SurfaceTm, SurfaceTm)]
+                        |   SADTInst   (String, [SurfaceTm]) SurfaceTyp 
+                        |   SCase      SurfaceTm Cases
+                        deriving (Eq, Show)
 
 -- Types
-data SurfaceTyp =   STUnit                              -- Unit type for empty environment
-                |   STInt                               -- Integer type
-                |   STAnd       SurfaceTyp SurfaceTyp   -- Intersection type
-                |   STArrow     SurfaceTyp SurfaceTyp   -- Arrow type, e.g. A -> B
-                |   STRecord    String     SurfaceTyp   -- Single-Field Record Type
-                |   STUnion     SurfaceTyp SurfaceTyp   -- Union
+data SurfaceTyp =   STUnit                              -- ^ Unit type for empty environment
+                |   STInt                               -- ^ Integer type
+                |   STAnd       SurfaceTyp SurfaceTyp   -- ^ Intersection type
+                |   STArrow     SurfaceTyp SurfaceTyp   -- ^ Arrow type, e.g. A -> B
+                |   STRecord    String     SurfaceTyp   -- ^ Single-Field Record Type
+                |   STUnion     SurfaceTyp SurfaceTyp   -- ^ Union
                 -- Extensions
-                |   STBool                              -- Boolean type
-                |   STString                            -- String type
-                |   STList  SurfaceTyp                  -- Type for built-in list 
-                |   STPair  SurfaceTyp SurfaceTyp
-                |   STSig   SurfaceTyp SurfaceTyp       -- Sig Type End
-                |   STIden  String                      -- Simply an alias
+                |   STBool                              -- ^ Boolean type
+                |   STString                            -- ^ String type
+                |   STList      SurfaceTyp              -- ^ Type for built-in list 
+                |   STSig       SurfaceTyp SurfaceTyp   -- ^ Sig Type End
+                |   STIden      String                  -- ^ Simply an alias
                 deriving (Eq, Show)
 
 data SourceTm   =   TmCtx                               -- Query

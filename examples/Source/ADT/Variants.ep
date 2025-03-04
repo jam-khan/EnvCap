@@ -1,3 +1,7 @@
+@resource
+
+import TyAliases;
+
 type Day    = Monday | Tuesday | Wednesday | Thursday | Friday | Weekend Int (Int -> String);
 
 val res = match ({Weekend 10 (\(x:Int) => { "Hello" })} as Day) of

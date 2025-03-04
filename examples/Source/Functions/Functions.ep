@@ -1,3 +1,5 @@
+@pure
+
 val double = 10;
 
 function square( double : Int -> Int , n : Int ) : Int {

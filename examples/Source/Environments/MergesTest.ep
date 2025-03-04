@@ -1,2 +1,4 @@
+@pure
+
 val x = 10;
 val res = (env.0 ,, (1 ,, 2 ,, 3))

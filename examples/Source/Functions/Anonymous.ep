@@ -1,3 +1,4 @@
+@pure
 
 val f = \(x: Int, f: Int -> Bool) => { if ( f(x) ) then { True } else { False } };
 

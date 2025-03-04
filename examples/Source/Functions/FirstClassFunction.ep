@@ -1,1 +1,3 @@
+@pure
+
 (( \( call : Int -> Int , n : Int ) => { call(n) } )( \(n : Int) => { n + 10 } ))(10)
