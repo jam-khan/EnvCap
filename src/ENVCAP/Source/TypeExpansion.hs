@@ -3,6 +3,19 @@ module ENVCAP.Source.TypeExpansion where
 import ENVCAP.Syntax
 import ENVCAP.Source.Errors 
 
+
+
+{-- 
+
+        PROBLEM: Type expansion is left associative, but expansion depends on right associativity.
+
+        Potential solution:
+                Parse right-associative
+                        -> Expand
+                                -> Left associative ~~> elaboration
+
+--}
+
 -- | Finds a `SurfaceTyp` by its alias (`label`) in a nested `STAnd` / `STRecord` type context.
 --
 -- This function searches for a type alias (`label`) in a type context composed of nested `STAnd`
@@ -112,7 +125,9 @@ expandAlias ctx (SApp tm params)= SApp  <$> expandAlias ctx tm
 expandAlias ctx (SMrg tm1 tm2)  = 
                 case tm1 of
                         (SAliasTyp l ty) -> 
-                                expandTyAlias ctx ty >>= (`expandAlias` tm2) . STAnd ctx . STRecord l
+                                expandTyAlias ctx ty >>= \ty' ->
+                                        expandAlias (STAnd ctx (STRecord l ty')) tm2
+                                        
                         _                ->
                                 SMrg <$> expandAlias ctx tm1 <*> expandAlias ctx tm2
 expandAlias ctx (SBox tm1 tm2)  = 
@@ -149,8 +164,9 @@ expandAlias ctx (SCase tm cases)
                                 = do    tm'     <- expandAlias ctx tm
                                         cases'  <- expandAliasCases ctx cases
                                         return $ SCase tm' cases'
-expandAlias _   (SAliasTyp l ty)= 
-                        Left $ TypeExpansionFailed ("Unresolved type alias detected. Only declare as part of merge: " ++ l ++ " as " ++ show ty)
+expandAlias ctx   (SAliasTyp l ty)
+                                = SAliasTyp l <$> expandTyAlias ctx ty 
+                        -- Left $ TypeExpansionFailed ("Unresolved type alias detected. Only declare as part of merge: " ++ l ++ " as " ++ show ty)
 expandAlias _ctx tm              = 
                         Left $ TypeExpansionFailed ("Expansion function not completed." ++ show tm)
 

@@ -3,10 +3,12 @@
 import X;
 require X: Int;
 
+type Expression     = (Int, Int, Bool);
+
 type Environments 
-    =   Add      ( (Int, Int, Bool) )
-    |   Mult      ( (Int, Int, Bool) )
-    |   Something   Int;
+    =   EnvironmentOne  ( Expression )
+    |   EnvironmentTwo  ( Expression )
+    |   Nothing;
 
 val temp = {Add ( (1,, 2,, False) )} as Environments;
 
