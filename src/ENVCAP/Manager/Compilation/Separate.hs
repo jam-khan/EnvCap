@@ -1,1 +1,19 @@
 module ENVCAP.Manager.Compilation.Separate where
+
+-- 1. Parse the implementation file
+--      Each implementation file must have following
+--            Name
+--            Security
+--            Imports
+--            Requirements
+--            Expression
+-- 2. Parse the interface file for the specific implementation file
+--      Each interface file must have following
+--          Name
+--          Requirements
+--          Interface
+--
+--      Parsing strategy
+--          Parse implementation and parser using a type alias
+--          What about general expressions?
+--          Simply add pure automatically if not given

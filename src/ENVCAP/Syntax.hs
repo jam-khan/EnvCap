@@ -47,17 +47,19 @@ data Interface  =       IFragment       SecurityLevel Requirements Interface
 data SecurityLevel      = Pure | Resource deriving (Eq, Show)
 
 type Imports            = [String]
+
 data Requirement        = Implicit String String | Explicit String SurfaceTyp
                         deriving (Eq, Show)
+
 type Requirements       = [Requirement]
 
-data SurfaceTm          =   Fragment   SecurityLevel Imports Requirements SurfaceTm
+data SurfaceTm          =   Fragment  SecurityLevel Imports Requirements SurfaceTm
                         |   SCtx                                        -- Query
                         |   SUnit                                       -- Unit
                         |   SLit       Integer                          -- Integer Literal
                         |   SBool      Bool                             -- Boolean Literal
                         |   SString    String                           -- String  Literal
-                        |   SLam       Params SurfaceTm                   -- Abstraction with binding
+                        |   SLam       Params SurfaceTm                 -- Abstraction with binding
                         |   SClos      SurfaceTm Params SurfaceTm
                         |   SRec       String SurfaceTm
                         |   SRProj     SurfaceTm String
@@ -66,14 +68,14 @@ data SurfaceTm          =   Fragment   SecurityLevel Imports Requirements Surfac
                         |   SMrg       SurfaceTm SurfaceTm
                         |   SBox       SurfaceTm SurfaceTm
                         |   SVar       String
-                        |   SStruct    Params SurfaceTm
+                        |   SStruct    Params   SurfaceTm
                         |   SFunc      Name Params SurfaceTyp SurfaceTm
                         |   SModule    Name Params SurfaceTm
                         |   SAliasTyp  String SurfaceTyp
-                        |   SLet       Letargs SurfaceTm
-                        |   SLetrec    Letargs SurfaceTm
+                        |   SLet       Letargs  SurfaceTm
+                        |   SLetrec    Letargs  SurfaceTm
                         |   SBinOp     BinaryOp SurfaceTm SurfaceTm
-                        |   SUnOp      UnaryOp SurfaceTm
+                        |   SUnOp      UnaryOp  SurfaceTm
                         |   SAnno      SurfaceTm SurfaceTyp
                         |   SIf        SurfaceTm SurfaceTm SurfaceTm
                         |   SPair      SurfaceTm SurfaceTm
@@ -88,7 +90,6 @@ data SurfaceTm          =   Fragment   SecurityLevel Imports Requirements Surfac
                         |   SOpen      SurfaceTm
                         deriving (Eq, Show)
 
--- Types
 data SurfaceTyp =   STUnit                              -- ^ Unit type for empty environment
                 |   STInt                               -- ^ Integer type
                 |   STAnd       SurfaceTyp SurfaceTyp   -- ^ Intersection type
@@ -103,7 +104,12 @@ data SurfaceTyp =   STUnit                              -- ^ Unit type for empty
                 |   STIden      String                  -- ^ Simply an alias
                 deriving (Eq, Show)
 
-data SourceTm   =   TmCtx                               -- Query
+-- These must be added to the source at desugaring stage or something
+type SourceImport       = [(String, SourceTyp)]
+type SourceRequirements = [(String, SourceTyp)]
+
+data SourceTm   =   TmFragment  Name SecurityLevel SourceImport SourceRequirements SourceTyp
+                |   TmCtx                               -- Query
                 |   TmUnit                              -- Unit
                 |   TmLit       Integer                 -- Integer Literal
                 |   TmBool      Bool                    -- Boolean Literal
@@ -133,7 +139,6 @@ data SourceTm   =   TmCtx                               -- Query
                 |   TmModule    String SourceTyp SourceTm
                 deriving (Eq, Show)
 
--- Types
 data SourceTyp  =   TySUnit                             -- Unit type for empty environment
                 |   TySInt                              -- Integer type
                 |   TySAnd      SourceTyp SourceTyp     -- Intersection type

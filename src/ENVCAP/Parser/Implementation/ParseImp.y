@@ -97,7 +97,8 @@ import ENVCAP.Syntax
 
 Program             :    Fragment                                     { $1 }
 
-Fragment            :    '@pure'      Import Required Statements      { Fragment Pure     $2 $3 $4 }
+Fragment            :    Statements                                   { Fragment Pure [] [] $1 }
+                    |    '@pure'      Import Required Statements      { Fragment Pure     $2 $3 $4 }
                     |    '@resource'  Import Required Statements      { Fragment Resource $2 $3 $4 }
 
 Import              :                                                 { [] }
@@ -484,8 +485,8 @@ lexVar cs = case span isAlpha cs of
 
 parseImplementation :: String -> Maybe SurfaceTm
 parseImplementation input = case implementationParser (lexer input) of
-                         result -> Just result
-                         _      -> Nothing                    
+                                   result -> Just result
+                                   _      -> Nothing                    
 
 test_cases :: [(String, SurfaceTm)]
 test_cases = [  ("env", SCtx)
