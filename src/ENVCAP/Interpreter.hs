@@ -9,6 +9,7 @@ import ENVCAP.Source.Desugar (desugar)
 import ENVCAP.Source.Elaboration (Elab, elaborateInfer, elaborateTyp)
 import ENVCAP.Core.Evaluator (eval)
 import ENVCAP.Core.TypeChecker (check, infer)
+import ENVCAP.Parser.Interface.ParseInterface (parseInterface)
 
 
 -- | Parses a string of code into a 'SurfaceTm' or returns an 'InterpreterError' on failure.
@@ -144,6 +145,19 @@ parseFile filePath = do
         case result of
             Left ioException -> putStrLn ("I/O error: " ++ show ioException)
             Right code       -> case parseImplementation code of
+                                    Just res   -> print res
+                                    Nothing    -> putStrLn "Parsing failed"
+
+-- | Reads and parses the file (Testing purposes)
+--
+-- === Example
+-- >>> parseInterfaceFile "examples/Source/SepComp1/Utils.epi"
+parseInterfaceFile :: String -> IO()
+parseInterfaceFile filePath = do
+        result <- try (readFile filePath) :: IO (Either IOException String)
+        case result of
+            Left ioException -> putStrLn ("I/O error: " ++ show ioException)
+            Right code       -> case parseInterface code of
                                     Just res   -> print res
                                     Nothing    -> putStrLn "Parsing failed"
 

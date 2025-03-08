@@ -1,0 +1,5 @@
+@pure
+
+require (Lib: interface Lib);
+
+val apply : Int -> Int

@@ -35,7 +35,8 @@ type Name         = String
 type Pattern      = (String, [String])
 type Cases        = [(Pattern, SurfaceTm)]
 
-data Interface  =       IAliasTyp       String SurfaceTyp
+data Interface  =       IFragment       SecurityLevel Requirements Interface
+                |       IAliasTyp       String SurfaceTyp
                 |       IType           SurfaceTyp
                 |       FunctionTyp     Name Params SurfaceTyp
                 |       ModuleTyp       Name Params SurfaceTyp
@@ -84,6 +85,7 @@ data SurfaceTm          =   Fragment   SecurityLevel Imports Requirements Surfac
                         |   SSwitch    SurfaceTm [(SurfaceTm, SurfaceTm)]
                         |   SADTInst   (String, [SurfaceTm]) SurfaceTyp 
                         |   SCase      SurfaceTm Cases
+                        |   SOpen      SurfaceTm
                         deriving (Eq, Show)
 
 -- Types

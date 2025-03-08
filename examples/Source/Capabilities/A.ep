@@ -1,0 +1,6 @@
+@resource
+
+import System.Utils;
+import B;
+
+val result = B(System.Utils)

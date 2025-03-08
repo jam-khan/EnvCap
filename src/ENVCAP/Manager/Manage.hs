@@ -32,7 +32,6 @@ import ENVCAP.Syntax (Value)
 import System.IO (stderr, hPutStrLn)
 import ENVCAP.Interpreter (evaluate)
 
-
 instance Binary CoreTm
 instance Binary CoreTyp
 instance Binary Value
@@ -81,7 +80,7 @@ getProjectFiles projectName =
 
 -- | `loadProjectFiles` loads and parses the implementation files of a project.
 -- It returns a list of successfully parsed fragments and a list of errors.
-loadProjectFiles    :: [FilePath]
+loadProjectFiles    :: [FilePath]   -- ^ Files to be loaded
                     -> IO ([Fragment], [ENVCAP.Source.Errors.InterpreterError])
 loadProjectFiles projectFiles = do
     results         <- mapM readImplementation projectFiles

@@ -15,6 +15,7 @@ import ENVCAP.Syntax
      '@pure'        { TokenPure         }
      '@resource'    { TokenResource     }
      'interface'    { TokenInterface    }
+     'open'         { TokenOpen         }
      'import'       { TokenImport       }
      'require'      { TokenRequire      }
      'unit'         { TokenUnit         }
@@ -106,22 +107,27 @@ FileNames           :    var FileNames                                { $1 : $2 
                     |    var                                          { [$1]    }
 
 Required            :                                                 { [] }
-                    |    'require' Requirements ';'                   { $2 }
+                    |    'require' var                  ';'           { [Implicit $2 $2] }
+                    |    'require' '(' Requirements ')' ';'           { $3 }
 
 Requirements        :    Requirement                                  { [$1]  }
                     |    Requirement ',' Requirements                 { $1:$3 }
 
 Requirement         :    var ':' Type                                 { Explicit $1 $3 }
                     |    var ':' 'interface' var                      { Implicit $1 $4 }
+                    |    var                                          { Implicit $1 $1 }
 
 Statements          : Statements ';' Statement          { SMrg $1 $3 }
                     | Statement                         { $1 }
 
-Statement           : Function                          { $1 }
+Statement           : Open                              { $1 }
+                    | Function                          { $1 }
                     | Module                            { $1 }
                     | Binding                           { $1 }
                     | TyAlias                           { $1 }
                     | Term                              { $1 }
+
+Open                : 'open' Term                       { SOpen $2 }
 
 Term                : BaseTerm                          { $1 }
                     | ConstructedTerm                   { $1 }
@@ -384,6 +390,7 @@ data Token =   TokenInt Integer       -- Lit i
           |    TokenImport            -- 'import'
           |    TokenRequire           -- 'require'
           |    TokenInterface         -- 'interface'
+          |    TokenOpen              -- 'open'
           deriving Show
 
 lexer :: String -> [Token]
@@ -447,6 +454,7 @@ lexVar cs = case span isAlpha cs of
                ("import",     rest)     -> TokenImport      : lexer rest
                ("require",    rest)     -> TokenRequire     : lexer rest
                ("interface",  rest)     -> TokenInterface   : lexer rest
+               ("open",       rest)     -> TokenOpen        : lexer rest
                ("Int",        rest)     -> TokenTypeInt     : lexer rest
                ("Bool",       rest)     -> TokenTypeBool    : lexer rest
                ("String",     rest)     -> TokenTypeString  : lexer rest
