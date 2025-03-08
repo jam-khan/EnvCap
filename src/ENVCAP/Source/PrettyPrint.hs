@@ -104,8 +104,6 @@ prettySurfaceTyp (STList typ) =
     printf "List[%s]" (prettySurfaceTyp typ)
 prettySurfaceTyp (STUnion typ1 typ2) =
     printf "%s | %s" (prettySurfaceTyp typ1) (prettySurfaceTyp typ2)
-prettySurfaceTyp (STPair typ1 typ2) =
-    printf "(%s, %s)" (prettySurfaceTyp typ1) (prettySurfaceTyp typ2)
 prettySurfaceTyp (STSig typ1 typ2) =
     printf "Sig(%s, %s)" (prettySurfaceTyp typ1) (prettySurfaceTyp typ2)
 prettySurfaceTyp (STIden name) = name

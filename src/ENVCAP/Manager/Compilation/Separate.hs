@@ -7,6 +7,7 @@ module ENVCAP.Manager.Compilation.Separate where
 --            Imports
 --            Requirements
 --            Expression
+--
 -- 2. Parse the interface file for the specific implementation file
 --      Each interface file must have following
 --          Name
@@ -16,4 +17,5 @@ module ENVCAP.Manager.Compilation.Separate where
 --      Parsing strategy
 --          Parse implementation and parser using a type alias
 --          What about general expressions?
---          Simply add pure automatically if not given
+--          Simply add pure automatically if not given [DONE]
+--  

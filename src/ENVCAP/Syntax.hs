@@ -53,8 +53,21 @@ data Requirement        = Implicit String String | Explicit String SurfaceTyp
 
 type Requirements       = [Requirement]
 
-data SurfaceTm          =   Fragment  SecurityLevel Imports Requirements SurfaceTm
-                        |   SCtx                                        -- Query
+-- Info returned by parser of implementation
+type ParseImplementationData       
+                        = (SecurityLevel, Imports, Requirements, SurfaceTm)
+
+-- Info returned by parser of interface
+type ParseInterfaceData = (SecurityLevel, Requirements, SurfaceTyp)
+
+-- After parsing implementation and interface
+-- SurfaceFragment is created
+--
+-- In case of Repl, elaboration of surfaceTm can be directly called
+-- Fragment must have separate elaboration rules for clarity and formalization
+data SurfaceFragment    = SFragment Name SecurityLevel Imports Requirements SurfaceTm SurfaceTyp
+
+data SurfaceTm          =   SCtx                                        -- Query
                         |   SUnit                                       -- Unit
                         |   SLit       Integer                          -- Integer Literal
                         |   SBool      Bool                             -- Boolean Literal
@@ -90,19 +103,19 @@ data SurfaceTm          =   Fragment  SecurityLevel Imports Requirements Surface
                         |   SOpen      SurfaceTm
                         deriving (Eq, Show)
 
-data SurfaceTyp =   STUnit                              -- ^ Unit type for empty environment
-                |   STInt                               -- ^ Integer type
-                |   STAnd       SurfaceTyp SurfaceTyp   -- ^ Intersection type
-                |   STArrow     SurfaceTyp SurfaceTyp   -- ^ Arrow type, e.g. A -> B
-                |   STRecord    String     SurfaceTyp   -- ^ Single-Field Record Type
-                |   STUnion     SurfaceTyp SurfaceTyp   -- ^ Union
-                -- Extensions
-                |   STBool                              -- ^ Boolean type
-                |   STString                            -- ^ String type
-                |   STList      SurfaceTyp              -- ^ Type for built-in list 
-                |   STSig       SurfaceTyp SurfaceTyp   -- ^ Sig Type End
-                |   STIden      String                  -- ^ Simply an alias
-                deriving (Eq, Show)
+data SurfaceTyp         =   STUnit                              -- ^ Unit type for empty environment
+                        |   STInt                               -- ^ Integer type
+                        |   STAnd       SurfaceTyp SurfaceTyp   -- ^ Intersection type
+                        |   STArrow     SurfaceTyp SurfaceTyp   -- ^ Arrow type, e.g. A -> B
+                        |   STRecord    String     SurfaceTyp   -- ^ Single-Field Record Type
+                        |   STUnion     SurfaceTyp SurfaceTyp   -- ^ Union
+                        -- Extensions
+                        |   STBool                              -- ^ Boolean type
+                        |   STString                            -- ^ String type
+                        |   STList      SurfaceTyp              -- ^ Type for built-in list 
+                        |   STSig       SurfaceTyp SurfaceTyp   -- ^ Sig Type End
+                        |   STIden      String                  -- ^ Simply an alias
+                        deriving (Eq, Show)
 
 -- These must be added to the source at desugaring stage or something
 type SourceImport       = [(String, SourceTyp)]
@@ -114,11 +127,11 @@ data SourceTm   =   TmFragment  Name SecurityLevel SourceImport SourceRequiremen
                 |   TmLit       Integer                 -- Integer Literal
                 |   TmBool      Bool                    -- Boolean Literal
                 |   TmString    String                  -- String  Literal
-                |   TmLam       SourceTyp SourceTm                 -- Abstraction with binding
+                |   TmLam       SourceTyp SourceTm      -- Abstraction with binding
                 |   TmClos      SourceTm SourceTyp SourceTm
                 |   TmRec       String SourceTm
                 |   TmRProj     SourceTm String
-                |   TmProj      SourceTm Integer                  -- Projection on Expression
+                |   TmProj      SourceTm Integer        -- Projection on Expression
                 |   TmApp       SourceTm SourceTm
                 |   TmMrg       SourceTm SourceTm
                 |   TmBox       SourceTm SourceTm

@@ -109,8 +109,6 @@ expandTyAlias tyCtx (STIden label)      =
 -- * The function is recursive and handles all possible `SurfaceTyp` constructors.
 -- * The type context `tyGamma` is expected to be well-formed; otherwise, a `TypeContextError` may occur.
 expandAlias :: SurfaceTyp -> SurfaceTm -> Either TypeExpansionError SurfaceTm
-expandAlias _ (Fragment security imports requirements tm)     
-        = Right $ Fragment security imports requirements tm  
 expandAlias _ SCtx                      = Right SCtx
 expandAlias _ SUnit                     = Right SUnit
 expandAlias _ (SLit i)                  = Right (SLit i)
