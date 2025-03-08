@@ -47,8 +47,9 @@ import ENVCAP.Syntax
 Program             : FragmentInterface                               { $1 }
 
 
-FragmentInterface   :    '@pure'      Required Interface              { IFragment Pure     $2 $3 }
-                    |    '@resource'  Required Interface              { IFragment Resource $2 $3 }
+FragmentInterface   :    Interface                                    { (Pure, [], $1)}
+                    |    '@pure'      Required Interface              { (Pure, $2, $3) }
+                    |    '@resource'  Required Interface              { (Resource, $2, $3) }
 
 Required            :                                                 { [] }
                     |    'require' var                  ';'           { [Implicit $2 $2] }
@@ -176,7 +177,7 @@ lexVar cs           = case span isAlpha cs of
                          (var,          rest)     -> TokenVar var     : lexer rest
 
 
-parseInterface :: String -> Maybe Interface
+parseInterface :: String -> Maybe ParseInterfaceData
 parseInterface input 
      = case interfaceParser (lexer input) of
           result -> Just result

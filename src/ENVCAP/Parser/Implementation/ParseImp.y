@@ -97,9 +97,9 @@ import ENVCAP.Syntax
 
 Program             :    Fragment                                     { $1 }
 
-Fragment            :    Statements                                   { Fragment Pure [] [] $1 }
-                    |    '@pure'      Import Required Statements      { Fragment Pure     $2 $3 $4 }
-                    |    '@resource'  Import Required Statements      { Fragment Resource $2 $3 $4 }
+Fragment            :    Statements                                   { (Pure, [], [], $1)     }
+                    |    '@pure'      Import Required Statements      { (Pure, $2, $3, $4)     }
+                    |    '@resource'  Import Required Statements      { (Resource, $2, $3, $4) }
 
 Import              :                                                 { [] }
                     |    'import' FileNames ';'                       { $2 }
@@ -483,7 +483,7 @@ lexVar cs = case span isAlpha cs of
                ("as",         rest)     -> TokenAs          : lexer rest
                (var,          rest)     -> TokenVar var     : lexer rest
 
-parseImplementation :: String -> Maybe SurfaceTm
+parseImplementation :: String -> Maybe ParseImplementationData
 parseImplementation input = case implementationParser (lexer input) of
                                    result -> Just result
                                    _      -> Nothing                    
@@ -521,7 +521,7 @@ test_cases = [  ("env", SCtx)
                                                                       (SBinOp (Arith Div) (SVar "y") (SLit 4)))
                                                                  (SLit 3)))
                , ("(1 , 2, 3)", STuple [SLit 1,SLit 2,SLit 3])
-               , ("(1 ,, 2,, 4)", SMrg (SLit 1) (SMrg (SLit 2) (SLit 4)))
+               , ("(1 ,, 2,, 4)", SMrg (SMrg (SLit 1) (SLit 2)) (SLit 4))
                , ("env.1", SProj SCtx 1)
                , ("env.hello", SRProj SCtx "hello")
                , ("({\"x\" = 10})", SRec "x" (SLit 10))
@@ -530,9 +530,12 @@ test_cases = [  ("env", SCtx)
 runTest :: Int -> [(String, SurfaceTm)] -> IO()
 runTest n []        = putStrLn $ (show (n + 1) ++ " Tests Completed.")
 runTest n (x:xs)    = do
-                         if parseImplementation (fst x) == Just (snd x)
-                              then putStrLn $ "Test " ++ (show (n + 1)) ++ ": Passed"
-                              else putStrLn $ "Test " ++ (show (n + 1)) ++ ": Failed"
+                         case parseImplementation (fst x) of
+                              Just (_, _, _, tm)  -> 
+                                   if tm == (snd x) 
+                                        then putStrLn $ "Test " ++ (show (n + 1)) ++ ": Passed"
+                                        else putStrLn $ "Test " ++ (show (n + 1)) ++ ": Failed: " ++ (show tm)
+                              Nothing             -> putStrLn $ "Test " ++ (show (n + 1)) ++ ": Failed (Failed to Parse)"
                          runTest (n + 1) xs
 
 test :: IO()

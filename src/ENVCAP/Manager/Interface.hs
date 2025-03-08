@@ -31,8 +31,6 @@ import ENVCAP.Source.Errors (SeparateCompilationError(SepCompError))
 expandInterface :: SurfaceTyp   -- ^ Typing context for type expansion.
                 -> Interface    -- ^ Interface to be expanded.
                 -> Either SeparateCompilationError Interface    -- ^ Returns error or expanded interface.
-expandInterface tyGamma (IFragment sec reqs interface) 
-            = IFragment sec reqs <$> expandInterface tyGamma interface
 expandInterface _ (IAliasTyp name ty)   =
     Left $ SepCompError ("Type Alias: type " ++ name ++ " = " ++ show ty ++ " not expanded properly.")
 
@@ -92,15 +90,6 @@ expandInterface tyGamma (InterfaceAnd stmt1 stmt2)=
 -- === Example:
 -- >>> interfaceToTyp (IType (STInt))
 -- Right TySInt
--- If it is a fragment then I have to read the interface extract the type and then, return it.
--- Make sure there are no cycles in the interface or anything.
-interfaceToTyp :: Interface -> Either SeparateCompilationError SourceTyp
-interfaceToTyp (IFragment sec reqs interface)
--- Take into account requirements
--- It should be a Sig
--- FIX IT LATER
-                = interfaceToTyp interface
-
 interfaceToTyp (IAliasTyp _name _ty)
                 =   Left (SepCompError "Type Alias detected at interface desugaring stage (Should not be possible) if expansion done correctly.")
 interfaceToTyp (IType ty)
