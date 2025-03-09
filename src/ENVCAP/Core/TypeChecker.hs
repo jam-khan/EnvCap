@@ -278,8 +278,9 @@ infer ctx (BinOp (Logic _) e1 e2)
                                                                 then Right TyCBool
                                                                 else Left $ TypeError "Type mismatch in logical operation"   
 
-infer ctx (UnOp Not e)          = if check ctx e TyCBool  then Right TyCBool 
-                                                        else Left $ TypeError "Expected boolean for negation"   
+infer ctx (UnOp Not e)          = if check ctx e TyCBool  
+                                        then Right TyCBool 
+                                        else Left $ TypeError "Expected boolean for negation"
 
 infer _ _                       = Left $ TypeError "Unknown expression"
 

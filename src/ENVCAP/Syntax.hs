@@ -53,7 +53,7 @@ type ParseImplementationData
                         = (SecurityLevel, Imports, Requirements, SurfaceTm)
 
 -- Info returned by parser of interface
-type ParseInterfaceData = (SecurityLevel, Requirements, SurfaceTyp)
+type ParseInterfaceData = (SecurityLevel, Requirements, Interface)
 
 -- After parsing implementation and interface
 -- SurfaceFragment is created
@@ -195,7 +195,7 @@ data CoreTyp            =   TyCUnit                       -- Unit type for empty
                         |   TyCString                     -- String type
                         deriving (Eq, Show, Generic)
 
-data Value              =    VUnit                      -- Unit value
+data Value              =       VUnit                      -- Unit value
                         |       VInt    Integer            -- Integer value
                         |       VClos   Value CoreTm       -- Closure
                         |       VRcd    String Value       -- Single-field record value

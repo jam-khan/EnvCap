@@ -1,6 +1,5 @@
 @resource
 
-import System.Utils;
-import B;
+import B System;
 
-val result = B(System.Utils)
+val result = B(System)

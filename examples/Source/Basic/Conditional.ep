@@ -1,7 +1,7 @@
 @pure
 
 import Arithmetic;
-require x : Int, y: Bool;
+require (x : Int, y: Bool);
 
 if ( (1 == 2) && (if (5 > 3) then { True } else { False }) )
         then { 1 }

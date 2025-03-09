@@ -25,7 +25,10 @@ import ENVCAP.Parser.Interface.ParseInterface (parseInterface)
 -- >>> parseCode "function 1"
 -- Parse error
 parseCode :: String -> Either InterpreterError SurfaceTm
-parseCode code = maybe (Left $ InterpreterFailed "Parsing unsuccessful.") Right (parseImplementation code)
+parseCode code = 
+    case parseImplementation code of
+        Just (_, _, _, tm)  -> Right tm
+        Nothing             -> Left $ InterpreterFailed "Parsing unsuccessful."
 
 -- | Expands type aliases within the surfaceAST, returning the expanded term or an 'InterpreterError' on failure.
 --
@@ -170,11 +173,11 @@ expandFile filePath = do
         result <- try (readFile filePath) :: IO (Either IOException String)
         case result of
             Left ioException -> putStrLn ("I/O error: " ++ show ioException)
-            Right code       -> case parseImplementation code of
-                                    Just res -> case typeAliasExpansion res of
+            Right code       -> case parseCode code of
+                                    Right res -> case typeAliasExpansion res of
                                                     Right res' -> print res'
                                                     Left  err  -> print err
-                                    Nothing  -> putStrLn "Parsing Failed"
+                                    Left err -> putStrLn ("Parsing Failed" ++ show err)
 
 -- | Reads the file and performs parsing, type expansion and locally nameless.
 -- 
@@ -185,14 +188,14 @@ namelessFile filePath = do
         result <- try (readFile filePath) :: IO (Either IOException String)
         case result of
             Left ioException -> putStrLn ("I/O error: " ++ show ioException)
-            Right code       -> case parseImplementation code of
-                                    Just res -> case typeAliasExpansion res of
+            Right code       -> case parseCode code of
+                                    Right res   -> case typeAliasExpansion res of
                                                     Right res' -> 
                                                         case locallyNameless res' of
                                                             Right res'' -> print res''
                                                             Left  err   -> print err 
                                                     Left  err  -> print err
-                                    Nothing  -> putStrLn "Parsing Failed"
+                                    Left _err   -> putStrLn "Parsing Failed"
 
 -- | Reads the file and performs parsing, type expansion, locally nameless and desugaring.
 --
@@ -204,8 +207,8 @@ desugaredFile filePath = do
         case result of
             Left ioException -> putStrLn ("I/O error: " ++ show ioException)
             Right code       -> 
-                case parseImplementation code of
-                    Just res -> 
+                case parseCode code of
+                    Right res -> 
                         case typeAliasExpansion res of
                             Right res' -> 
                                 case locallyNameless res' of
@@ -215,7 +218,7 @@ desugaredFile filePath = do
                                                 Left err     -> print err
                                     Left  err   -> print err 
                             Left  err  -> print err
-                    Nothing  -> putStrLn "Parsing Failed"
+                    Left _  -> putStrLn "Parsing Failed"
 
 -- | Reads the file and performs parsing, type exapansion, locally nameless, desugaring and elaboration.
 --
@@ -227,8 +230,8 @@ elaboratedFile filePath = do
         case result of
             Left ioException -> putStrLn ("I/O error: " ++ show ioException)
             Right code       -> 
-                case parseImplementation code of
-                    Just res -> 
+                case parseCode code of
+                    Right res -> 
                         case typeAliasExpansion res of
                             Right res' -> 
                                 case locallyNameless res' of
@@ -245,4 +248,4 @@ elaboratedFile filePath = do
                                                 Left err     -> print err
                                     Left  err   -> print err 
                             Left  err  -> print err
-                    Nothing  -> putStrLn "Parsing Failed"
+                    Left err  -> putStrLn "Parsing Failed"

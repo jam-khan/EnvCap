@@ -90,6 +90,7 @@ expandInterface tyGamma (InterfaceAnd stmt1 stmt2)=
 -- === Example:
 -- >>> interfaceToTyp (IType (STInt))
 -- Right TySInt
+interfaceToTyp :: Interface -> Either SeparateCompilationError SourceTyp
 interfaceToTyp (IAliasTyp _name _ty)
                 =   Left (SepCompError "Type Alias detected at interface desugaring stage (Should not be possible) if expansion done correctly.")
 interfaceToTyp (IType ty)
@@ -143,7 +144,7 @@ getModuleInputType ((_, ty):xs) =
 getInterface :: String -> Either SeparateCompilationError SourceTyp
 getInterface code = 
     case parseInterface code of
-        Just interface ->
+        Just (_, _, interface) ->
                 expandInterface STUnit interface >>=
                     \expanded   -> interfaceToTyp expanded
         _   -> Left $ SepCompError "Interface parsing failed."

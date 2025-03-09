@@ -6,8 +6,8 @@ import ENVCAP.Syntax
 }
 
 %name interfaceParser
-%tokentype          { Token        }
-%error              { parseError   }
+%tokentype          {    Token        }
+%error              {    parseError   }
 
 %token
      var            {    TokenVar $$         }
@@ -37,15 +37,14 @@ import ENVCAP.Syntax
      '{'            {    TokenOpenBracket    }
      '}'            {    TokenCloseBracket   }
 
-%right '='
-%left '->'
-%left '&'
-%left '+'
+%right    '='
+%left     '->'
+%left     '&'
+%left     '+'
 
 %%
 
-Program             : FragmentInterface                               { $1 }
-
+Program             :    FragmentInterface                            { $1 }
 
 FragmentInterface   :    Interface                                    { (Pure, [], $1)}
                     |    '@pure'      Required Interface              { (Pure, $2, $3) }
@@ -81,16 +80,16 @@ BindingInterface    : 'val'      var ':' Type                         {    Bindi
 
 IType               : Type                                            {    IType $1  }
 
-Type                : 'Int'                                           {    STInt     }
-                    | 'Bool'                                          {    STBool    }
-                    | 'String'                                        {    STString  }
-                    | Type '->' Type                                  {    STArrow $1 $3   }
-                    | Type '&'  Type                                  {    STAnd   $1 $3   }
-                    | '[' Type ']'                                    {    STList  $2      }
-                    | 'Sig' '[' Type ',' Type ']'                     {    STSig   $3 $5   }
-                    | var                                             {    STIden  $1      }
-                    | '{' RecordType '}'                              {    $2   }
-                    | '(' Type ')'                                    {    $2   }
+Type                : 'Int'                                           {    STInt          }
+                    | 'Bool'                                          {    STBool         }
+                    | 'String'                                        {    STString       }
+                    | Type '->' Type                                  {    STArrow $1 $3  }
+                    | Type '&'  Type                                  {    STAnd   $1 $3  }
+                    | '[' Type ']'                                    {    STList  $2     }
+                    | 'Sig' '[' Type ',' Type ']'                     {    STSig   $3 $5  }
+                    | var                                             {    STIden  $1     }
+                    | '{' RecordType '}'                              {    $2             }
+                    | '(' Type ')'                                    {    $2             }
 
 
 RecordType          : Record ',' RecordType                           {    STAnd $1 $3     }

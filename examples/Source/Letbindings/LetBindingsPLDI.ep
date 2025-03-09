@@ -13,7 +13,7 @@ let {
             val getDiff = diff}
 } in  {
     with ({"prevEnv" = env} ,, utils(2) ,, {"x" = 10})
-        in  { val answerNew     = total(x); (* result new x*)
-              val answerPrev    = total(prevEnv.x); (* result old x *)
-              val diff  = getDiff (* 2 *)
+        in  { val answerNew     = total(x);
+              val answerPrev    = total(prevEnv.x);
+              val diff  = getDiff
     }}
