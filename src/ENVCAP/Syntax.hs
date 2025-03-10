@@ -60,7 +60,7 @@ type ParseInterfaceData = (SecurityLevel, Requirements, Interface)
 --
 -- In case of Repl, elaboration of surfaceTm can be directly called
 -- Fragment must have separate elaboration rules for clarity and formalization
-data SurfaceFragment    = SFragment Name SecurityLevel Imports Requirements SurfaceTm SurfaceTyp
+data SurfaceFragment    = SFragment Name SecurityLevel Imports Requirements SurfaceTm Interface
 
 data SurfaceTm          =   SCtx                                        -- Query
                         |   SUnit                                       -- Unit
