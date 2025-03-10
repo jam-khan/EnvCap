@@ -1,4 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use lefts" #-}
 {-|
 Module      : ENVCAP.Manager.Manage
 Description : Module is responsible for the management of project, files, and separate compilation etc.
@@ -6,10 +8,6 @@ Copyright   : (c) Jam Kabeer Ali Khan, 2025
 License     : MIT
 Maintainer  : jamkhan@connect.hku.hk
 Stability   : experimental
-
-IMPROVEMENT NEEDED:
-    1. Instead of using Interpreter Error. Use error for separate compilation.
-
 
 For more details, see the individual function documentation.
 -}
@@ -20,7 +18,7 @@ import Control.Monad (filterM, forM_, unless, forM)
 import Data.Configurator ( load, require, Worth(Required) )
 import Data.Text (pack)
 import System.IO.Error (catchIOError, isDoesNotExistError)
-import ENVCAP.Source.Errors
+import ENVCAP.Source.Errors 
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import ENVCAP.Manager.Implementation (Fragment, readImplementation)
 import ENVCAP.Syntax
@@ -33,7 +31,6 @@ import GHC.Generics (Generic)
 import ENVCAP.Syntax (Value)
 import System.IO (stderr, hPutStrLn)
 import ENVCAP.Interpreter (evaluate)
-
 
 instance Binary CoreTm
 instance Binary CoreTyp
@@ -83,7 +80,7 @@ getProjectFiles projectName =
 
 -- | `loadProjectFiles` loads and parses the implementation files of a project.
 -- It returns a list of successfully parsed fragments and a list of errors.
-loadProjectFiles    :: [FilePath]
+loadProjectFiles    :: [FilePath]   -- ^ Files to be loaded
                     -> IO ([Fragment], [ENVCAP.Source.Errors.InterpreterError])
 loadProjectFiles projectFiles = do
     results         <- mapM readImplementation projectFiles
@@ -101,13 +98,13 @@ loadProjectFiles projectFiles = do
 -- === Example:
 -- >>> elaborateFragments [("X", (TmLit 1))]
 -- Right (Rec "X" (Lit 1))
-elaborateFragments  :: [Fragment]
+elaborateFragments  :: [Fragment] 
                     -> Either ENVCAP.Source.Errors.SourceTypeError [(String, CoreTm)]
 elaborateFragments []           = Right []
 elaborateFragments fragments    = elaborateMultiple fragments
         where   elaborateMultiple :: [Fragment]   -> Either ENVCAP.Source.Errors.SourceTypeError [(String, CoreTm)]
                 elaborateMultiple []        = Right []
-                elaborateMultiple ((file, term):xs)
+                elaborateMultiple ((file, term):xs)    
                     =   case elaborateInfer TySUnit term of
                             Right (_, term')   ->
                                         elaborateMultiple xs >>=
@@ -116,8 +113,10 @@ elaborateFragments fragments    = elaborateMultiple fragments
 
 -- | `saveCoreTmToFile` saves a core expression to a .epc file.
 -- core expression is converted into binary file and saved in a `.epc` file.
-saveCoreTmFile :: ProjectName   -> (String, CoreTm) -> IO (Either String ())
-saveCoreTmFile projectName (fileName, coreTm)   =
+saveCoreTmFile  :: ProjectName   
+                -> (String, CoreTm) 
+                -> IO (Either String ())
+saveCoreTmFile projectName (fileName, coreTm)   = 
     do
         baseDir <- getBaseDir
         let filePath = baseDir </> projectName </> "compiled" </> (fileName ++ ".epc")
@@ -127,8 +126,10 @@ saveCoreTmFile projectName (fileName, coreTm)   =
             Right _         -> return $ Right ()
 
 -- | `loadCoreTmFile` loads a CoreTm expression from a .epc file.
-loadCoreTmFile :: ProjectName -> String -> IO (Either String CoreTm)
-loadCoreTmFile projectName fileName =
+loadCoreTmFile  :: ProjectName
+                -> String 
+                -> IO (Either String CoreTm)
+loadCoreTmFile projectName fileName = 
     do  baseDir     <- getBaseDir
         let filePath = baseDir </> projectName </> "compiled" </> (fileName ++ ".epc")
         fileExists  <- doesFileExist filePath
@@ -143,48 +144,55 @@ loadCoreTmFile projectName fileName =
                             Left    (_, _, errMsg)  -> return $ Left ("Decoding error: " ++ errMsg)
                             Right   (_, _, coreTm)  -> return $ Right coreTm
 
-
-compileProject :: ProjectName -> IO ((Either [String] ()))
+-- | `compiledProject` creates a compiled directory in the project
+-- if it doesn't exists and then, loads the project files, elaborates to
+-- core expression and generates `.epc` files in the `compiled` directory.
+compileProject  :: ProjectName 
+                -> IO (Either [String] ())
 compileProject projectName = do
   createCompiledDir projectName
-  projectFiles <- getProjectFiles projectName
-  (fragments, parseErrors) <- loadProjectFiles projectFiles
+  projectFiles              <- getProjectFiles projectName
+  (fragments, parseErrors)  <- loadProjectFiles projectFiles
 
   case elaborateFragments fragments of
     Left typeError -> return $ Left [show typeError]
     Right coreTms  -> do
-      results <- mapM (saveCoreTmFile projectName) coreTms
-      let saveErrors = lefts results
-      if null saveErrors
-        then return $ Right ()
-        else return $ Left saveErrors
+                        results         <- mapM (saveCoreTmFile projectName) coreTms
+                        let saveErrors  = [ errMsg | Left errMsg <- results ]
+                        if null saveErrors
+                            then return $ Right ()
+                            else return $ Left saveErrors
 
-executeProject :: ProjectName -> IO ()
+-- | `executeProject` loads the `.epc` files from the compiled directory in the
+-- project if `/compiled` dir exists, and then, executes.
+executeProject  :: ProjectName 
+                -> IO ()
 executeProject projectName = do
-    baseDir <- getBaseDir
-    let projectDir = baseDir </> projectName
-    let compiledDir = projectDir </> "compiled"
+  baseDir <- getBaseDir
+  let projectDir = baseDir </> projectName
+  let compiledDir = projectDir </> "compiled"
 
-    fileNames <- getFileNames projectDir
+  fileNames <- getFileNames projectDir
 
-    let epcFileNames = map (\fn -> takeBaseName fn ++ ".epc") fileNames
-    epcFileExists <- forM epcFileNames $ \epcFileName ->
-        doesFileExist (compiledDir </> epcFileName)
+  let epcFileNames = map (\fn -> takeBaseName fn ++ ".epc") fileNames
+  epcFileExists <- forM epcFileNames $ \epcFileName ->
+    doesFileExist (compiledDir </> epcFileName)
 
-    unless (and epcFileExists) $ do
-        hPutStrLn stderr "Not all .epc files found in the compiled directory."
-        return ()
+  unless (and epcFileExists) $ do
+    hPutStrLn stderr "Not all .epc files found in the compiled directory." 
+    return ()
 
-    forM_ epcFileNames $ \epcFileName -> do
-        let baseFileName = takeBaseName epcFileName
-        putStrLn $ "-----running " ++ baseFileName ++ ".epc------"
-        coreTmResult <- loadCoreTmFile projectName baseFileName
-        case coreTmResult of
-            Left loadError -> hPutStrLn stderr $ "Error loading " ++ epcFileName ++ ": " ++ loadError
-            Right coreTm -> do
-                case evaluate coreTm of
-                    Left evalError -> hPutStrLn stderr $ "Error evaluating " ++ epcFileName ++ ": " ++ show evalError
-                    Right value    -> print value  -- Print the Value to stdout
+  forM_ epcFileNames $ \epcFileName -> do
+    let baseFileName = takeBaseName epcFileName
+    putStrLn $ "-----running " ++ baseFileName ++ ".epc------"
+    coreTmResult <- loadCoreTmFile projectName baseFileName
+    case coreTmResult of
+      Left loadError -> hPutStrLn stderr $ "Error loading " ++ epcFileName ++ ": " ++ loadError
+      Right coreTm -> do
+        case evaluate coreTm of
+          Left evalError -> hPutStrLn stderr $ "Error evaluating " ++ epcFileName ++ ": " ++ show evalError
+          Right value    -> print value  
+
 
 -- | `handleDirectoryError` is an error handling function
 -- for handling the case when the project directory is not found

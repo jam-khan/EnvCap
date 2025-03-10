@@ -81,6 +81,12 @@ expandTyAlias tyCtx (STSig  tyA tyB)    =
 expandTyAlias tyCtx (STIden label)      =
         lookupAliasTyp tyCtx label
 
+-- -- | Utility function/wrapper for type expansion of requirements.
+-- expandTyAliasRequirements :: SurfaceTyp -> [Requirement] -> Either TypeExpansionError Requirement
+-- expandTyAliasRequirements ctx   (Explicit name ty)    
+--         = Explicit name <$> expandTyAlias ctx ty
+-- expandTyAliasRequirements _ req = Right req
+
 -- | Recursively traverses the surface level AST and expands type aliases.
 --
 -- This function traverses the surface level AST and loads the type aliases in the context
@@ -103,7 +109,6 @@ expandTyAlias tyCtx (STIden label)      =
 -- * The function is recursive and handles all possible `SurfaceTyp` constructors.
 -- * The type context `tyGamma` is expected to be well-formed; otherwise, a `TypeContextError` may occur.
 expandAlias :: SurfaceTyp -> SurfaceTm -> Either TypeExpansionError SurfaceTm
-expandAlias ctx (Fragment _ _ _ tm)     = expandAlias ctx tm 
 expandAlias _ SCtx                      = Right SCtx
 expandAlias _ SUnit                     = Right SUnit
 expandAlias _ (SLit i)                  = Right (SLit i)

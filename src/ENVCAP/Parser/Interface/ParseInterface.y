@@ -6,8 +6,8 @@ import ENVCAP.Syntax
 }
 
 %name interfaceParser
-%tokentype          { Token        }
-%error              { parseError   }
+%tokentype          {    Token        }
+%error              {    parseError   }
 
 %token
      var            {    TokenVar $$         }
@@ -21,6 +21,10 @@ import ENVCAP.Syntax
      'val'          {    TokenValDef         }
      'function'     {    TokenFunc           }
      'module'       {    TokenModule         }
+     '@pure'        {    TokenPure           }
+     '@resource'    {    TokenResource       }
+     'require'      {    TokenRequire        }
+     'interface'    {    TokenInterface      }
      '['            {    TokenOpenSqBracket  }
      ']'            {    TokenCloseSqBracket }
      ','            {    TokenComma          }
@@ -33,16 +37,31 @@ import ENVCAP.Syntax
      '{'            {    TokenOpenBracket    }
      '}'            {    TokenCloseBracket   }
 
-%right '='
-%left '->'
-%left '&'
-%left '+'
+%right    '='
+%left     '->'
+%left     '&'
+%left     '+'
 
 %%
 
-Program             : Interface  { $1 }
+Program             :    FragmentInterface                            { $1 }
 
-Interface           : InterfaceStatement ';' Interface                {    InterfaceAnd $1 $3   }
+FragmentInterface   :    Interface                                    { (Pure, [], $1)}
+                    |    '@pure'      Required Interface              { (Pure, $2, $3) }
+                    |    '@resource'  Required Interface              { (Resource, $2, $3) }
+
+Required            :                                                 { [] }
+                    |    'require' var                  ';'           { [Implicit $2 $2] }
+                    |    'require' '(' Requirements ')' ';'           { $3 }
+
+Requirements        :    Requirement                                  { [$1]  }
+                    |    Requirement ',' Requirements                 { $1:$3 }
+
+Requirement         :    var ':' Type                                 { Explicit $1 $3 }
+                    |    var ':' 'interface' var                      { Implicit $1 $4 }
+                    |    var                                          { Implicit $1 $1 }
+
+Interface           : InterfaceStatement ';' Interface                { InterfaceAnd $1 $3 }
                     | InterfaceStatement                              { $1 }
 
 InterfaceStatement  : TyAliasInterface                                { $1 }
@@ -61,16 +80,16 @@ BindingInterface    : 'val'      var ':' Type                         {    Bindi
 
 IType               : Type                                            {    IType $1  }
 
-Type                : 'Int'                                           {    STInt     }
-                    | 'Bool'                                          {    STBool    }
-                    | 'String'                                        {    STString  }
-                    | Type '->' Type                                  {    STArrow $1 $3   }
-                    | Type '&'  Type                                  {    STAnd   $1 $3   }
-                    | '[' Type ']'                                    {    STList $2       }
-                    | 'Sig' '[' Type ',' Type ']'                     {    STSig $3 $5     }
-                    | var                                             {    STIden $1       }
-                    | '{' RecordType '}'                              {    $2   }
-                    | '(' Type ')'                                    {    $2   }
+Type                : 'Int'                                           {    STInt          }
+                    | 'Bool'                                          {    STBool         }
+                    | 'String'                                        {    STString       }
+                    | Type '->' Type                                  {    STArrow $1 $3  }
+                    | Type '&'  Type                                  {    STAnd   $1 $3  }
+                    | '[' Type ']'                                    {    STList  $2     }
+                    | 'Sig' '[' Type ',' Type ']'                     {    STSig   $3 $5  }
+                    | var                                             {    STIden  $1     }
+                    | '{' RecordType '}'                              {    $2             }
+                    | '(' Type ')'                                    {    $2             }
 
 
 RecordType          : Record ',' RecordType                           {    STAnd $1 $3     }
@@ -111,6 +130,10 @@ data Token =   TokenVar String        --  x
           |    TokenComma             -- ','
           |    TokenOpenSqBracket     -- '['
           |    TokenCloseSqBracket    -- ']'
+          |    TokenPure              -- '@pure'
+          |    TokenResource          -- '@resource'
+          |    TokenRequire           -- 'require'
+          |    TokenInterface         -- 'interface'
           deriving Show
 
 lexer :: String -> [Token]
@@ -132,6 +155,10 @@ lexer ('[':cs)      = TokenOpenSqBracket               : lexer cs
 lexer (']':cs)      = TokenCloseSqBracket              : lexer cs
 lexer ('(':cs)      = TokenOB                          : lexer cs
 lexer (')':cs)      = TokenCB                          : lexer cs
+lexer ('@':cs)      = case span isAlpha cs of
+                         ("pure",       rest)     -> TokenPure        : lexer rest
+                         ("resource",   rest)     -> TokenResource    : lexer rest   
+lexer (c:cs)        = error $ "Unexpected character: " ++ [c]  -- Catch-all case
 
 lexVar cs           = case span isAlpha cs of
                          ("Int",        rest)     -> TokenTypeInt     : lexer rest
@@ -142,9 +169,14 @@ lexVar cs           = case span isAlpha cs of
                          ("function",   rest)     -> TokenFunc        : lexer rest
                          ("module",     rest)     -> TokenModule      : lexer rest
                          ("val",        rest)     -> TokenValDef      : lexer rest
+                         ("@pure",      rest)     -> TokenPure        : lexer rest
+                         ("@resource",  rest)     -> TokenResource    : lexer rest
+                         ("require",    rest)     -> TokenRequire     : lexer rest
+                         ("interface",  rest)     -> TokenInterface   : lexer rest 
                          (var,          rest)     -> TokenVar var     : lexer rest
 
-parseInterface :: String -> Maybe Interface
+
+parseInterface :: String -> Maybe ParseInterfaceData
 parseInterface input 
      = case interfaceParser (lexer input) of
           result -> Just result

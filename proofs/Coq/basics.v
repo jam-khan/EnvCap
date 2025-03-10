@@ -1,4 +1,3 @@
-Require Import LibTactics.
 Require Import Arith.
 Require Import Lia.
 From Coq Require Import Strings.String.
@@ -26,7 +25,8 @@ Inductive sexp :=
   | SClos       : sexp  -> styp -> sexp -> sexp
   | SStruct     : styp  -> sexp -> sexp
   | Srec        : string -> sexp -> sexp
-  | Srproj      : sexp -> string -> sexp.
+  | Srproj      : sexp -> string -> sexp
+  | Slet        : sexp -> styp -> sexp -> sexp.
 
 Inductive typ :=
   | int : typ
@@ -140,7 +140,11 @@ Inductive elaborate_sexp : styp -> sexp -> styp -> exp -> Prop :=
   | infrproj: forall E A B Se e l,
       elaborate_sexp E Se B e ->
       Srlookup B l A ->
-      elaborate_sexp E (Srproj Se l) A (rproj e l).
+      elaborate_sexp E (Srproj Se l) A (rproj e l)
+  | inflet: forall E A B Se1 Se2 e1 e2,
+      elaborate_sexp E Se1 A e1 ->
+      elaborate_sexp (Sand E A) Se2 B e2 ->
+      elaborate_sexp E (Slet Se1 A Se2) B (binop app (lam (elaborate_typ A) e2) e1).
 
 Inductive lookup : typ -> nat -> typ -> Prop :=
   | lzero : forall A B, 
@@ -440,6 +444,10 @@ Proof.
     apply trproj with (elaborate_typ B). 
     ++ assumption.
     ++ apply type_safe_rlookup in H0; assumption.
+  + simpl.
+    simpl in IHelaborate_sexp2.
+    apply tapp with (A := elaborate_typ A); try assumption.
+    apply tlam; try assumption.
 Qed.
 
 
@@ -545,4 +553,7 @@ Proof.
     { apply uniqueness_of_inference with E sE1 e1 e0; try assumption; subst. }
     apply IHelaborate_sexp1 in H3; subst.
     apply IHelaborate_sexp2 in H6; subst; reflexivity.
+  + apply IHelaborate_sexp1 in H6; subst.
+    apply IHelaborate_sexp2 in H7; subst.
+    reflexivity.
 Qed.

@@ -30,8 +30,8 @@ import ENVCAP.Source.Errors (SeparateCompilationError(SepCompError))
 -- Right (Binding "x" STInt)
 expandInterface :: SurfaceTyp   -- ^ Typing context for type expansion.
                 -> Interface    -- ^ Interface to be expanded.
-                -> Either SeparateCompilationError Interface    -- ^ Returns error or expanded interface. 
-expandInterface _ (IAliasTyp name ty)  =
+                -> Either SeparateCompilationError Interface    -- ^ Returns error or expanded interface.
+expandInterface _ (IAliasTyp name ty)   =
     Left $ SepCompError ("Type Alias: type " ++ name ++ " = " ++ show ty ++ " not expanded properly.")
 
 expandInterface tyGamma (IType     ty)  = 
@@ -78,6 +78,8 @@ expandInterface tyGamma (InterfaceAnd stmt1 stmt2)=
                 Left  _     ->
                     Left $ SepCompError ("Interface Type Expansion Failed when expanding type inside the alias " ++ name)
         _       -> InterfaceAnd <$> expandInterface tyGamma stmt1 <*> expandInterface tyGamma stmt2
+
+
 
 
 -- | `interfaceToTyp` is a utility function to desugar interface
@@ -142,7 +144,7 @@ getModuleInputType ((_, ty):xs) =
 getInterface :: String -> Either SeparateCompilationError SourceTyp
 getInterface code = 
     case parseInterface code of
-        Just interface ->
+        Just (_, _, interface) ->
                 expandInterface STUnit interface >>=
                     \expanded   -> interfaceToTyp expanded
         _   -> Left $ SepCompError "Interface parsing failed."

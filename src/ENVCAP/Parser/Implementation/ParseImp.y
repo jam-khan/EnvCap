@@ -15,6 +15,7 @@ import ENVCAP.Syntax
      '@pure'        { TokenPure         }
      '@resource'    { TokenResource     }
      'interface'    { TokenInterface    }
+     'open'         { TokenOpen         }
      'import'       { TokenImport       }
      'require'      { TokenRequire      }
      'unit'         { TokenUnit         }
@@ -96,8 +97,9 @@ import ENVCAP.Syntax
 
 Program             :    Fragment                                     { $1 }
 
-Fragment            :    '@pure'      Import Required Statements      { Fragment Pure     $2 $3 $4 }
-                    |    '@resource'  Import Required Statements      { Fragment Resource $2 $3 $4 }
+Fragment            :    Statements                                   { (Pure, [], [], $1)     }
+                    |    '@pure'      Import Required Statements      { (Pure, $2, $3, $4)     }
+                    |    '@resource'  Import Required Statements      { (Resource, $2, $3, $4) }
 
 Import              :                                                 { [] }
                     |    'import' FileNames ';'                       { $2 }
@@ -106,22 +108,27 @@ FileNames           :    var FileNames                                { $1 : $2 
                     |    var                                          { [$1]    }
 
 Required            :                                                 { [] }
-                    |    'require' Requirements ';'                   { $2 }
+                    |    'require' var                  ';'           { [Implicit $2 $2] }
+                    |    'require' '(' Requirements ')' ';'           { $3 }
 
 Requirements        :    Requirement                                  { [$1]  }
                     |    Requirement ',' Requirements                 { $1:$3 }
 
 Requirement         :    var ':' Type                                 { Explicit $1 $3 }
                     |    var ':' 'interface' var                      { Implicit $1 $4 }
+                    |    var                                          { Implicit $1 $1 }
 
 Statements          : Statements ';' Statement          { SMrg $1 $3 }
                     | Statement                         { $1 }
 
-Statement           : Function                          { $1 }
+Statement           : Open                              { $1 }
+                    | Function                          { $1 }
                     | Module                            { $1 }
                     | Binding                           { $1 }
                     | TyAlias                           { $1 }
                     | Term                              { $1 }
+
+Open                : 'open' Term                       { SOpen $2 }
 
 Term                : BaseTerm                          { $1 }
                     | ConstructedTerm                   { $1 }
@@ -384,6 +391,7 @@ data Token =   TokenInt Integer       -- Lit i
           |    TokenImport            -- 'import'
           |    TokenRequire           -- 'require'
           |    TokenInterface         -- 'interface'
+          |    TokenOpen              -- 'open'
           deriving Show
 
 lexer :: String -> [Token]
@@ -447,6 +455,7 @@ lexVar cs = case span isAlpha cs of
                ("import",     rest)     -> TokenImport      : lexer rest
                ("require",    rest)     -> TokenRequire     : lexer rest
                ("interface",  rest)     -> TokenInterface   : lexer rest
+               ("open",       rest)     -> TokenOpen        : lexer rest
                ("Int",        rest)     -> TokenTypeInt     : lexer rest
                ("Bool",       rest)     -> TokenTypeBool    : lexer rest
                ("String",     rest)     -> TokenTypeString  : lexer rest
@@ -474,10 +483,10 @@ lexVar cs = case span isAlpha cs of
                ("as",         rest)     -> TokenAs          : lexer rest
                (var,          rest)     -> TokenVar var     : lexer rest
 
-parseImplementation :: String -> Maybe SurfaceTm
+parseImplementation :: String -> Maybe ParseImplementationData
 parseImplementation input = case implementationParser (lexer input) of
-                         result -> Just result
-                         _      -> Nothing                    
+                                   result -> Just result
+                                   _      -> Nothing                    
 
 test_cases :: [(String, SurfaceTm)]
 test_cases = [  ("env", SCtx)
@@ -512,7 +521,7 @@ test_cases = [  ("env", SCtx)
                                                                       (SBinOp (Arith Div) (SVar "y") (SLit 4)))
                                                                  (SLit 3)))
                , ("(1 , 2, 3)", STuple [SLit 1,SLit 2,SLit 3])
-               , ("(1 ,, 2,, 4)", SMrg (SLit 1) (SMrg (SLit 2) (SLit 4)))
+               , ("(1 ,, 2,, 4)", SMrg (SMrg (SLit 1) (SLit 2)) (SLit 4))
                , ("env.1", SProj SCtx 1)
                , ("env.hello", SRProj SCtx "hello")
                , ("({\"x\" = 10})", SRec "x" (SLit 10))
@@ -521,9 +530,12 @@ test_cases = [  ("env", SCtx)
 runTest :: Int -> [(String, SurfaceTm)] -> IO()
 runTest n []        = putStrLn $ (show (n + 1) ++ " Tests Completed.")
 runTest n (x:xs)    = do
-                         if parseImplementation (fst x) == Just (snd x)
-                              then putStrLn $ "Test " ++ (show (n + 1)) ++ ": Passed"
-                              else putStrLn $ "Test " ++ (show (n + 1)) ++ ": Failed"
+                         case parseImplementation (fst x) of
+                              Just (_, _, _, tm)  -> 
+                                   if tm == (snd x) 
+                                        then putStrLn $ "Test " ++ (show (n + 1)) ++ ": Passed"
+                                        else putStrLn $ "Test " ++ (show (n + 1)) ++ ": Failed: " ++ (show tm)
+                              Nothing             -> putStrLn $ "Test " ++ (show (n + 1)) ++ ": Failed (Failed to Parse)"
                          runTest (n + 1) xs
 
 test :: IO()

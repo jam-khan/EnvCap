@@ -14,11 +14,12 @@ For more details, see the individual function documentation.
 -}
 module ENVCAP.Manager.Implementation where
 
-import ENVCAP.Syntax (SourceTm)
+import ENVCAP.Syntax (SourceTm, Requirements, Imports, SurfaceTm, SecurityLevel)
 import ENVCAP.Source.Errors ( InterpreterError(..) ) 
 import Control.Exception ( IOException, try )
 import System.FilePath (takeBaseName, takeFileName)
 import ENVCAP.Interpreter (parseCode, typeAliasExpansion, locallyNameless, desugarSource)
+import ENVCAP.Parser.Implementation.ParseImp (parseImplementation)
 
 type Path     = String
 type FileName = String
