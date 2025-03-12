@@ -13,7 +13,7 @@ Inductive styp :=
   | Srcd : string -> styp -> styp
   | Ssig : styp -> styp -> styp.
 
-Inductive sop := Sapp | Sbox | SDmrg | SNmrg | SMapp.
+Inductive sop := Sapp | Swith | SDmrg | SNmrg | SMapp.
 
 Inductive sexp :=
   | Sctx        : sexp  
@@ -26,7 +26,8 @@ Inductive sexp :=
   | SStruct     : styp  -> sexp -> sexp
   | Srec        : string -> sexp -> sexp
   | Srproj      : sexp -> string -> sexp
-  | Slet        : sexp -> styp -> sexp -> sexp.
+  | Slet        : sexp -> styp -> sexp -> sexp
+  | Sopen       : sexp -> sexp -> sexp.
 
 Inductive typ :=
   | int : typ
@@ -105,7 +106,7 @@ Inductive elaborate_sexp : styp -> sexp -> styp -> exp -> Prop :=
   | infbox: forall E E' A Se1 Se2 e1 e2,
       elaborate_sexp E Se1 E' e1 ->
       elaborate_sexp E' Se2 A e2 ->
-      elaborate_sexp E (Sbinop Sbox Se1 Se2) A (binop box e1 e2)
+      elaborate_sexp E (Sbinop Swith Se1 Se2) A (binop box e1 e2)
   | infclos: forall E E' A B Se1 Se2 e1 e2,
       elaborate_sexp E Se1 E' e1 ->
       elaborate_sexp (Sand E' A) Se2 B e2 ->
@@ -144,7 +145,15 @@ Inductive elaborate_sexp : styp -> sexp -> styp -> exp -> Prop :=
   | inflet: forall E A B Se1 Se2 e1 e2,
       elaborate_sexp E Se1 A e1 ->
       elaborate_sexp (Sand E A) Se2 B e2 ->
-      elaborate_sexp E (Slet Se1 A Se2) B (binop app (lam (elaborate_typ A) e2) e1).
+      elaborate_sexp E (Slet Se1 A Se2) B (binop app (lam (elaborate_typ A) e2) e1)
+  | infopen: forall E A B l Se1 e1 Se2 e2,
+      Srlookup (Srcd l A) l A ->
+      elaborate_sexp E Se1 (Srcd l A) e1 ->
+      elaborate_sexp E (Srproj Se1 l) A (rproj e1 l) ->
+      elaborate_sexp (Sand E A) Se2 B e2 ->
+      elaborate_sexp E 
+          (Sopen Se1 Se2) B 
+          (binop app (lam (elaborate_typ A) e2) (rproj e1 l)).
 
 Inductive lookup : typ -> nat -> typ -> Prop :=
   | lzero : forall A B, 
@@ -448,6 +457,12 @@ Proof.
     simpl in IHelaborate_sexp2.
     apply tapp with (A := elaborate_typ A); try assumption.
     apply tlam; try assumption.
+  + simpl in IHelaborate_sexp2.
+    apply type_safe_rlookup in H.
+    apply tapp with (elaborate_typ A).
+    ++ apply tlam. simpl in IHelaborate_sexp3.
+       assumption.
+    ++ assumption.
 Qed.
 
 
@@ -519,6 +534,9 @@ Proof.
   + apply IHelaborate_sexp in H6; subst; eauto.
   + apply IHelaborate_sexp in H5; subst; eauto.
     apply uniqueness_of_Srlookup with B0 l; try assumption.
+  + apply IHelaborate_sexp1 in H4; subst.
+    inversion H4; subst.
+    apply IHelaborate_sexp3 in H9. assumption.
 Qed.
 
 (* Uniqueness of Elaboration *)
@@ -555,5 +573,13 @@ Proof.
     apply IHelaborate_sexp2 in H6; subst; reflexivity.
   + apply IHelaborate_sexp1 in H6; subst.
     apply IHelaborate_sexp2 in H7; subst.
+    reflexivity.
+  + assert (Eq : (Srcd l0 A0) = (Srcd l A)).
+    { apply uniqueness_of_inference with (E := E) (SE := Se1) (CE1 := e0) (CE2 := e1).
+      - assumption.
+      - assumption. }
+    inversion Eq; subst.
+    apply IHelaborate_sexp2 in H6; inversion H6; subst.
+    apply IHelaborate_sexp3 in H9; subst.
     reflexivity.
 Qed.

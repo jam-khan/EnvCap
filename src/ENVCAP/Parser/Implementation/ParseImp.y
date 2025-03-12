@@ -33,13 +33,14 @@ import ENVCAP.Syntax
      'else'         { TokenElse         }
      'val'          { TokenValDef       }
      'let'          { TokenLet          }
-     'letrec'       { TokenLetrec       }
+     -- 'letrec'       { TokenLetrec       }
      'in'           { TokenIn           }
      'function'     { TokenFunc         }
      'struct'       { TokenStruct       }
      'module'       { TokenModule       }
+     'functor'      { TokenFunctor      }
      'with'         { TokenBox          }
-     'as'           { TokenAs }
+     'as'           { TokenAs           }
      'match'        { TokenMatch        }
      'case'         { TokenCase         }
      'of'           { TokenMatchOf      }
@@ -152,8 +153,8 @@ ConstructedTerm     : Projection            %prec proj  { $1 }
                     | Struct                            { $1 }
                     | Match                             { $1 }
                     | Tagging                           { $1 }
-                    | Let                               { $1 }
-                    | Letrec                            { $1 }
+                    -- | Let                               { $1 }
+                    -- | Letrec                            { $1 }
                     | List                              { $1 }
                     | ListCons                          { $1 }
                     | Record                            { $1 }
@@ -184,7 +185,7 @@ Pattern             : var                               { ($1, []) }
 Identifiers         : var Identifiers                   { $1 : $2 }
                     | var                               { [$1] }
 
-Box                 : 'with' Term 'in' '{' Statements '}'    { SBox $2 $5 }
+Box                 : 'with' Term 'in' '{' Statements '}'    { SBox (SMrg SUnit $2) $5 }
 
 Type                : BaseType                               { $1 }
                     | ADT                                    { $1 }
@@ -222,20 +223,29 @@ IntersectionType    : IntersectionType ',' Type             {  STAnd $1 $3  }
 Projection          : Term '.' int                          {  SProj  $1 $3  }
                     | Term '.' var                          {  SRProj $1 $3  }
 
-Module              : 'module' var '(' ParamList ')' '{' Statements '}'         { SModule $2 $4 $7 }
+Module              : 'functor' var '(' ParamList ')' ':' Type '{' Statements '}'    { SModule $2 $4 $9 }
+                    | 'functor' var '(' ParamList ')' '{' Statements '}'             { SModule $2 $4 $7 }
+                    | 'module' var ':' Type '{' Statements '}'                       { SRec $2 $6 }
+                    | 'module' var '{' Statements '}'                                { SRec $2 $4 }
 
-Struct              : 'struct'     '(' ParamList ')' '{' Statements '}'         { SStruct $3 $6 }
+Struct              : 'module' 'struct' '{' Statements '}'                      { $4 }
+                    | 'module' 'struct' '(' ParamList ')' '{' Statements '}'    { SStruct $4 $7 }
+                    | 'struct' '{' Statements '}'                               { $3 }  
+                    | 'struct' '(' ParamList ')' '{' Statements '}'             { SStruct $3 $6 }
 
 Signature           : 'Sig' '[' Type ',' Type ']'                               { STSig $3 $5 }
 
-Function            : 'function' var '(' ParamList ')' ':' Type '{' Term '}'    { SFunc $2 $4 $7 $9 }
+Function            : 'function' var '(' ParamList ')' ':' Type '=' Term        { SFunc $2 $4 $7 $9 }
+                    | 'function' var '(' ParamList ')' ':' Type '{' Term '}'    { SFunc $2 $4 $7 $9 }
 
 FunctionApplication : var '(' Arguments ')'  %prec application_prec             { SApp (SVar $1) $3 }
 
-Binding             : 'val' var '=' Term                                        { SRec $2 $4 }
+Binding             : 'let' var '=' Term                                        { SRec $2 $4 }
+                    | 'val' var '=' Term                                        { SRec $2 $4 }
 
 Lambda              : '(' Lambda ')' '(' Arguments ')'                          { SApp $2 $5 }
                     | '\\(' ParamList ')' '=>' '{' Statements '}'               { SLam $2 $6 }
+                    | '\\(' ParamList ')' '=>' Term                             { SLam $2 $5 }
 
 Bool                : 'False' { SBool False }
                     | 'True'  { SBool True }
@@ -254,8 +264,8 @@ TyAlias             : 'type' var '=' Type                                       
 
 DependentMerge           : '(' DependentMergeElements ')'             { $2 }
 
-DependentMergeElements   : DependentMergeElements ',,' Term           { SMrg $1 $3 }
-                         | Term ',,' Term                             { SMrg $1 $3 }
+DependentMergeElements   : DependentMergeElements ';' Term           { SMrg $1 $3 }
+                         | Term ';' Term                             { SMrg $1 $3 }
 
 Tuple                    : '(' TupleElements ')'                      { STuple $2 }
 
@@ -269,18 +279,20 @@ Param                    : var ':' Type                               { STRecord
 
 Record                   : '{' Records '}'                            { $2 }
 
-Records                  : '"' var '"' '=' Term ',' Records           { SMrg (SRec $2 $5) $7 }
+Records                  :  '"' var '"' '=' Term ',' Records          { SMrg (SRec $2 $5) $7 }
                          | '"' var '"' '=' Term                       { SRec $2 $5 }
                          | '\'' var '\'' '=' Term ',' Records         { SMrg (SRec $2 $5) $7 }
                          | '\'' var '\'' '=' Term                     { SRec $2 $5 }
+                         | var '=' Term ',' Records                   { SMrg (SRec $1 $3) $5 }
+                         | var '=' Term                               { SRec $1 $3 }
 
 ParamList                : ParamL ',' ParamList                       { $1 : $3 }
                          | ParamL                                     { [$1] }
 
 ParamL                   : var ':' Type                               { ($1, $3) } 
 
-Let                      : 'let'    '{' bindings '}' 'in' '{' Term '}'   { SLet    $3 $7 }
-Letrec                   : 'letrec' '{' bindings '}' 'in' '{' Term '}'   { SLetrec $3 $7 }
+-- Let                      : 'let'    '{' bindings '}' 'in' '{' Term '}'   { SLet    $3 $7 }
+-- Letrec                   : 'letrec' '{' bindings '}' 'in' '{' Term '}'   { SLetrec $3 $7 }
 
 bindings                 : binding ';' bindings                       { $1 : $3 }
                          | binding                                    { [$1] }
@@ -300,8 +312,9 @@ Parens                   : '(' Term ')'                               { $2 }
 
 CurlyParens              : '{' Statements '}'                         { $2 }
 
-IfThenElse               : 'if' Parens 'then' CurlyParens 'else' CurlyParens { SIf $2 $4 $6 }
-
+IfThenElse               : 'if' Parens 'then' Term 'else' Term               { SIf $2 $4 $6 }
+                         | 'if' Parens 'then' CurlyParens 'else' CurlyParens { SIf $2 $4 $6 }
+                         
 ComparisonOp             :  Term    '>='    Term                      { SBinOp (Comp  Ge)   $1 $3 }
                          |  Term    '>'     Term                      { SBinOp (Comp  Gt)   $1 $3 }
                          |  Term    '=='    Term                      { SBinOp (Comp  Eql)  $1 $3 }
@@ -355,6 +368,7 @@ data Token =   TokenInt Integer       -- Lit i
           |    TokenFalse             -- 'False'
           |    TokenFunc              -- 'function'
           |    TokenModule            -- 'module'
+          |    TokenFunctor           -- 'functor'
           |    TokenStruct            -- 'struct'
           |    TokenOpenBracket       -- '{'
           |    TokenCloseBracket      -- '}'
@@ -475,6 +489,7 @@ lexVar cs = case span isAlpha cs of
                ("type",       rest)     -> TokenTyAlias     : lexer rest
                ("function",   rest)     -> TokenFunc        : lexer rest
                ("module",     rest)     -> TokenModule      : lexer rest
+               ("functor",    rest)     -> TokenFunctor     : lexer rest
                ("struct",     rest)     -> TokenStruct      : lexer rest
                ("val",        rest)     -> TokenValDef      : lexer rest
                ("if",         rest)     -> TokenIf          : lexer rest
