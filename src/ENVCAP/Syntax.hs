@@ -162,6 +162,7 @@ data SourceTyp          =   TySUnit                             -- Unit type for
                         |   TySIden     String                  -- Simply an alias
                         deriving (Eq, Show)
 
+
 data CoreTm             =   Ctx                                 -- Context
                         |   Unit                                -- Unit
                         |   Lit    Integer                      -- Integer literal
@@ -182,6 +183,9 @@ data CoreTm             =   Ctx                                 -- Context
                         |   Case   CoreTm [(Pattern, CoreTm)]
                         |   BinOp  BinaryOp CoreTm CoreTm       -- Binary operations
                         |   UnOp   UnaryOp CoreTm               -- Unary operations
+                        -- Lambda for linking
+                        |   CLam   CoreTyp CoreTm               -- 
+                        |   Anno   CoreTm CoreTyp 
                         deriving (Eq, Show, Generic)
 
 data CoreTyp            =   TyCUnit                       -- Unit type for empty environment
