@@ -1,0 +1,11 @@
+@pure
+
+let x = [1, 2, 3];
+
+let y = 1;
+
+let testOne     = isempty(x);
+let testTwo     = head(y);
+let testThree   = tail(x);
+let testFour    = rest(x);
+let testFive    = [1] ++ [1, 2, 3]

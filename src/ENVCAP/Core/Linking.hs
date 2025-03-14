@@ -34,7 +34,6 @@ link :: CoreTm -> Either LinkingError CoreTm
 link (Mrg left (Rec l (Box tm1 (CLam ty tm2))))   
         = link left >>= 
             \left' -> lookupF left' ty >>= \tm -> link (Mrg left' (Rec l (Box (Mrg tm1 tm) tm2)))
-            
 link (Mrg left (Rec l tm))
         = link left >>= \left' -> return $ Mrg left' (Rec l tm)
 link tm = Right tm

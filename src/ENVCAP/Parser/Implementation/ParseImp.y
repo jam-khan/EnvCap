@@ -33,7 +33,7 @@ import ENVCAP.Syntax
      'else'         { TokenElse         }
      'val'          { TokenValDef       }
      'let'          { TokenLet          }
-     -- 'letrec'       { TokenLetrec       }
+     'letrec'       { TokenLetrec       }
      'in'           { TokenIn           }
      'function'     { TokenFunc         }
      'struct'       { TokenStruct       }
@@ -44,6 +44,11 @@ import ENVCAP.Syntax
      'match'        { TokenMatch        }
      'case'         { TokenCase         }
      'of'           { TokenMatchOf      }
+     'isempty'      { TokenIsEmpty      }
+     'head'         { TokenHead         }
+     'tail'         { TokenTail         }
+     'rest'         { TokenRest         }
+     '++'           { TokenConcat       }
      '[]'           { TokenEmptyList    }
      '['            { TokenOpenSqBracket  }
      ']'            { TokenCloseSqBracket }
@@ -82,7 +87,6 @@ import ENVCAP.Syntax
 %right '='
 %right '=>'
 %left '.'
-%left '::'
 %left proj
 %left TokenElse
 %left application_prec
@@ -93,6 +97,7 @@ import ENVCAP.Syntax
 %left '|'
 %left '+' '-'
 %left '*' '/' '%'
+%left '++'
 
 %%
 
@@ -122,8 +127,7 @@ Requirement         :    var ':' Type                                 { Explicit
 Statements          : Statements ';' Statement          { SMrg $1 $3 }
                     | Statement                         { $1 }
 
-Statement           : Open                              { $1 }
-                    | Function                          { $1 }
+Statement           : Function                          { $1 }
                     | Module                            { $1 }
                     | Binding                           { $1 }
                     | TyAlias                           { $1 }
@@ -133,6 +137,12 @@ Open                : 'open' Term                       { SOpen $2 }
 
 Term                : BaseTerm                          { $1 }
                     | ConstructedTerm                   { $1 }
+                    | List                              { $1 }
+                    | IsEmpty                           { $1 }
+                    | Head                              { $1 }
+                    | Tail                              { $1 }
+                    | Rest                              { $1 }
+                    | Concat                            { $1 }
                     | Parens                            { $1 }
                     | error                             { parseError [$1] }
 
@@ -155,8 +165,6 @@ ConstructedTerm     : Projection            %prec proj  { $1 }
                     | Tagging                           { $1 }
                     -- | Let                               { $1 }
                     -- | Letrec                            { $1 }
-                    | List                              { $1 }
-                    | ListCons                          { $1 }
                     | Record                            { $1 }
                     | Tuple                             { $1 }
                     | DependentMerge                    { $1 }
@@ -247,27 +255,36 @@ Lambda              : '(' Lambda ')' '(' Arguments ')'                          
                     | '\\(' ParamList ')' '=>' '{' Statements '}'               { SLam $2 $6 }
                     | '\\(' ParamList ')' '=>' Term                             { SLam $2 $5 }
 
-Bool                : 'False' { SBool False }
-                    | 'True'  { SBool True }
+Bool                : 'False'           { SBool False }
+                    | 'True'            { SBool True }
 
-String              : '\'' var '\''                                             { SString $2 }
-                    | '"' var '"'                                               { SString $2 }
+String              : '\'' var '\''                              { SString $2 }
+                    | '"' var '"'                                { SString $2 }
 
-ListCons            : Term '::' Term                                            { SCons $1 $3 }
+List                : '[' Elements ']'                           { SList $2 }
 
-TyAlias             : 'type' var '=' Type                                       { SAliasTyp $2 $4 }
+Elements            :                                            { []      }
+                    | Term                                       { [$1] }
+                    | Term ',' Elements                          { [$1] ++ $3 }
+                    
+IsEmpty             : 'isempty' '(' Term ')'                     { SIsEmpty $3 }
 
--- There must be atleast one element in tuple I guess this satisfies it but
--- it will create ambiguities, so must have atleast two elements
+Head                : 'head' '(' Term ')'                        { SHead $3 }
 
--- It must have atleast two elements
+Tail                : 'tail' '(' Term ')'                        { STail  $3 }
 
-DependentMerge           : '(' DependentMergeElements ')'             { $2 }
+Rest                : 'rest' '(' Term ')'                        { SRest $3 }
 
-DependentMergeElements   : DependentMergeElements ';' Term           { SMrg $1 $3 }
-                         | Term ';' Term                             { SMrg $1 $3 }
+Concat              : Term '++' Term                             { SConcat $1 $3 }
 
-Tuple                    : '(' TupleElements ')'                      { STuple $2 }
+TyAlias             : 'type' var '=' Type                        { SAliasTyp $2 $4 }
+
+DependentMerge      : '(' DependentMergeElements ')'             { $2 }
+
+DependentMergeElements   : DependentMergeElements ';' Term       { SMrg $1 $3 }
+                         | Term ';' Term                         { SMrg $1 $3 }
+
+Tuple                    : '(' TupleElements ')'                 { STuple $2 }
 
 TupleElements            : Term ',' TupleElements                     { $1 : $3 }
                          | Term ',' Term                              { $1 : [$3] }
@@ -299,11 +316,6 @@ bindings                 : binding ';' bindings                       { $1 : $3 
 
 binding                  : var ':' Type '=' Term                      { ($1, $3, $5) }
 
-List                     : '[]' ':' Type                              { SNil $3 }
-                         | '[' Elements ']'                           { $2 }
-
-Elements                 : Term ',' Elements                          { SCons $1 $3 }
-                         | Term                                       { $1 }
 
 Arguments                : Term ',' Arguments                         { $1 : $3 }
                          | Term                                       { [$1] }
@@ -406,6 +418,11 @@ data Token =   TokenInt Integer       -- Lit i
           |    TokenRequire           -- 'require'
           |    TokenInterface         -- 'interface'
           |    TokenOpen              -- 'open'
+          |    TokenIsEmpty           -- 'isempty'
+          |    TokenHead              -- 'head'
+          |    TokenTail              -- 'tail'
+          |    TokenRest              -- 'rest'
+          |    TokenConcat            -- '++'
           deriving Show
 
 lexer :: String -> [Token]
@@ -414,7 +431,10 @@ lexer (c:cs)
      | isSpace c = lexer cs
      | isAlpha c = lexVar (c:cs)
      | isDigit c = lexNum (c:cs)
-lexer ('+':cs)      = TokenPlus     : lexer cs
+lexer ('+':cs)      = 
+     case cs of
+          ('+':cs') ->   TokenConcat   : lexer cs'
+          _         ->   TokenPlus     : lexer cs
 lexer ('-':cs)      = 
      case cs of
           ('>':cs')      -> TokenTypeArrow   : lexer cs'
@@ -466,6 +486,10 @@ lexer ('@':cs)      = case span isAlpha cs of
 lexNum cs = TokenInt (read num) : lexer rest
                     where (num, rest) = span isDigit cs
 lexVar cs = case span isAlpha cs of
+               ("isempty",    rest)     -> TokenIsEmpty     : lexer rest
+               ("head",       rest)     -> TokenHead        : lexer rest
+               ("rest",       rest)     -> TokenRest        : lexer rest
+               -- ("append",     rest)     -> TokenAppend      : lexer rest
                ("import",     rest)     -> TokenImport      : lexer rest
                ("require",    rest)     -> TokenRequire     : lexer rest
                ("interface",  rest)     -> TokenInterface   : lexer rest

@@ -7,6 +7,12 @@
 module ENVCAP.Syntax where
 import GHC.Generics (Generic)
 
+
+-- Adding lists
+-- Represent List as a Union Type
+-- So, [1, 2, 3] ~~> Every type is Int so, TyCList Int | TyCList Unit
+-- So, 
+
 data UnaryOp    =       Not
         deriving (Eq, Show, Generic)
 
@@ -87,15 +93,20 @@ data SurfaceTm          =   SCtx                                        -- Query
                         |   SAnno      SurfaceTm SurfaceTyp
                         |   SIf        SurfaceTm SurfaceTm SurfaceTm
                         |   SPair      SurfaceTm SurfaceTm
-                        |   SFst       SurfaceTm
-                        |   SSnd       SurfaceTm
-                        |   SNil       SurfaceTyp
-                        |   SCons      SurfaceTm SurfaceTm
                         |   STuple     [SurfaceTm]
                         |   SSwitch    SurfaceTm [(SurfaceTm, SurfaceTm)]
                         |   SADTInst   (String, [SurfaceTm]) SurfaceTyp 
                         |   SCase      SurfaceTm Cases
-                        |   SOpen      SurfaceTm
+                        |   SOpen      SurfaceTm SurfaceTm
+                        -- List matching
+                        |   SList      [SurfaceTm]
+                        |   SIsEmpty   SurfaceTm
+                        |   SHead      SurfaceTm
+                        |   STail      SurfaceTm
+                        |   SRest      SurfaceTm
+                        |   SCons      SurfaceTm SurfaceTm
+                        |   SAppend    SurfaceTm SurfaceTm
+                        |   SConcat    SurfaceTm SurfaceTm
                         deriving (Eq, Show)
 
 data SurfaceTyp         =   STUnit                              -- ^ Unit type for empty environment
@@ -162,7 +173,6 @@ data SourceTyp          =   TySUnit                             -- Unit type for
                         |   TySIden     String                  -- Simply an alias
                         deriving (Eq, Show)
 
-
 data CoreTm             =   Ctx                                 -- Context
                         |   Unit                                -- Unit
                         |   Lit    Integer                      -- Integer literal
@@ -194,6 +204,7 @@ data CoreTyp            =   TyCUnit                       -- Unit type for empty
                         |   TyCArrow      CoreTyp CoreTyp -- Arrow type, e.g. A -> B
                         |   TyCRecord     String  CoreTyp -- Single-Field Record Type
                         |   TyCUnion      CoreTyp CoreTyp -- Union type
+                        |   TyCList       CoreTyp         -- List Type
                         -- Extensions
                         |   TyCBool                       -- Boolean type
                         |   TyCString                     -- String type

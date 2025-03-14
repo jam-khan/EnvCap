@@ -1,0 +1,69 @@
+Section 1.
+
+You emphasize theory-implementation gap at the same level as separate compilation for example. I think that the  theory-implementation gap can be mentioned, but this is more something that has already been established in previous work and not much of a contribution here.
+So, what I think should be emphasized the most is separate compilation, which has not been discussed in previous work. Of course, capabilities and first-class modules do play a role as well and also need to be discussed. But the main focus should be on first-class environments
+being a good setting that enables talking about separate compilation completely within the language itself (no need for extra-linguistic things like linksets).
+
+In general avoid claiming contributions that were claimed by other papers as your own, and focus your text on the novelties of your own work.
+
+2. Section 2 is mostly nicely written.
+
+In the last paragraph the point about support for first-class modules is good, but another point that can be emphasized better is that linksets are "extra-linguistic". That is, they are not part of the language itsefl, but they appear only as a mechanism to support separate compilation and linking. With first-class environments in \E, what we can do instead is that we can model separate compilation and linking entirely with language constructs in the language itself.
+
+
+
+Section 3. Regarding syntax, I find it harder now to tell what is a module syntactically. I think that you are now. We spoke about borrowing syntax from OCaml before, since is a fairly common syntax. But now, it seems that you have your own custom syntax instead, like:
+
+`let {module def } in { with ...}`
+
+I think you are just making your life harder in terms of communicating your ideas to others, because now the syntax is non-intuitive.
+
+Why are you not adopting an OCaml-like syntax with the semantics being also similar to OCaml? I.e. using `module`, `open` ...?
+
+For example, I think that, for the examples in Fig 5, I would probably write:
+
+struct N {
+    val x : Int
+}to 
+
+module NImpl {
+    val x = 3
+}
+
+struct M {
+    f : Int -> Int
+    m : Int
+}
+
+module MImpl(n : N) {
+    open N;
+
+    -- x is imported from N
+    val f = \(y:Int) => {y + x}   
+    val m = f(x)
+}
+
+l185  The above serves as an **alternative** to Cardelli’s 𝑙𝑖𝑛𝑘𝑠𝑒𝑡𝑠
+
+
+Regarding the syntax that you are using, you came up with your own syntax and you have the assumption that you use a filename to denote the name of a module
+Both of those will make it confusing for readers to understand your work
+I think you should instead try to adopt an OCaml-like syntax, to make things more familiar to readers.
+@Jam Khan
+I guess that, in the syntax, you'd could also have something like: 
+bcdsoliveira — Today at 12:36 PM
+module NImpl : N {
+    val x = 3
+}
+to connect an implementation to an interface
+and there is a typo in MImpl:
+module MImpl(n : N) {
+    open n;  -- typo was here
+
+    -- x is imported from N
+    val f = (y:Int) => {y + x}
+    val m = f(x)
+}
+bcdsoliveira — Today at 12:43 PM
+One more thing: you also do not have with in your formal syntax
+try to make the formal syntax and the actual syntax as close as possible
