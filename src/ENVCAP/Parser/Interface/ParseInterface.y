@@ -61,8 +61,8 @@ Requirement         :    var ':' Type                                 { Explicit
                     |    var ':' 'interface' var                      { Implicit $1 $4 }
                     |    var                                          { Implicit $1 $1 }
 
-Interface           : InterfaceStatement ';' Interface                { InterfaceAnd $1 $3 }
-                    | InterfaceStatement                              { $1 }
+Interface           :    InterfaceStatement ';' Interface             { InterfaceAnd $1 $3 }
+                    |    InterfaceStatement                           { $1 }
 
 InterfaceStatement  : TyAliasInterface                                { $1 }
                     | FunctionInterface                               { $1 }

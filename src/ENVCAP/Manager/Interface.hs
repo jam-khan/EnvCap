@@ -18,8 +18,11 @@ import ENVCAP.Source.Errors
 import ENVCAP.Parser.Interface.ParseInterface (parseInterface)
 import ENVCAP.Syntax
 import ENVCAP.Source.TypeExpansion (expandTyAlias, expandAliasTypParams)
-import ENVCAP.Source.Desugar (getFixpointType, desugarTyp)
+import ENVCAP.Source.Desugar (getFixpointType, desugarTyp, desugar)
 import ENVCAP.Source.Errors (SeparateCompilationError(SepCompError))
+import System.IO (readFile)
+import Control.Exception (try, IOException)
+import System.FilePath ((</>))
 
 -- | `expandInterface` is a utility function that performs type alias expansion
 -- on interface files.
@@ -34,7 +37,7 @@ expandInterface :: SurfaceTyp   -- ^ Typing context for type expansion.
 expandInterface _ (IAliasTyp name ty)   =
     Left $ SepCompError ("Type Alias: type " ++ name ++ " = " ++ show ty ++ " not expanded properly.")
 
-expandInterface tyGamma (IType     ty)  = 
+expandInterface tyGamma (IType     ty)  =
     case expandTyAlias tyGamma ty of
         Right ty'   -> Right    $ IType ty'
         Left  _     -> Left     $ SepCompError ("Type " ++ show ty ++ "did not expand properly.")
@@ -51,7 +54,7 @@ expandInterface tyGamma (FunctionTyp name params ty)=
                 Left  $ SepCompError
                             ("Interface Type Expansion Failed during the params expansion of function " ++ name)
 
-expandInterface tyGamma (ModuleTyp name params ty)=   
+expandInterface tyGamma (ModuleTyp name params ty)=
     case expandAliasTypParams tyGamma params of
         Right params'   ->
             case expandTyAlias tyGamma ty of
@@ -64,12 +67,12 @@ expandInterface tyGamma (ModuleTyp name params ty)=
             Left $ SepCompError
                             ("Interface Type Expansion Failed during the params expansion of module " ++ name)
 
-expandInterface tyGamma (Binding name ty)=   
+expandInterface tyGamma (Binding name ty)=
     case expandTyAlias tyGamma ty of
         Right ty'   -> Right $ Binding name ty'
         Left _      -> Left  $ SepCompError ("Interface Type Expansion Failed during the type expansion of binding " ++ name)
 
-expandInterface tyGamma (InterfaceAnd stmt1 stmt2)=   
+expandInterface tyGamma (InterfaceAnd stmt1 stmt2)=
     case stmt1 of
         (IAliasTyp name ty) ->
             case expandTyAlias tyGamma ty of
@@ -135,16 +138,84 @@ getModuleInputType ((_, ty):xs) =
             TySAnd <$> desugarTyp ty <*> getModuleInputType xs
 
 
--- | `getInterface` is a utility function that parses the interface
--- and desugars into a type.
+-- | `getRequirements` is a utility function that takes
+-- requirements and makes all implicits into explicits.
+-- 
+-- === Example:
+-- >>> getRequirements ([Implicit "Lib" "Lib"])
+-- [Explicit "Lib" (TySRecord "inc" (TySArrow TySInt TySInt)]
+getRequirements :: Requirements -> IO (Either SeparateCompilationError [(String, SourceTyp)])
+getRequirements [] = return $ Right []
+getRequirements (req:rest) = do
+    restResult <- getRequirements rest
+    case restResult of
+        Left err -> return $ Left err
+        Right rest' -> case req of
+            Implicit name interface -> do
+                fullInterfaceResult <- getFullInterface ("examples/Source/SepComp1" </> (interface ++ ".epi"))
+                case fullInterfaceResult of
+                    Left err -> return $ Left err
+                    Right typ -> return $ Right $ (name, typ) : rest'
+            Explicit name typ -> do
+                case desugarTyp typ of
+                    Left err -> return $ Left $ SepCompError (show err)
+                    Right typ' -> return $ Right $ (name, typ') : rest'
+
+
+convertRequirementsToTyp :: [(String, SourceTyp)] -> Either SeparateCompilationError SourceTyp
+convertRequirementsToTyp []                 = Left $ SepCompError "Failed"
+convertRequirementsToTyp [(name, ty)]       = Right $ TySRecord name ty
+convertRequirementsToTyp ((name, ty):rest)  =
+    case convertRequirementsToTyp rest of
+        Right rest'     -> return $ TySAnd (TySRecord name ty) rest'
+        Left err        -> Left err
+
+
+-- | `processRequirements` is a utility function that processes a list of requirements
+-- by first converting them to explicit requirements using `getRequirements` and then
+-- converting the result to a `SourceTyp` using `convertRequirementsToTyp`.
 --
 -- === Example:
--- >>> getInterface "val x : Int"
--- Right (TySRecord "x" TySInt)
-getInterface :: String -> Either SeparateCompilationError SourceTyp
-getInterface code = 
-    case parseInterface code of
-        Just (_, _, interface) ->
-                expandInterface STUnit interface >>=
-                    \expanded   -> interfaceToTyp expanded
-        _   -> Left $ SepCompError "Interface parsing failed."
+-- >>> processRequirements [Implicit "Lib" "Lib"]
+-- Right (TySRecord "Lib" (TySArrow TySInt TySInt))
+processRequirements :: Requirements -> IO (Either SeparateCompilationError SourceTyp)
+processRequirements ls = do
+    requirementsResult <- getRequirements ls
+    case requirementsResult of
+        Left err            -> return $ Left err
+        Right requirements  -> return $ convertRequirementsToTyp requirements
+
+-- | `getFullInterface` is a utility function that takes
+-- requirements and makes all implicit into explicit.
+--
+-- === Example:
+-- >>> getFullInterface ""
+getFullInterface :: String -> IO (Either SeparateCompilationError SourceTyp)
+getFullInterface file =
+    do  result <- try (readFile file) :: IO (Either IOException String)
+        print result
+        case result of
+            Left _      -> return $ Left $ SepCompError "Interface file not found"
+            Right code  ->
+                case parseInterface code of
+                    Just (_auth, requirements, interface)   ->
+                        if not (null requirements)
+                            then
+                                do
+                                    reqs <- processRequirements requirements
+                                    case reqs of
+                                            Right reqs' ->
+                                                case expandInterface STUnit interface of
+                                                    Right expanded  -> 
+                                                        case interfaceToTyp expanded of
+                                                            Right expanded' ->
+                                                                return $ Right (TySSig reqs' expanded')
+                                                            Left _      ->
+                                                                return $ Left (SepCompError "Interface to Type conversion failed")
+                                                    Left err        -> return $ Left err
+                                            Left err    -> return $ Left err
+                            else
+                                case expandInterface STUnit interface of
+                                        Right expanded  -> return $ interfaceToTyp expanded
+                                        Left err        -> return $ Left err
+                    Nothing     -> return $ Left $ SepCompError "Failed to parse"

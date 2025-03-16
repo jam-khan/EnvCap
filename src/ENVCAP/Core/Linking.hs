@@ -1,14 +1,6 @@
 module ENVCAP.Core.Linking where
 import ENVCAP.Syntax 
 
-
--- Linking rules
---
-
--- Link left
--- 
--- Example 1:
--- 
 newtype LinkingError = LinkFailed String 
                             deriving Show
 

@@ -1,3 +1,3 @@
-@pure
+@resource
 
-val inc = \(x: Int) => { x + 1 }
+let inc = \(x: Int) => { x + 1 }
