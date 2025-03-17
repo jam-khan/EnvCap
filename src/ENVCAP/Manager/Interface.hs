@@ -23,6 +23,7 @@ import ENVCAP.Source.Errors (SeparateCompilationError(SepCompError))
 import System.IO (readFile)
 import Control.Exception (try, IOException)
 import System.FilePath ((</>))
+import Control.Monad.Except (ExceptT, runExceptT, throwError, liftIO)
 
 -- | `expandInterface` is a utility function that performs type alias expansion
 -- on interface files.
@@ -81,8 +82,6 @@ expandInterface tyGamma (InterfaceAnd stmt1 stmt2)=
                 Left  _     ->
                     Left $ SepCompError ("Interface Type Expansion Failed when expanding type inside the alias " ++ name)
         _       -> InterfaceAnd <$> expandInterface tyGamma stmt1 <*> expandInterface tyGamma stmt2
-
-
 
 
 -- | `interfaceToTyp` is a utility function to desugar interface
@@ -152,7 +151,8 @@ getRequirements (req:rest) = do
         Left err -> return $ Left err
         Right rest' -> case req of
             Implicit name interface -> do
-                fullInterfaceResult <- getFullInterface ("examples/Source/SepComp1" </> (interface ++ ".epi"))
+                {-- Fix the hardcoded path later --}
+                fullInterfaceResult <- readInterface ("examples/Source/SepComp1" </> (interface ++ ".epi"))
                 case fullInterfaceResult of
                     Left err -> return $ Left err
                     Right typ -> return $ Right $ (name, typ) : rest'
@@ -185,37 +185,51 @@ processRequirements ls = do
         Left err            -> return $ Left err
         Right requirements  -> return $ convertRequirementsToTyp requirements
 
+
 -- | `getFullInterface` is a utility function that takes
 -- requirements and makes all implicit into explicit.
 --
 -- === Example:
--- >>> getFullInterface ""
-getFullInterface :: String -> IO (Either SeparateCompilationError SourceTyp)
-getFullInterface file =
+-- >>> getFullInterface "examples/Source/SepComp1/Utils.epi"
+-- Right (TySSig (TySRecord "Lib" (TySRecord "inc" (TySArrow TySInt TySInt))) (TySRecord "apply" (TySArrow TySInt TySInt)))
+readInterface :: String -> IO (Either SeparateCompilationError SourceTyp)
+readInterface file =
     do  result <- try (readFile file) :: IO (Either IOException String)
         print result
-        case result of
-            Left _      -> return $ Left $ SepCompError "Interface file not found"
-            Right code  ->
-                case parseInterface code of
+        process result
+    where 
+        process result = 
+            case result of
+                Left _      -> return $ Left $ SepCompError "Interface file not found"
+                Right code  -> parse code
+        
+        parse result = case parseInterface result of
                     Just (_auth, requirements, interface)   ->
-                        if not (null requirements)
-                            then
-                                do
-                                    reqs <- processRequirements requirements
-                                    case reqs of
-                                            Right reqs' ->
-                                                case expandInterface STUnit interface of
-                                                    Right expanded  -> 
-                                                        case interfaceToTyp expanded of
-                                                            Right expanded' ->
-                                                                return $ Right (TySSig reqs' expanded')
-                                                            Left _      ->
-                                                                return $ Left (SepCompError "Interface to Type conversion failed")
-                                                    Left err        -> return $ Left err
-                                            Left err    -> return $ Left err
-                            else
-                                case expandInterface STUnit interface of
-                                        Right expanded  -> return $ interfaceToTyp expanded
-                                        Left err        -> return $ Left err
+                        f requirements interface
                     Nothing     -> return $ Left $ SepCompError "Failed to parse"
+
+        f requirements interface
+                = if not (null requirements)
+                    then
+                        processReq
+                    else
+                        processEmptyReq 
+            where   
+                processReq =
+                    do  reqs <- processRequirements requirements
+                        case reqs of
+                            Right reqs' ->
+                                case expandInterface STUnit interface of
+                                    Right expanded  -> 
+                                        case interfaceToTyp expanded of
+                                            Right expanded' ->
+                                                return $ Right (TySSig reqs' expanded')
+                                            Left _      ->
+                                                return $ Left (SepCompError "Interface to Type conversion failed")
+                                    Left err        -> return $ Left err
+                            Left err    -> return $ Left err
+                        where 
+                processEmptyReq =
+                    case expandInterface STUnit interface of
+                        Right expanded  -> return $ interfaceToTyp expanded
+                        Left err        -> return $ Left err
