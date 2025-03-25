@@ -9,11 +9,6 @@ import GHC.Generics (Generic)
 import Data.Binary 
 
 
--- Adding lists
--- Represent List as a Union Type
--- So, [1, 2, 3] ~~> Every type is Int so, TyCList Int | TyCList Unit
--- So, 
-
 data UnaryOp    =       Not
         deriving (Eq, Show, Generic)
 
@@ -45,6 +40,9 @@ data Interface  =       IAliasTyp       String SurfaceTyp
                 |       Binding         Name SurfaceTyp
                 |       InterfaceAnd    Interface Interface
                 deriving (Eq, Show)
+
+newtype Header          = HeaderFile SecurityLevel Interface
+
 
 data SecurityLevel      = Pure | Resource deriving (Eq, Show)
 

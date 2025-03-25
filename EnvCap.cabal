@@ -66,43 +66,13 @@ executable EnvCap
     hs-source-dirs:   app
     default-language: Haskell2010
 
-test-suite tests-Syntax
+test-suite tests
     type: exitcode-stdio-1.0
-    main-is: SyntaxTests.hs
-    hs-source-dirs: Test/Unit
+    main-is: Spec.hs
+    hs-source-dirs: test
     build-depends:  base >= 4.7 && <5,
                     hspec,
+                    filepath,
                     EnvCap,
-                    QuickCheck
-    default-language: Haskell2010
-
-test-suite tests-Eval
-    type: exitcode-stdio-1.0
-    main-is: SemanticsTests.hs
-    hs-source-dirs: Test/Unit
-    build-depends:  base >= 4.7 && <5,
-                    hspec,
-                    EnvCap,
-                    QuickCheck
-    default-language: Haskell2010
-
-test-suite tests-TypeChecker
-    type: exitcode-stdio-1.0
-    main-is: TypeCheckerTests.hs
-    hs-source-dirs: Test/Unit
-    build-depends:  base >= 4.7 && <5,
-                    hspec,
-                    EnvCap,
-                    QuickCheck
-    default-language: Haskell2010
-
-test-suite tests-Parser
-    type: exitcode-stdio-1.0
-    main-is: ParserTests.hs
-    hs-source-dirs: Test/Unit
-    build-depends:  base >= 4.7 && <5,
-                    hspec,
-                    EnvCap,
-                    parsec,
                     QuickCheck
     default-language: Haskell2010
