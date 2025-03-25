@@ -18,12 +18,9 @@ import ENVCAP.Source.Errors
 import ENVCAP.Parser.Interface.ParseInterface (parseInterface)
 import ENVCAP.Syntax
 import ENVCAP.Source.TypeExpansion (expandTyAlias, expandAliasTypParams)
-import ENVCAP.Source.Desugar (getFixpointType, desugarTyp, desugar)
-import ENVCAP.Source.Errors (SeparateCompilationError(SepCompError))
-import System.IO (readFile)
-import Control.Exception (try, IOException)
+import ENVCAP.Source.Desugar (getFixpointType, desugarTyp)
+import Control.Exception
 import System.FilePath ((</>))
-import Control.Monad.Except (ExceptT, runExceptT, throwError, liftIO)
 
 -- | `expandInterface` is a utility function that performs type alias expansion
 -- on interface files.

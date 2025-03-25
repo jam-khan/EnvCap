@@ -1,4 +1,4 @@
-@pure
+interface @pure Utils
 
 require Lib;
 

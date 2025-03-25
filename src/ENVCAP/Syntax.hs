@@ -6,6 +6,7 @@
 
 module ENVCAP.Syntax where
 import GHC.Generics (Generic)
+import Data.Binary 
 
 
 -- Adding lists
@@ -220,3 +221,12 @@ data Value              =       VUnit                      -- Unit value
                         |       VBool   Bool               -- Boolean Value
                         |       VString String             -- String Value
                         deriving (Show, Eq, Generic)
+
+instance Binary CoreTm
+instance Binary CoreTyp
+instance Binary Value
+instance Binary BinaryOp
+instance Binary UnaryOp
+instance Binary ArithOp
+instance Binary CompOp
+instance Binary LogicOp

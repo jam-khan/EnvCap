@@ -14,12 +14,11 @@ For more details, see the individual function documentation.
 -}
 module ENVCAP.Manager.Implementation where
 
-import ENVCAP.Syntax (SourceTm, Requirements, Imports, SurfaceTm, SecurityLevel)
+import ENVCAP.Syntax 
 import ENVCAP.Source.Errors ( InterpreterError(..) ) 
 import Control.Exception ( IOException, try )
 import System.FilePath (takeBaseName, takeFileName)
 import ENVCAP.Interpreter (parseCode, typeAliasExpansion, locallyNameless, desugarSource)
-import ENVCAP.Parser.Implementation.ParseImp (parseImplementation)
 
 type Path     = String
 type FileName = String
@@ -44,10 +43,10 @@ getNameFromPath path    = takeBaseName $ takeFileName path
 getImplementationAST    :: Code                             -- ^ Implementation code
                         -> Either InterpreterError SourceTm -- ^ SourceAST or Interpreter Error with message
 getImplementationAST code =
-                do  surfaceAST                  <- parseCode code
-                    surfaceASTExpanded          <- typeAliasExpansion surfaceAST
-                    surfacelocallyNameLessAST   <- locallyNameless surfaceASTExpanded
-                    desugarSource surfacelocallyNameLessAST
+    do  surfaceAST                  <- parseCode code
+        surfaceASTExpanded          <- typeAliasExpansion surfaceAST
+        surfacelocallyNameLessAST   <- locallyNameless surfaceASTExpanded
+        desugarSource surfacelocallyNameLessAST
 
 -- A function to load an implementation file. 
 -- 

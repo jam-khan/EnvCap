@@ -23,7 +23,4 @@ repl = runInputT defaultSettings loop
                             loop
         Nothing -> outputStrLn "Goodbye!"
 
-main :: IO ()
-main = do
-  putStrLn "Welcome to the REPL! Type 'quit' or 'exit' to leave."
-  repl
+

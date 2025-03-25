@@ -21,7 +21,8 @@ maintainer:         jamkhan@connect.hku.hk
 -- category:
 extra-source-files: CHANGELOG.md
 library
-    exposed-modules:    ENVCAP.Interpreter ENVCAP.Utils ENVCAP.Parser.Parser ENVCAP.Syntax
+    exposed-modules:    ENVCAP.Interpreter ENVCAP.Utils ENVCAP.Repl ENVCAP.Syntax
+                        ENVCAP.Source.Desugar   ENVCAP.Source.Errors ENVCAP.Source.LocallyNameless ENVCAP.Source.TypeExpansion
                         ENVCAP.Manager.Interface ENVCAP.Manager.Implementation ENVCAP.Manager.Manage ENVCAP.Manager.Resolve
                         ENVCAP.Parser.Implementation.ParseImp ENVCAP.Parser.Interface.ParseInterface 
                         ENVCAP.Core.Evaluator ENVCAP.Core.TypeChecker
@@ -68,7 +69,7 @@ executable EnvCap
 test-suite tests-Syntax
     type: exitcode-stdio-1.0
     main-is: SyntaxTests.hs
-    hs-source-dirs: Test/Unit, Test/PBT
+    hs-source-dirs: Test/Unit
     build-depends:  base >= 4.7 && <5,
                     hspec,
                     EnvCap,
@@ -78,7 +79,7 @@ test-suite tests-Syntax
 test-suite tests-Eval
     type: exitcode-stdio-1.0
     main-is: SemanticsTests.hs
-    hs-source-dirs: Test/Unit, Test/PBT
+    hs-source-dirs: Test/Unit
     build-depends:  base >= 4.7 && <5,
                     hspec,
                     EnvCap,
@@ -88,7 +89,7 @@ test-suite tests-Eval
 test-suite tests-TypeChecker
     type: exitcode-stdio-1.0
     main-is: TypeCheckerTests.hs
-    hs-source-dirs: Test/Unit, Test/PBT
+    hs-source-dirs: Test/Unit
     build-depends:  base >= 4.7 && <5,
                     hspec,
                     EnvCap,
@@ -105,13 +106,3 @@ test-suite tests-Parser
                     parsec,
                     QuickCheck
     default-language: Haskell2010
-
--- test-suite tests-PBT
---     type: exitcode-stdio-1.0
---     main-is: Properties.hs
---     hs-source-dirs: Test/PBT
---     build-depends:  base >= 4.7 && <5,
---                     hspec,
---                     EnvCap,
---                     QuickCheck
---     default-language: Haskell2010

@@ -248,4 +248,4 @@ elaboratedFile filePath = do
                                                 Left err     -> print err
                                     Left  err   -> print err 
                             Left  err  -> print err
-                    Left err  -> putStrLn "Parsing Failed"
+                    Left _  -> putStrLn "Parsing Failed"

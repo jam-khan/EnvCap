@@ -1,3 +1,5 @@
+module Main
+
 @resource
 
 import Lib Utils;

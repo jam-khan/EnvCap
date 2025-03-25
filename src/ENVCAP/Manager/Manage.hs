@@ -14,32 +14,20 @@ For more details, see the individual function documentation.
 module ENVCAP.Manager.Manage where
 import System.Directory ( doesFileExist, listDirectory )
 import System.FilePath ((</>), takeBaseName)
-import Control.Monad (filterM, forM_, unless, forM)
+import Control.Monad (filterM, forM_, forM)
 import Data.Configurator ( load, require, Worth(Required) )
 import Data.Text (pack)
-import System.IO.Error (catchIOError, isDoesNotExistError)
+import System.IO.Error 
 import ENVCAP.Source.Errors 
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import ENVCAP.Manager.Implementation (Fragment, readImplementation)
 import ENVCAP.Syntax
 import ENVCAP.Source.Elaboration (elaborateInfer)
-import System.Directory.Internal.Prelude (unless)
+import System.Directory.Internal.Prelude
 import qualified Data.ByteString.Lazy as BL
-import Data.Binary (encode, decode, Binary, decodeOrFail)
-import Control.Exception (try, SomeException (SomeException))
-import GHC.Generics (Generic)
-import ENVCAP.Syntax (Value)
-import System.IO (stderr, hPutStrLn)
+import Data.Binary (encode, decodeOrFail)
 import ENVCAP.Interpreter (evaluate)
 
-instance Binary CoreTm
-instance Binary CoreTyp
-instance Binary Value
-instance Binary BinaryOp
-instance Binary UnaryOp
-instance Binary ArithOp
-instance Binary CompOp
-instance Binary LogicOp
 
 type ProjectName = String
 
@@ -130,19 +118,19 @@ loadCoreTmFile  :: ProjectName
                 -> String 
                 -> IO (Either String CoreTm)
 loadCoreTmFile projectName fileName = 
-    do  baseDir     <- getBaseDir
-        let filePath = baseDir </> projectName </> "compiled" </> (fileName ++ ".epc")
-        fileExists  <- doesFileExist filePath
+    do  baseDir       <- getBaseDir
+        let filePath  = baseDir </> projectName </> "compiled" </> (fileName ++ ".epc")
+        fileExists    <- doesFileExist filePath
         if not fileExists
-            then return $ Left ("File not found: " ++ filePath)
-            else do
-                result  <-  try (BL.readFile filePath) :: IO (Either SomeException BL.ByteString)
-                case result of
-                    Left exception      -> return $ Left (show exception)
-                    Right byteString    ->
-                        case decodeOrFail byteString of
-                            Left    (_, _, errMsg)  -> return $ Left ("Decoding error: " ++ errMsg)
-                            Right   (_, _, coreTm)  -> return $ Right coreTm
+          then return $ Left ("File not found: " ++ filePath)
+          else do
+            result  <-  try (BL.readFile filePath) :: IO (Either SomeException BL.ByteString)
+            case result of
+              Left exception      -> return $ Left (show exception)
+              Right byteString    ->
+                case decodeOrFail byteString of
+                  Left    (_, _, errMsg)  -> return $ Left ("Decoding error: " ++ errMsg)
+                  Right   (_, _, coreTm)  -> return $ Right coreTm
 
 -- | `compiledProject` creates a compiled directory in the project
 -- if it doesn't exists and then, loads the project files, elaborates to
@@ -152,7 +140,7 @@ compileProject  :: ProjectName
 compileProject projectName = do
   createCompiledDir projectName
   projectFiles              <- getProjectFiles projectName
-  (fragments, parseErrors)  <- loadProjectFiles projectFiles
+  (fragments, _)  <- loadProjectFiles projectFiles
 
   case elaborateFragments fragments of
     Left typeError -> return $ Left [show typeError]
@@ -189,7 +177,7 @@ executeProject projectName = do
     case coreTmResult of
       Left loadError -> hPutStrLn stderr $ "Error loading " ++ epcFileName ++ ": " ++ loadError
       Right coreTm -> do
-        case evaluate coreTm of
+        case ENVCAP.Interpreter.evaluate coreTm of
           Left evalError -> hPutStrLn stderr $ "Error evaluating " ++ epcFileName ++ ": " ++ show evalError
           Right value    -> print value  
 

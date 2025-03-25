@@ -583,3 +583,55 @@ Proof.
     apply IHelaborate_sexp3 in H9; subst.
     reflexivity.
 Qed.
+
+
+Definition LinkEnv := list (string * exp).
+
+Inductive Linking : LinkEnv -> exp -> exp -> Prop :=
+  | LinkRecord : forall env l e,
+      Linking env (rec l e) (rec l e)
+  | LinkMerge : forall env e1 e2 e1' e2',
+      Linking env e1 e1' ->
+      Linking env e2 e2' ->
+      Linking env (binop mrg e1 e2) (binop mrg e1' e2')
+  | LinkLambdaBullet : forall env x A e e',
+      Linking ((x, unit) :: env) e e' ->
+      Linking env (lam A e) (lam A e').
+
+Inductive WellLinked : LinkEnv -> exp -> Prop :=
+  | WLUnit : forall env, WellLinked env unit
+  | WLInt : forall env n, WellLinked env (lit n)
+  | WLRecord : forall env l e,
+      WellLinked env e ->
+      WellLinked env (rec l e)
+  | WLMerge : forall env e1 e2,
+      WellLinked env e1 ->
+      WellLinked env e2 ->
+      WellLinked env (binop mrg e1 e2)
+  | WLLambda : forall env A e,
+      WellLinked env e ->
+      WellLinked env (lam A e)
+  | WLClos : forall env v A e,
+      WellLinked env v ->
+      WellLinked env e ->
+      WellLinked env (clos v A e)
+  | WLApp : forall env e1 e2,
+      WellLinked env e1 ->
+      WellLinked env e2 ->
+      WellLinked env (binop app e1 e2)
+  | WLProj : forall env e n,
+      WellLinked env e ->
+      WellLinked env (proj e n)
+  | WLRProj : forall env e l,
+      WellLinked env e ->
+      WellLinked env (rproj e l).
+
+(* Lemma: Linking is transitive *)
+Lemma linking_transitive : forall env e1 e2 e3,
+    Linking env e1 e2 ->
+    Linking env e2 e3 ->
+    Linking env e1 e3.
+Proof.
+  intros env e1 e2 e3 H1 H2.
+  generalize dependent e3.
+Qed.
