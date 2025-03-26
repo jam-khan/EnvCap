@@ -10,7 +10,7 @@ import Data.Binary
 
 
 data UnaryOp    =       Not
-        deriving (Eq, Show, Generic)
+                deriving (Eq, Show, Generic)
 
 data BinaryOp   =       Arith ArithOp   -- Arithmetic
                 |       Comp  CompOp    -- CompOp
@@ -33,39 +33,21 @@ type Name         = String
 type Pattern      = (String, [String])
 type Cases        = [(Pattern, SurfaceTm)]
 
-data Interface  =       IAliasTyp       String SurfaceTyp
-                |       IType           SurfaceTyp
-                |       FunctionTyp     Name Params SurfaceTyp
-                |       ModuleTyp       Name Params SurfaceTyp
-                |       Binding         Name SurfaceTyp
-                |       InterfaceAnd    Interface Interface
-                deriving (Eq, Show)
 
-newtype Header          = HeaderFile SecurityLevel Interface
-
-
-data SecurityLevel      = Pure | Resource deriving (Eq, Show)
 
 type Imports            = [String]
+type Requirements       = [String]
+type ParseImplData      = (Name, Authority, Imports, Requirements, Interface)
+type ParseIntfData      = (Name, Authority,          Requirements, Interface)
 
-data Requirement        = Implicit String String | Explicit String SurfaceTyp
+data InterfaceStmt      = IAliasTyp       String SurfaceTyp
+                        | IType           SurfaceTyp
+                        | FunctionTyp     Name Params SurfaceTyp
+                        | ModuleTyp       Name Params SurfaceTyp
+                        | Binding         Name SurfaceTyp
                         deriving (Eq, Show)
 
-type Requirements       = [Requirement]
-
--- Info returned by parser of implementation
-type ParseImplementationData       
-                        = (SecurityLevel, Imports, Requirements, SurfaceTm)
-
--- Info returned by parser of interface
-type ParseInterfaceData = (SecurityLevel, Requirements, Interface)
-
--- After parsing implementation and interface
--- SurfaceFragment is created
---
--- In case of Repl, elaboration of surfaceTm can be directly called
--- Fragment must have separate elaboration rules for clarity and formalization
-data SurfaceFragment    = SFragment Name SecurityLevel Imports Requirements SurfaceTm Interface
+type Interface          = [InterfaceStmt]
 
 data SurfaceTm          =   SCtx                                        -- Query
                         |   SUnit                                       -- Unit
@@ -122,11 +104,12 @@ data SurfaceTyp         =   STUnit                              -- ^ Unit type f
                         |   STIden      String                  -- ^ Simply an alias
                         deriving (Eq, Show)
 
--- These must be added to the source at desugaring stage or something
+data SourceFragment     = TmFragment Name Authority SourceImport SourceRequirements SourceTyp
+data Authority          = Pure | Resource 
+                        deriving (Eq, Show)
 type SourceImport       = [(String, SourceTyp)]
 type SourceRequirements = [(String, SourceTyp)]
-
-data SourceFragment     = TmFragment Name SecurityLevel SourceImport SourceRequirements SourceTyp
+data SourceHeader       = TmInterface Name Authority SourceRequirements SourceTyp
 
 data SourceTm           =   TmCtx                               -- Query
                         |   TmUnit                              -- Unit
