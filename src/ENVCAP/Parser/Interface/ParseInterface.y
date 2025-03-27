@@ -23,6 +23,7 @@ import ENVCAP.Syntax
      'module'       {    TokenModule         }
      '@pure'        {    TokenPure           }
      '@resource'    {    TokenResource       }
+     'functor'      {    TokenFunctor        }
      'require'      {    TokenRequire        }
      'interface'    {    TokenInterface      }
      '['            {    TokenOpenSqBracket  }
@@ -38,7 +39,7 @@ import ENVCAP.Syntax
      '}'            {    TokenCloseBracket   }
 
 %right    '='
-%left     '->'
+%right     '->'
 %left     '&'
 %left     '+'
 
@@ -50,33 +51,41 @@ FragmentInterface   :    'interface'  var Required Interface               { ($2
                     |    '@pure'      'interface'  var Required Interface  { ($3, Pure,        $4, $5) }
                     |    '@resource'  'interface'  var Required Interface  { ($3, Resource,    $4, $5) }
 
-Required            :                                                 { [] }
-                    |    'require' var                  ';'           { [Req $2 $2] }
-                    |    'require' '(' Requirements ')' ';'           { $3 }
+Required            :                                                      { [] }
+                    |    'require' var                  ';'                { [Req $2 $2] }
+                    |    'require' '(' Requirements ')' ';'                { $3 }
 
-Requirements        :    Requirement                                  { [$1]  }
-                    |    Requirement ',' Requirements                 { $1 : $3 }
+Requirements        :    Requirement                                       { [$1]  }
+                    |    Requirement ',' Requirements                      { $1 : $3 }
 
-Requirement         :    var ':' Type                                 { Param    $1 $3 }
-                    |    var ':' 'interface' var                      { Req      $1 $4 }
-                    |    var                                          { Req      $1 $1 }
+Requirement         :    var ':' Type                                      { Param    $1 $3 }
+                    |    var ':' 'interface' var                           { Req      $1 $4 }
+                    |    var                                               { Req      $1 $1 }
 
-Interface           :    InterfaceStatement ';' Interface             { $1 : $3 }
-                    |    InterfaceStatement                           { [$1] }
+Interface           :    InterfaceStatement ';' Interface                  { $1 : $3 }
+                    |    InterfaceStatement                                { [$1] }
 
-InterfaceStatement  : TyAliasInterface                                { $1 }
-                    | FunctionInterface                               { $1 }
-                    | ModuleInterface                                 { $1 }
-                    | BindingInterface                                { $1 }
-                    | IType                                           { $1 }
+InterfaceStatement  : TyAlias                                              { $1 }
+                    | IntfAlias                                            { $1 }
+                    | FunctionInterface                                    { $1 }
+                    | ModuleInterface                                      { $1 }
+                    | FunctorInterface                                     { $1 }
+                    | BindingInterface                                     { $1 }
+                    | IType                                                { $1 }
 
-TyAliasInterface    : 'type' var '=' Type                             {    IAliasTyp $2 $4   }
+TyAlias             : 'type' var '=' Type                                  {    IAliasTyp  $2 $4   }
 
-FunctionInterface   : 'function' var '(' ParamList ')' ':' Type       {    FunctionTyp $2 $4 $7     }
+IntfAlias           : 'interface' var '{' Interface '}'                    {    IAliasIntf $2 $4   }
 
-ModuleInterface     : 'module'   var '(' ParamList ')' ':' Type       {    ModuleTyp   $2 $4 $7     }
+FunctionInterface   : 'function' var '(' ParamList ')' ':' Type            {    FunctionTyp $2 $4 $7     }
 
-BindingInterface    : 'val'      var ':' Type                         {    Binding $2 $4            }
+ModuleInterface     : 'module'  var '{' Interface '}'                      {    ModuleTyp   $2 [] $4     }
+                    | 'module'  var ':' var                                {    ModuleTyp   $2 [] [(IIden $4)] }
+
+FunctorInterface    : 'functor' var '(' ParamList ')' '{' Interface '}'    {    ModuleTyp   $2 $4 $7     }
+                    | 'functor' var '(' ParamList ')' ':' var              {    ModuleTyp   $2 $4 [(IIden $7)]  }
+
+BindingInterface    : 'val'      var ':' Type                              {    Binding $2 $4  }
 
 IType               : Type                                            {    IType $1  }
 
@@ -91,6 +100,7 @@ Type                : 'Int'                                           {    STInt
                     | '{' RecordType '}'                              {    $2             }
                     | '(' Type ')'                                    {    $2             }
 
+-- ArrowType           : ''
 
 RecordType          : Record ',' RecordType                           {    STAnd $1 $3     }
                     | Record                                          {    $1   }
@@ -117,6 +127,7 @@ data Token =   TokenVar String        --  x
           |    TokenValDef            -- 'val'
           |    TokenFunc              -- 'function'
           |    TokenModule            -- 'module'
+          |    TokenFunctor           -- 'functor'
           |    TokenOpenBracket       -- '{'
           |    TokenCloseBracket      -- '}'
           |    TokenColon             -- ':'
@@ -172,7 +183,8 @@ lexVar cs           = case span isAlpha cs of
                          ("@pure",      rest)     -> TokenPure        : lexer rest
                          ("@resource",  rest)     -> TokenResource    : lexer rest
                          ("require",    rest)     -> TokenRequire     : lexer rest
-                         ("interface",  rest)     -> TokenInterface   : lexer rest 
+                         ("interface",  rest)     -> TokenInterface   : lexer rest
+                         ("functor",    rest)     -> TokenFunctor     : lexer rest 
                          (var,          rest)     -> TokenVar var     : lexer rest
 
 parseInterface :: String -> Maybe ParseIntfData

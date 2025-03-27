@@ -18,6 +18,7 @@ val res =
                 case Friday             => { "Friday" }
                 case (Weekend n msg)    => { msg(1) }
 
+
 type Expr = Add Expr Expr | Mult Expr Expr | Val Int;
 type Tree = Node Tree Tree | Root Int;
 

@@ -33,4 +33,4 @@ newtype SourceTypeError = STypeError String
 
 -- | Represents errors for separate compilation.
 newtype SeparateCompilationError = SepCompError String
-    deriving Show 
+    deriving Show

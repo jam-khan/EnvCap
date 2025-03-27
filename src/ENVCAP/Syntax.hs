@@ -25,9 +25,11 @@ type ParseIntfData      = (Name, Authority,          Requirements, Interface)
 
 type Interface          = [InterfaceStmt]
 data InterfaceStmt      = IAliasTyp       String SurfaceTyp
+                        | IAliasIntf      String Interface
                         | IType           SurfaceTyp
+                        | IIden           String
                         | FunctionTyp     Name Params SurfaceTyp
-                        | ModuleTyp       Name Params SurfaceTyp
+                        | ModuleTyp       Name Params Interface
                         | Binding         Name SurfaceTyp
                         deriving (Eq, Show)
 

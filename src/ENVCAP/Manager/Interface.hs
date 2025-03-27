@@ -21,5 +21,14 @@ import ENVCAP.Source.TypeExpansion (expandTyAlias, expandAliasTypParams)
 import ENVCAP.Source.Desugar (getFixpointType, desugarTyp)
 import Control.Exception
 import System.FilePath ((</>))
+import System.IO (readFile)
 
-parseHeader :: String
+parseHeader :: FilePath -> IO (Either SeparateCompilationError ParseIntfData)
+parseHeader filePath = 
+    do  fileContent <- try (readFile filePath) :: IO (Either IOException String)
+        case fileContent of
+            Left  e       -> return $ Left $ SepCompError $ show e
+            Right content -> 
+                case parseInterface content of
+                    Nothing     -> return $ Left $ SepCompError ("Interface Parsing Failed for file: " ++ filePath)
+                    Just result -> return $ Right result
