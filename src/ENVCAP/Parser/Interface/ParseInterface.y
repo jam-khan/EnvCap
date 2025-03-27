@@ -44,25 +44,25 @@ import ENVCAP.Syntax
 
 %%
 
-Program             :    FragmentInterface                            { $1 }
+Program             :    FragmentInterface                                 { $1 }
 
-FragmentInterface   :    Interface                                    { (Pure, [], $1)}
-                    |    '@pure'      Required Interface              { (Pure, $2, $3) }
-                    |    '@resource'  Required Interface              { (Resource, $2, $3) }
+FragmentInterface   :    'interface'  var Required Interface               { ($2, Pure,        $3, $4) }
+                    |    '@pure'      'interface'  var Required Interface  { ($3, Pure,        $4, $5) }
+                    |    '@resource'  'interface'  var Required Interface  { ($3, Resource,    $4, $5) }
 
 Required            :                                                 { [] }
-                    |    'require' var                  ';'           { [Implicit $2 $2] }
+                    |    'require' var                  ';'           { [Req $2 $2] }
                     |    'require' '(' Requirements ')' ';'           { $3 }
 
 Requirements        :    Requirement                                  { [$1]  }
-                    |    Requirement ',' Requirements                 { $1:$3 }
+                    |    Requirement ',' Requirements                 { $1 : $3 }
 
-Requirement         :    var ':' Type                                 { Explicit $1 $3 }
-                    |    var ':' 'interface' var                      { Implicit $1 $4 }
-                    |    var                                          { Implicit $1 $1 }
+Requirement         :    var ':' Type                                 { Param    $1 $3 }
+                    |    var ':' 'interface' var                      { Req      $1 $4 }
+                    |    var                                          { Req      $1 $1 }
 
-Interface           :    InterfaceStatement ';' Interface             { InterfaceAnd $1 $3 }
-                    |    InterfaceStatement                           { $1 }
+Interface           :    InterfaceStatement ';' Interface             { $1 : $3 }
+                    |    InterfaceStatement                           { [$1] }
 
 InterfaceStatement  : TyAliasInterface                                { $1 }
                     | FunctionInterface                               { $1 }
@@ -175,8 +175,7 @@ lexVar cs           = case span isAlpha cs of
                          ("interface",  rest)     -> TokenInterface   : lexer rest 
                          (var,          rest)     -> TokenVar var     : lexer rest
 
-
-parseInterface :: String -> Maybe ParseInterfaceData
+parseInterface :: String -> Maybe ParseIntfData
 parseInterface input 
      = case interfaceParser (lexer input) of
           result -> Just result

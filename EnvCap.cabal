@@ -20,8 +20,7 @@ maintainer:         jamkhan@connect.hku.hk
 -- copyright:
 -- category:
 extra-source-files: CHANGELOG.md
-library my-lib
-    maintainer
+
 --     exposed-modules
 library
     exposed-modules:    ENVCAP.Interpreter ENVCAP.Utils ENVCAP.Repl ENVCAP.Syntax

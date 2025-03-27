@@ -15,9 +15,13 @@ type Name               = String
 type Pattern            = (String, [String])
 type Cases              = [(Pattern, SurfaceTm)]
 type Imports            = [String]
-type Requirements       = [String]
+
+data Requirement        = Req String String | Param String SurfaceTyp
+                        deriving (Eq, Show)
+type Requirements       = [Requirement]
 type ParseImplData      = (Name, Authority, Imports, Requirements, Interface)
 type ParseIntfData      = (Name, Authority,          Requirements, Interface)
+
 
 type Interface          = [InterfaceStmt]
 data InterfaceStmt      = IAliasTyp       String SurfaceTyp
@@ -26,7 +30,6 @@ data InterfaceStmt      = IAliasTyp       String SurfaceTyp
                         | ModuleTyp       Name Params SurfaceTyp
                         | Binding         Name SurfaceTyp
                         deriving (Eq, Show)
-
 
 
 data SurfaceTm          =   SCtx                                        -- Query
@@ -85,7 +88,6 @@ data SurfaceTyp         =   STUnit                              -- ^ Unit type f
                         |   STList      SurfaceTyp              -- ^ Type for built-in list 
                         |   STSig       SurfaceTyp SurfaceTyp   -- ^ Sig Type End
                         |   STIden      String                  -- ^ Simply an alias
-                        |   
                         deriving (Eq, Show)
 
 data SourceFragment     = TmFragment Name Authority SourceImport SourceRequirements SourceTyp
