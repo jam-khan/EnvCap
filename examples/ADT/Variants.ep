@@ -17,3 +17,13 @@ val res =
                 case Thursday           => { "Thursday" }
                 case Friday             => { "Friday" }
                 case (Weekend n msg)    => { msg(1) }
+
+type Expr = Add Expr Expr | Mult Expr Expr | Val Int;
+type Tree = Node Tree Tree | Root Int;
+
+
+
+function eval(e: Expr) : Int {
+    match Expr of
+        case (Add e1 e2)    => {eval(e1) + eval(e2)}
+}

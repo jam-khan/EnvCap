@@ -9,37 +9,17 @@ import GHC.Generics (Generic)
 import Data.Binary 
 
 
-data UnaryOp    =       Not
-                deriving (Eq, Show, Generic)
-
-data BinaryOp   =       Arith ArithOp   -- Arithmetic
-                |       Comp  CompOp    -- CompOp
-                |       Logic LogicOp   -- Boolean Logic
-                deriving (Eq, Show, Generic)
-
-data ArithOp    = Add | Sub | Mul | Div | Mod
-                deriving (Eq, Show, Generic)
-
-data CompOp     = Eql | Neq | Lt | Le | Gt | Ge
-                deriving (Eq, Show, Generic)
-
-data LogicOp    = And | Or
-                deriving (Eq, Show, Generic)
-
-
-type Params       = [(String, SurfaceTyp)]
-type Letargs      = [(String, SurfaceTyp, SurfaceTm)] 
-type Name         = String
-type Pattern      = (String, [String])
-type Cases        = [(Pattern, SurfaceTm)]
-
-
-
+type Params             = [(String, SurfaceTyp)]
+type Letargs            = [(String, SurfaceTyp, SurfaceTm)] 
+type Name               = String
+type Pattern            = (String, [String])
+type Cases              = [(Pattern, SurfaceTm)]
 type Imports            = [String]
 type Requirements       = [String]
 type ParseImplData      = (Name, Authority, Imports, Requirements, Interface)
 type ParseIntfData      = (Name, Authority,          Requirements, Interface)
 
+type Interface          = [InterfaceStmt]
 data InterfaceStmt      = IAliasTyp       String SurfaceTyp
                         | IType           SurfaceTyp
                         | FunctionTyp     Name Params SurfaceTyp
@@ -47,7 +27,7 @@ data InterfaceStmt      = IAliasTyp       String SurfaceTyp
                         | Binding         Name SurfaceTyp
                         deriving (Eq, Show)
 
-type Interface          = [InterfaceStmt]
+
 
 data SurfaceTm          =   SCtx                                        -- Query
                         |   SUnit                                       -- Unit
@@ -66,7 +46,10 @@ data SurfaceTm          =   SCtx                                        -- Query
                         |   SStruct    Params   SurfaceTm
                         |   SFunc      Name Params SurfaceTyp SurfaceTm
                         |   SModule    Name Params SurfaceTm
+                        {-- CAREFUL: Type Expansion --}
                         |   SAliasTyp  String SurfaceTyp
+                        |   SAliasIntf String Interface
+                        {-- CAREFUL: Type Expansion --}
                         |   SLet       Letargs  SurfaceTm
                         |   SLetrec    Letargs  SurfaceTm
                         |   SBinOp     BinaryOp SurfaceTm SurfaceTm
@@ -102,6 +85,7 @@ data SurfaceTyp         =   STUnit                              -- ^ Unit type f
                         |   STList      SurfaceTyp              -- ^ Type for built-in list 
                         |   STSig       SurfaceTyp SurfaceTyp   -- ^ Sig Type End
                         |   STIden      String                  -- ^ Simply an alias
+                        |   
                         deriving (Eq, Show)
 
 data SourceFragment     = TmFragment Name Authority SourceImport SourceRequirements SourceTyp
@@ -211,3 +195,20 @@ instance Binary UnaryOp
 instance Binary ArithOp
 instance Binary CompOp
 instance Binary LogicOp
+
+data UnaryOp    =       Not
+                deriving (Eq, Show, Generic)
+
+data BinaryOp   =       Arith ArithOp   -- Arithmetic
+                |       Comp  CompOp    -- CompOp
+                |       Logic LogicOp   -- Boolean Logic
+                deriving (Eq, Show, Generic)
+
+data ArithOp    = Add | Sub | Mul | Div | Mod
+                deriving (Eq, Show, Generic)
+
+data CompOp     = Eql | Neq | Lt | Le | Gt | Ge
+                deriving (Eq, Show, Generic)
+
+data LogicOp    = And | Or
+                deriving (Eq, Show, Generic)

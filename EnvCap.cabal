@@ -20,6 +20,9 @@ maintainer:         jamkhan@connect.hku.hk
 -- copyright:
 -- category:
 extra-source-files: CHANGELOG.md
+library my-lib
+    maintainer
+--     exposed-modules
 library
     exposed-modules:    ENVCAP.Interpreter ENVCAP.Utils ENVCAP.Repl ENVCAP.Syntax
                         ENVCAP.Source.Desugar   ENVCAP.Source.Errors ENVCAP.Source.LocallyNameless ENVCAP.Source.TypeExpansion
@@ -62,9 +65,10 @@ executable EnvCap
     build-depends:
         base ^>=4.17.2.0,
         EnvCap
-
+    
     hs-source-dirs:   app
     default-language: Haskell2010
+
 
 test-suite tests
     type: exitcode-stdio-1.0
