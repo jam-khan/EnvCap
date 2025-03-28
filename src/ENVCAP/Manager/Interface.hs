@@ -15,6 +15,8 @@ import Data.Either (rights, partitionEithers)
 import Data.List
 import ENVCAP.Utils (readFileSafe)
 import Data.Maybe ( mapMaybe)
+import ENVCAP.Manager.Sort (Graph, getDependencyOrder, getNodes)
+import qualified Data.Map.Strict as M
 
 -- `parseInterfaceFile` takes one file content and parses
 -- 
@@ -48,7 +50,10 @@ readInterfaceFiles files = do
         (_, invalidFiles) ->
             fail $ "Invalid extensions in: " ++ show invalidFiles
 
--- Verify all interface names match their filenames
+-- `verifyFileNames` is a utility function that ensures that 
+-- top-level interface name matches the file name
+--
+-- Returns Error or Nothing
 verifyFileNames :: [(FilePath, ParseIntfData)] -> Maybe SeparateCompilationError
 verifyFileNames parsedFiles =
     let check (path, (name, _, _, _)) =
@@ -60,15 +65,62 @@ verifyFileNames parsedFiles =
         [] -> Nothing
         (err:_) -> Just err  -- Return first error found
 
+-- | `buildDependencyGraph` converts the parsed interface data
+-- into a dependencyGraph
+-- 
+-- Convert parsed interfaces into a dependency graph
+buildDependencyGraph :: [ParseIntfData] -> Graph
+buildDependencyGraph interfaces = 
+    M.fromList $ map (\(name, _, requirements, _) -> 
+        (name, extractDependencies requirements)) interfaces
+    where
+        -- Extract all dependencies from requirements
+        extractDependencies :: Requirements -> [Name]
+        extractDependencies reqs = 
+            [ dep | Req _ dep <- reqs ]  -- Only take Req constructs, ignore Params
+
+-- | `sortByDependencyOrder` simply returns the topological
+--  sort of the parsed interfaces.
+-- 
+-- Returns list of topologically sorted interface lists
+sortByDependencyOrder :: [ParseIntfData] -> [Name] -> [ParseIntfData]
+sortByDependencyOrder interfaces order =
+    let 
+        interfaceMap = M.fromList [(name, intf) | intf@(name, _, _, _) <- interfaces]
+    in
+        mapMaybe (`M.lookup` interfaceMap) order
+
+-- | `sortInterfacesTopologically` creates a dependency graph
+-- performs topological sorting and detects cycles, if any. 
+-- 
+-- Returns the ParsedIntfData in the topological sort order
+sortInterfacesTopologically :: [ParseIntfData] -> Either SeparateCompilationError [ParseIntfData]
+sortInterfacesTopologically interfaces =
+    let 
+        graph = buildDependencyGraph interfaces
+        interfaceNames = map (\(name, _, _, _) -> name) interfaces
+        allNodes = getNodes graph
+        missingDeps = filter (`notElem` interfaceNames) allNodes
+    in  
+        if not (null missingDeps)
+        then Left $ SepCompError $ "Missing interface dependencies: " ++ show missingDeps
+        else
+            case getDependencyOrder graph of
+                Right order -> 
+                    Right (sortByDependencyOrder interfaces order)
+                Left _ -> 
+                    Left $ SepCompError "Cyclic dependencies detected between interfaces"
+
+
+
 -- `processInterfaceFiles` basically takes filepaths of multiple interface files
 -- and processes each.
 -- 
 -- returns the final processed interfaces
 processInterfaceFiles :: [FilePath] -> IO (Either SeparateCompilationError [ParseIntfData])
 processInterfaceFiles files = do
-    -- Read files (already checks .epi extension)
+    -- Read files (already checks .epi extensixon)
     contents <- readInterfaceFiles files
-    -- Parse files (gets [(FilePath, ParseIntfData)])
     case parseInterfaceFiles contents of
         Left err -> return $ Left err
         Right parsed ->
@@ -76,6 +128,9 @@ processInterfaceFiles files = do
             case verifyFileNames parsed of
                 Nothing ->  return $ Right . map snd $ parsed  -- Return just ParseIntfData
                 Just err -> return $ Left err
+
+-- Now, we have ParseIntfData
+
 
 
 -- -- Read all the headers

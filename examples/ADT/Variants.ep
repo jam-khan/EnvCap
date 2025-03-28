@@ -9,8 +9,10 @@ type Day    = Monday
             | Friday 
             | Weekend Int (Int -> String);
 
+let y  = {Weekend 10 (\(x:Int) => { "Whynot" })} as Day;
+
 let res = 
-        match ({Weekend 10 (\(x:Int) => { "Whynot" })} as Day) 
+        match y 
             of  case Monday             => { "Monday" }
                 case Tuesday            => { "Tuesday" }
                 case Wednesday          => { "Wednesday" }
