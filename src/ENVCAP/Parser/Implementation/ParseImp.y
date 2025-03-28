@@ -164,8 +164,8 @@ ConstructedTerm     : Projection            %prec proj  { $1 }
                     | Struct                            { $1 }
                     | Match                             { $1 }
                     | Tagging                           { $1 }
-                    -- | Let                               { $1 }
-                    -- | Letrec                            { $1 }
+                    | Let                               { $1 }
+                    | Letrec                            { $1 }
                     | Record                            { $1 }
                     | Tuple                             { $1 }
                     | DependentMerge                    { $1 }
@@ -274,11 +274,11 @@ Tail                : 'tail' '(' Term ')'                        { STail  $3 }
 
 Rest                : 'rest' '(' Term ')'                        { SRest $3 }
 
-Concat              : Term '++' Term                             { SConcat $1 $3 }
+Concat                   : Term '++' Term                             { SConcat $1 $3 }
 
-TyAlias             : 'type' var '=' Type                        { SAliasTyp $2 $4 }
+TyAlias                  : 'type' var '=' Type                        { SAliasTyp $2 $4 }
 
-DependentMerge      : '(' DependentMergeElements ')'             { $2 }
+DependentMerge           : '(' DependentMergeElements ')'             { $2 }
 
 DependentMergeElements   : DependentMergeElements ';' Term       { SMrg $1 $3 }
                          | Term ';' Term                         { SMrg $1 $3 }
@@ -307,8 +307,8 @@ ParamList                : ParamL ',' ParamList                       { $1 : $3 
 
 ParamL                   : var ':' Type                               { ($1, $3) } 
 
--- Let                      : 'let'    '{' bindings '}' 'in' '{' Term '}'   { SLet    $3 $7 }
--- Letrec                   : 'letrec' '{' bindings '}' 'in' '{' Term '}'   { SLetrec $3 $7 }
+Let                      : 'let'    '{' bindings '}' 'in' '{' Term '}'   { SLet    $3 $7 }
+Letrec                   : 'letrec' '{' bindings '}' 'in' '{' Term '}'   { SLetrec $3 $7 }
 
 bindings                 : binding ';' bindings                       { $1 : $3 }
                          | binding                                    { [$1] }

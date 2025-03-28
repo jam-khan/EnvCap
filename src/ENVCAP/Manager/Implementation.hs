@@ -19,6 +19,25 @@ import ENVCAP.Source.Errors ( InterpreterError(..) )
 import Control.Exception ( IOException, try )
 import System.FilePath (takeBaseName, takeFileName)
 import ENVCAP.Interpreter (parseCode, typeAliasExpansion, locallyNameless, desugarSource)
+import Data.List 
+import ENVCAP.Utils (readFileSafe)
+import Data.Either (rights)
+
+-- `readInterfaceFiles` basically takes filepaths of multiple interface files
+-- and reads each with some basic checks on files.
+--
+-- returns the content of the files.
+readImplementationFiles  :: [FilePath] 
+                    -> IO [String]
+readImplementationFiles files = do
+    -- Check all files have .ep extension first
+    case partition (".ep" `Data.List.isSuffixOf`) files of
+        (_, []) -> do  -- All files are valid
+            contents <- mapM readFileSafe files
+            return (rights contents)
+        (_, invalidFiles) -> 
+            fail $ "These files must have .ep extension: " ++ show invalidFiles
+
 
 type Path     = String
 type FileName = String

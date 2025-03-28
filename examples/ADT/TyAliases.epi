@@ -2,6 +2,6 @@
 
 type newInt = Int;
 
-val hello =  \(x: newInt) => { x };
+val hello :  newInt -> newInt;
 
-hello(1)
+newInt

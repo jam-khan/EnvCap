@@ -13,16 +13,17 @@ For more details, see the individual function documentation.
 -}
 module ENVCAP.Manager.Manage where
 import System.Directory ( doesFileExist, listDirectory )
-import System.FilePath ((</>), takeBaseName)
+import System.FilePath ((</>), takeBaseName, takeFileName)
 import Control.Monad (filterM, forM_, forM)
 import Data.Configurator ( load, require, Worth(Required) )
-import Data.Text (pack)
+import Data.Text (pack, isSuffixOf)
 import System.IO.Error 
 import ENVCAP.Source.Errors 
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import ENVCAP.Manager.Implementation (Fragment, readImplementation)
 import ENVCAP.Syntax
 import ENVCAP.Source.Elaboration (elaborateInfer)
+import Data.List (isSuffixOf) 
 import System.Directory.Internal.Prelude
 import qualified Data.ByteString.Lazy as BL
 import Data.Binary (encode, decodeOrFail)
@@ -46,6 +47,10 @@ createCompiledDir projectName =
                 exists  <- doesDirectoryExist compiledDir
                 unless exists $ createDirectoryIfMissing True compiledDir
 
+-- Extracts "Variants" from "/path/to/Variants.epi"
+getFileBaseName :: FilePath -> String
+getFileBaseName = takeBaseName . takeFileName
+
 -- | `getFileNames` is a utility function that returns the file names
 -- present in a specific directory.
 getFileNames    :: FilePath      -- ^ Path of a file/directory
@@ -64,6 +69,24 @@ getProjectFiles projectName =
     do  baseDir     <- getBaseDir
         filesNames  <- getFileNames (baseDir ++ projectName) `catchIOError` handleDirectoryError
         return $ map (\x -> baseDir </> projectName </> x) filesNames
+
+-- | `getInterfaceAndImplFiles` is a utility function that returns the path of
+-- all implementation and interface Files present in the specified project.
+--
+-- It utilizes the path specified in environment variable `ENVCAP_CODE`.
+-- Reads all the files present and returns list of interface paths and list of impl paths.
+getInterfaceAndImplFiles  :: ProjectName                  -- ^ Name of the project
+                          -> IO ([FilePath], [FilePath])  -- ^ (interface files, implementation files)
+getInterfaceAndImplFiles projName = 
+    do
+      allFiles <- getProjectFiles projName `catchIOError` handleDirectoryError
+      return $ foldr categorize ([], []) allFiles
+    where
+      categorize :: FilePath -> ([FilePath], [FilePath]) -> ([FilePath], [FilePath])
+      categorize file (epis, eps)
+        | ".epi"  `Data.List.isSuffixOf` file = (file:epis, eps)
+        | ".ep"   `Data.List.isSuffixOf` file = (epis, file:eps)
+        | otherwise                           = (epis, eps)
 
 -- | `loadProjectFiles` loads and parses the implementation files of a project.
 -- It returns a list of successfully parsed fragments and a list of errors.
