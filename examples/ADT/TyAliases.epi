@@ -1,4 +1,4 @@
-@pure module TyAliases
+@pure interface TyAliases
 
 type newInt = Int;
 

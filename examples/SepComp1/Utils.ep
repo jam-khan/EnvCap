@@ -1,4 +1,4 @@
-module @pure Utils
+@pure module Utils
 
 require Lib;
 

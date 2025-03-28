@@ -1,6 +1,4 @@
-module Main
-
-@resource
+@resource module Main
 
 import Lib Utils;
 

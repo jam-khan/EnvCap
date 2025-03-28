@@ -26,9 +26,10 @@ library
     exposed-modules:    ENVCAP.Interpreter ENVCAP.Utils ENVCAP.Repl ENVCAP.Syntax
                         ENVCAP.Source.Desugar   ENVCAP.Source.Errors ENVCAP.Source.LocallyNameless ENVCAP.Source.TypeExpansion
                         ENVCAP.Manager.Interface ENVCAP.Manager.Implementation ENVCAP.Manager.Manage ENVCAP.Manager.Resolve
-                        ENVCAP.Parser.Implementation.ParseImp ENVCAP.Parser.Interface.ParseInterface 
+                        
+                        ENVCAP.Parser.Interface.ParseInterface 
                         ENVCAP.Core.Evaluator ENVCAP.Core.TypeChecker
-                        ENVCAP.Core.Step ENVCAP.Source.Elaboration
+                        ENVCAP.Source.Elaboration
     -- Modules included in this library but not exported.
     -- other-modules:
 

@@ -8,7 +8,6 @@ module ENVCAP.Syntax where
 import GHC.Generics (Generic)
 import Data.Binary 
 
-
 type Params             = [(String, SurfaceTyp)]
 type Letargs            = [(String, SurfaceTyp, SurfaceTm)] 
 type Name               = String
@@ -18,21 +17,23 @@ type Imports            = [String]
 
 data Requirement        = Req String String | Param String SurfaceTyp
                         deriving (Eq, Show)
+
 type Requirements       = [Requirement]
-type ParseImplData      = (Name, Authority, Imports, Requirements, Interface)
+type ParseImplData      = (Name, Authority, Imports, Requirements, SurfaceTm)
 type ParseIntfData      = (Name, Authority,          Requirements, Interface)
 
-
 type Interface          = [InterfaceStmt]
-data InterfaceStmt      = IAliasTyp       String SurfaceTyp
-                        | IAliasIntf      String Interface
-                        | IType           SurfaceTyp
-                        | IIden           String
-                        | FunctionTyp     Name Params SurfaceTyp
-                        | ModuleTyp       Name Params Interface
-                        | Binding         Name SurfaceTyp
+
+data InterfaceStmt      =   IAliasTyp       String SurfaceTyp
+                        |   IAliasIntf      String Interface
+                        |   IType           SurfaceTyp
+                        |   IIden           String
+                        |   FunctionTyp     Name Params SurfaceTyp
+                        |   ModuleTyp       Name Params Interface
+                        |   Binding         Name SurfaceTyp
                         deriving (Eq, Show)
 
+type Statements         = [SurfaceTm]
 
 data SurfaceTm          =   SCtx                                        -- Query
                         |   SUnit                                       -- Unit
@@ -95,9 +96,10 @@ data SurfaceTyp         =   STUnit                              -- ^ Unit type f
 data SourceFragment     = TmFragment Name Authority SourceImport SourceRequirements SourceTyp
 data Authority          = Pure | Resource 
                         deriving (Eq, Show)
-type SourceImport       = [(String, SourceTyp)]
-type SourceRequirements = [(String, SourceTyp)]
+
 data SourceHeader       = TmInterface Name Authority SourceRequirements SourceTyp
+type SourceImport       = [(String, SourceHeader)]
+type SourceRequirements = [(String, SourceHeader)]
 
 data SourceTm           =   TmCtx                               -- Query
                         |   TmUnit                              -- Unit

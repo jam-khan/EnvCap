@@ -27,8 +27,8 @@ import ENVCAP.Parser.Interface.ParseInterface (parseInterface)
 parseCode :: String -> Either InterpreterError SurfaceTm
 parseCode code = 
     case parseImplementation code of
-        Just (_, _, _, tm)  -> Right tm
-        Nothing             -> Left $ InterpreterFailed "Parsing unsuccessful."
+        Just (_, _, _, _, tm)   -> Right tm
+        Nothing                 -> Left $ InterpreterFailed "Parsing unsuccessful."
 
 -- | Expands type aliases within the surfaceAST, returning the expanded term or an 'InterpreterError' on failure.
 --

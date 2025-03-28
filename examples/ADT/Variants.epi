@@ -1,4 +1,4 @@
-@resource module Variants
+@resource interface Variants
 
 import TyAliases;
 

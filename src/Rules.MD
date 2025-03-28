@@ -103,8 +103,8 @@ The λ<sub>E</sub> has been extended with arithmetic, logic, comparison operatio
 ## Big-Step Operational Semantics: λ<sub>E</sub> extensions
 
 
-            -------------- BSTEP-True               --------------- BSTEP-False                 ----------- BSTEP-STR          
-            v |- b => True                          v |- b => False                             v |- s => s                   
+                    -------------- BSTEP-True               --------------- BSTEP-False                 ----------- BSTEP-STR          
+                    v |- b => True                          v |- b => False                             v |- s => s                   
 
                     v |- e => ⟨v1, λA e1⟩                                                   v |- e1 => v1      v ,, v1 |- e2 => v1
                 -------------------------------------------------- BSTEP-FIX               -------------------------------------- BSTEP-LET

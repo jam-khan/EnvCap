@@ -31,7 +31,6 @@ import ENVCAP.Interpreter (evaluate)
 
 type ProjectName = String
 
-
 -- | `getBaseDir` loads the path from environment variable `ENVCAP_CODE` in `config.cfg`
 -- and returns the project path.
 getBaseDir  :: IO String

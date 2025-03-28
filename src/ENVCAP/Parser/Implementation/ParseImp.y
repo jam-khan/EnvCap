@@ -84,10 +84,9 @@ import ENVCAP.Syntax
      ',,'           { TokenDepMerge }
 
 
-%right '='
-%right '=>'
-%left '.'
-%left proj
+%right '=' '=>'
+%right 'if'
+%left '.' proj
 %left TokenElse
 %left application_prec
 %left '->'
@@ -98,31 +97,33 @@ import ENVCAP.Syntax
 %left '+' '-'
 %left '*' '/' '%'
 %left '++'
+%nonassoc 'then'
+%nonassoc 'else'
 
 %%
 
 Program             :    Fragment                                     { $1 }
 
-Fragment            :    Statements                                   { (Pure, [], [], $1)     }
-                    |    '@pure'      Import Required Statements      { (Pure, $2, $3, $4)     }
-                    |    '@resource'  Import Required Statements      { (Resource, $2, $3, $4) }
+Fragment            :    'module' var Statements                                { ($2, Pure,      [], [], $3) }
+                    |    '@pure'     'module' var Import Required Statements    { ($3, Pure,      $4, $5, $6) }
+                    |    '@resource' 'module' var Import Required Statements    { ($3, Resource,  $4, $5, $6) }
 
 Import              :                                                 { [] }
                     |    'import' FileNames ';'                       { $2 }
 
 FileNames           :    var FileNames                                { $1 : $2 }
-                    |    var                                          { [$1]    }
+                    |    var                                          { [$1] }
 
 Required            :                                                 { [] }
-                    |    'require' var                  ';'           { [Implicit $2 $2] }
+                    |    'require' var                  ';'           { [Req $2 $2] }
                     |    'require' '(' Requirements ')' ';'           { $3 }
 
 Requirements        :    Requirement                                  { [$1]  }
-                    |    Requirement ',' Requirements                 { $1:$3 }
+                    |    Requirement ',' Requirements                 { $1 : $3 }
 
-Requirement         :    var ':' Type                                 { Explicit $1 $3 }
-                    |    var ':' 'interface' var                      { Implicit $1 $4 }
-                    |    var                                          { Implicit $1 $1 }
+Requirement         :    var ':' Type                                 { Param    $1 $3 }
+                    |    var ':' 'interface' var                      { Req      $1 $4 }
+                    |    var                                          { Req      $1 $1 }
 
 Statements          : Statements ';' Statement          { SMrg $1 $3 }
                     | Statement                         { $1 }
@@ -231,10 +232,8 @@ IntersectionType    : IntersectionType ',' Type             {  STAnd $1 $3  }
 Projection          : Term '.' int                          {  SProj  $1 $3  }
                     | Term '.' var                          {  SRProj $1 $3  }
 
-Module              : 'functor' var '(' ParamList ')' ':' Type '{' Statements '}'    { SModule $2 $4 $9 }
-                    | 'functor' var '(' ParamList ')' '{' Statements '}'             { SModule $2 $4 $7 }
-                    | 'module' var ':' Type '{' Statements '}'                       { SRec $2 $6 }
-                    | 'module' var '{' Statements '}'                                { SRec $2 $4 }
+Module              : 'functor' var '(' ParamList ')' ':' Type '{' Statements '}'    { SAnno (SModule $2 $4 $9) $7 }
+                    | 'module' var ':' Type '{' Statements '}'                       { SAnno (SRec $2 $6) $4 }
 
 Struct              : 'module' 'struct' '{' Statements '}'                      { $4 }
                     | 'module' 'struct' '(' ParamList ')' '{' Statements '}'    { SStruct $4 $7 }
@@ -251,7 +250,7 @@ FunctionApplication : var '(' Arguments ')'  %prec application_prec             
 Binding             : 'let' var '=' Term                                        { SRec $2 $4 }
                     | 'val' var '=' Term                                        { SRec $2 $4 }
 
-Lambda              : '(' Lambda ')' '(' Arguments ')'                          { SApp $2 $5 }
+Lambda              : '(' Lambda ')' '(' Arguments ')'  %prec application_prec              { SApp $2 $5 }
                     | '\\(' ParamList ')' '=>' '{' Statements '}'               { SLam $2 $6 }
                     | '\\(' ParamList ')' '=>' Term                             { SLam $2 $5 }
 
@@ -522,7 +521,7 @@ lexVar cs = case span isAlpha cs of
                ("as",         rest)     -> TokenAs          : lexer rest
                (var,          rest)     -> TokenVar var     : lexer rest
 
-parseImplementation :: String -> Maybe ParseImplementationData
+parseImplementation :: String -> Maybe ParseImplData
 parseImplementation input = case implementationParser (lexer input) of
                                    result -> Just result
                                    _      -> Nothing                    
@@ -570,7 +569,7 @@ runTest :: Int -> [(String, SurfaceTm)] -> IO()
 runTest n []        = putStrLn $ (show (n + 1) ++ " Tests Completed.")
 runTest n (x:xs)    = do
                          case parseImplementation (fst x) of
-                              Just (_, _, _, tm)  -> 
+                              Just (_, _, _, _, tm)  -> 
                                    if tm == (snd x) 
                                         then putStrLn $ "Test " ++ (show (n + 1)) ++ ": Passed"
                                         else putStrLn $ "Test " ++ (show (n + 1)) ++ ": Failed: " ++ (show tm)
