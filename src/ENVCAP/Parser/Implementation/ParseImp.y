@@ -38,11 +38,17 @@ import ENVCAP.Syntax
      'function'     { TokenFunc         }
      'struct'       { TokenStruct       }
      'module'       { TokenModule       }
+     'functor'      { TokenFunctor      }
      'with'         { TokenBox          }
-     'as'           { TokenAs }
+     'as'           { TokenAs           }
      'match'        { TokenMatch        }
      'case'         { TokenCase         }
      'of'           { TokenMatchOf      }
+     'isempty'      { TokenIsEmpty      }
+     'head'         { TokenHead         }
+     'tail'         { TokenTail         }
+     'rest'         { TokenRest         }
+     '++'           { TokenConcat       }
      '[]'           { TokenEmptyList    }
      '['            { TokenOpenSqBracket  }
      ']'            { TokenCloseSqBracket }
@@ -78,11 +84,9 @@ import ENVCAP.Syntax
      ',,'           { TokenDepMerge }
 
 
-%right '='
-%right '=>'
-%left '.'
-%left '::'
-%left proj
+%right '=' '=>'
+%right 'if'
+%left '.' proj
 %left TokenElse
 %left application_prec
 %left '->'
@@ -92,37 +96,39 @@ import ENVCAP.Syntax
 %left '|'
 %left '+' '-'
 %left '*' '/' '%'
+%left '++'
+%nonassoc 'then'
+%nonassoc 'else'
 
 %%
 
 Program             :    Fragment                                     { $1 }
 
-Fragment            :    Statements                                   { (Pure, [], [], $1)     }
-                    |    '@pure'      Import Required Statements      { (Pure, $2, $3, $4)     }
-                    |    '@resource'  Import Required Statements      { (Resource, $2, $3, $4) }
+Fragment            :    'module' var Statements                                { ($2, Pure,      [], [], $3) }
+                    |    '@pure'     'module' var Import Required Statements    { ($3, Pure,      $4, $5, $6) }
+                    |    '@resource' 'module' var Import Required Statements    { ($3, Resource,  $4, $5, $6) }
 
 Import              :                                                 { [] }
                     |    'import' FileNames ';'                       { $2 }
 
 FileNames           :    var FileNames                                { $1 : $2 }
-                    |    var                                          { [$1]    }
+                    |    var                                          { [$1] }
 
 Required            :                                                 { [] }
-                    |    'require' var                  ';'           { [Implicit $2 $2] }
+                    |    'require' var                  ';'           { [Req $2 $2] }
                     |    'require' '(' Requirements ')' ';'           { $3 }
 
 Requirements        :    Requirement                                  { [$1]  }
-                    |    Requirement ',' Requirements                 { $1:$3 }
+                    |    Requirement ',' Requirements                 { $1 : $3 }
 
-Requirement         :    var ':' Type                                 { Explicit $1 $3 }
-                    |    var ':' 'interface' var                      { Implicit $1 $4 }
-                    |    var                                          { Implicit $1 $1 }
+Requirement         :    var ':' Type                                 { Param    $1 $3 }
+                    |    var ':' 'interface' var                      { Req      $1 $4 }
+                    |    var                                          { Req      $1 $1 }
 
 Statements          : Statements ';' Statement          { SMrg $1 $3 }
                     | Statement                         { $1 }
 
-Statement           : Open                              { $1 }
-                    | Function                          { $1 }
+Statement           : Function                          { $1 }
                     | Module                            { $1 }
                     | Binding                           { $1 }
                     | TyAlias                           { $1 }
@@ -132,6 +138,12 @@ Open                : 'open' Term                       { SOpen $2 }
 
 Term                : BaseTerm                          { $1 }
                     | ConstructedTerm                   { $1 }
+                    | List                              { $1 }
+                    | IsEmpty                           { $1 }
+                    | Head                              { $1 }
+                    | Tail                              { $1 }
+                    | Rest                              { $1 }
+                    | Concat                            { $1 }
                     | Parens                            { $1 }
                     | error                             { parseError [$1] }
 
@@ -154,8 +166,6 @@ ConstructedTerm     : Projection            %prec proj  { $1 }
                     | Tagging                           { $1 }
                     | Let                               { $1 }
                     | Letrec                            { $1 }
-                    | List                              { $1 }
-                    | ListCons                          { $1 }
                     | Record                            { $1 }
                     | Tuple                             { $1 }
                     | DependentMerge                    { $1 }
@@ -184,7 +194,7 @@ Pattern             : var                               { ($1, []) }
 Identifiers         : var Identifiers                   { $1 : $2 }
                     | var                               { [$1] }
 
-Box                 : 'with' Term 'in' '{' Statements '}'    { SBox $2 $5 }
+Box                 : 'with' Term 'in' '{' Statements '}'    { SBox (SMrg SUnit $2) $5 }
 
 Type                : BaseType                               { $1 }
                     | ADT                                    { $1 }
@@ -222,42 +232,58 @@ IntersectionType    : IntersectionType ',' Type             {  STAnd $1 $3  }
 Projection          : Term '.' int                          {  SProj  $1 $3  }
                     | Term '.' var                          {  SRProj $1 $3  }
 
-Module              : 'module' var '(' ParamList ')' '{' Statements '}'         { SModule $2 $4 $7 }
+Module              : 'functor' var '(' ParamList ')' ':' Type '{' Statements '}'    { SAnno (SModule $2 $4 $9) $7 }
+                    | 'module' var ':' Type '{' Statements '}'                       { SAnno (SRec $2 $6) $4 }
 
-Struct              : 'struct'     '(' ParamList ')' '{' Statements '}'         { SStruct $3 $6 }
+Struct              : 'module' 'struct' '{' Statements '}'                      { $4 }
+                    | 'module' 'struct' '(' ParamList ')' '{' Statements '}'    { SStruct $4 $7 }
+                    | 'struct' '{' Statements '}'                               { $3 }  
+                    | 'struct' '(' ParamList ')' '{' Statements '}'             { SStruct $3 $6 }
 
 Signature           : 'Sig' '[' Type ',' Type ']'                               { STSig $3 $5 }
 
-Function            : 'function' var '(' ParamList ')' ':' Type '{' Term '}'    { SFunc $2 $4 $7 $9 }
+Function            : 'function' var '(' ParamList ')' ':' Type '=' Term        { SFunc $2 $4 $7 $9 }
+                    | 'function' var '(' ParamList ')' ':' Type '{' Term '}'    { SFunc $2 $4 $7 $9 }
 
 FunctionApplication : var '(' Arguments ')'  %prec application_prec             { SApp (SVar $1) $3 }
 
-Binding             : 'val' var '=' Term                                        { SRec $2 $4 }
+Binding             : 'let' var '=' Term                                        { SRec $2 $4 }
+                    | 'val' var '=' Term                                        { SRec $2 $4 }
 
-Lambda              : '(' Lambda ')' '(' Arguments ')'                          { SApp $2 $5 }
+Lambda              : '(' Lambda ')' '(' Arguments ')'  %prec application_prec              { SApp $2 $5 }
                     | '\\(' ParamList ')' '=>' '{' Statements '}'               { SLam $2 $6 }
+                    | '\\(' ParamList ')' '=>' Term                             { SLam $2 $5 }
 
-Bool                : 'False' { SBool False }
-                    | 'True'  { SBool True }
+Bool                : 'False'           { SBool False }
+                    | 'True'            { SBool True }
 
-String              : '\'' var '\''                                             { SString $2 }
-                    | '"' var '"'                                               { SString $2 }
+String              : '\'' var '\''                              { SString $2 }
+                    | '"' var '"'                                { SString $2 }
 
-ListCons            : Term '::' Term                                            { SCons $1 $3 }
+List                : '[' Elements ']'                           { SList $2 }
 
-TyAlias             : 'type' var '=' Type                                       { SAliasTyp $2 $4 }
+Elements            :                                            { []      }
+                    | Term                                       { [$1] }
+                    | Term ',' Elements                          { [$1] ++ $3 }
+                    
+IsEmpty             : 'isempty' '(' Term ')'                     { SIsEmpty $3 }
 
--- There must be atleast one element in tuple I guess this satisfies it but
--- it will create ambiguities, so must have atleast two elements
+Head                : 'head' '(' Term ')'                        { SHead $3 }
 
--- It must have atleast two elements
+Tail                : 'tail' '(' Term ')'                        { STail  $3 }
+
+Rest                : 'rest' '(' Term ')'                        { SRest $3 }
+
+Concat                   : Term '++' Term                             { SConcat $1 $3 }
+
+TyAlias                  : 'type' var '=' Type                        { SAliasTyp $2 $4 }
 
 DependentMerge           : '(' DependentMergeElements ')'             { $2 }
 
-DependentMergeElements   : DependentMergeElements ',,' Term           { SMrg $1 $3 }
-                         | Term ',,' Term                             { SMrg $1 $3 }
+DependentMergeElements   : DependentMergeElements ';' Term       { SMrg $1 $3 }
+                         | Term ';' Term                         { SMrg $1 $3 }
 
-Tuple                    : '(' TupleElements ')'                      { STuple $2 }
+Tuple                    : '(' TupleElements ')'                 { STuple $2 }
 
 TupleElements            : Term ',' TupleElements                     { $1 : $3 }
                          | Term ',' Term                              { $1 : [$3] }
@@ -269,10 +295,12 @@ Param                    : var ':' Type                               { STRecord
 
 Record                   : '{' Records '}'                            { $2 }
 
-Records                  : '"' var '"' '=' Term ',' Records           { SMrg (SRec $2 $5) $7 }
+Records                  :  '"' var '"' '=' Term ',' Records          { SMrg (SRec $2 $5) $7 }
                          | '"' var '"' '=' Term                       { SRec $2 $5 }
                          | '\'' var '\'' '=' Term ',' Records         { SMrg (SRec $2 $5) $7 }
                          | '\'' var '\'' '=' Term                     { SRec $2 $5 }
+                         | var '=' Term ',' Records                   { SMrg (SRec $1 $3) $5 }
+                         | var '=' Term                               { SRec $1 $3 }
 
 ParamList                : ParamL ',' ParamList                       { $1 : $3 }
                          | ParamL                                     { [$1] }
@@ -287,11 +315,6 @@ bindings                 : binding ';' bindings                       { $1 : $3 
 
 binding                  : var ':' Type '=' Term                      { ($1, $3, $5) }
 
-List                     : '[]' ':' Type                              { SNil $3 }
-                         | '[' Elements ']'                           { $2 }
-
-Elements                 : Term ',' Elements                          { SCons $1 $3 }
-                         | Term                                       { $1 }
 
 Arguments                : Term ',' Arguments                         { $1 : $3 }
                          | Term                                       { [$1] }
@@ -300,8 +323,9 @@ Parens                   : '(' Term ')'                               { $2 }
 
 CurlyParens              : '{' Statements '}'                         { $2 }
 
-IfThenElse               : 'if' Parens 'then' CurlyParens 'else' CurlyParens { SIf $2 $4 $6 }
-
+IfThenElse               : 'if' Parens 'then' Term 'else' Term               { SIf $2 $4 $6 }
+                         | 'if' Parens 'then' CurlyParens 'else' CurlyParens { SIf $2 $4 $6 }
+                         
 ComparisonOp             :  Term    '>='    Term                      { SBinOp (Comp  Ge)   $1 $3 }
                          |  Term    '>'     Term                      { SBinOp (Comp  Gt)   $1 $3 }
                          |  Term    '=='    Term                      { SBinOp (Comp  Eql)  $1 $3 }
@@ -355,6 +379,7 @@ data Token =   TokenInt Integer       -- Lit i
           |    TokenFalse             -- 'False'
           |    TokenFunc              -- 'function'
           |    TokenModule            -- 'module'
+          |    TokenFunctor           -- 'functor'
           |    TokenStruct            -- 'struct'
           |    TokenOpenBracket       -- '{'
           |    TokenCloseBracket      -- '}'
@@ -392,6 +417,11 @@ data Token =   TokenInt Integer       -- Lit i
           |    TokenRequire           -- 'require'
           |    TokenInterface         -- 'interface'
           |    TokenOpen              -- 'open'
+          |    TokenIsEmpty           -- 'isempty'
+          |    TokenHead              -- 'head'
+          |    TokenTail              -- 'tail'
+          |    TokenRest              -- 'rest'
+          |    TokenConcat            -- '++'
           deriving Show
 
 lexer :: String -> [Token]
@@ -400,7 +430,10 @@ lexer (c:cs)
      | isSpace c = lexer cs
      | isAlpha c = lexVar (c:cs)
      | isDigit c = lexNum (c:cs)
-lexer ('+':cs)      = TokenPlus     : lexer cs
+lexer ('+':cs)      = 
+     case cs of
+          ('+':cs') ->   TokenConcat   : lexer cs'
+          _         ->   TokenPlus     : lexer cs
 lexer ('-':cs)      = 
      case cs of
           ('>':cs')      -> TokenTypeArrow   : lexer cs'
@@ -452,6 +485,10 @@ lexer ('@':cs)      = case span isAlpha cs of
 lexNum cs = TokenInt (read num) : lexer rest
                     where (num, rest) = span isDigit cs
 lexVar cs = case span isAlpha cs of
+               ("isempty",    rest)     -> TokenIsEmpty     : lexer rest
+               ("head",       rest)     -> TokenHead        : lexer rest
+               ("rest",       rest)     -> TokenRest        : lexer rest
+               -- ("append",     rest)     -> TokenAppend      : lexer rest
                ("import",     rest)     -> TokenImport      : lexer rest
                ("require",    rest)     -> TokenRequire     : lexer rest
                ("interface",  rest)     -> TokenInterface   : lexer rest
@@ -475,6 +512,7 @@ lexVar cs = case span isAlpha cs of
                ("type",       rest)     -> TokenTyAlias     : lexer rest
                ("function",   rest)     -> TokenFunc        : lexer rest
                ("module",     rest)     -> TokenModule      : lexer rest
+               ("functor",    rest)     -> TokenFunctor     : lexer rest
                ("struct",     rest)     -> TokenStruct      : lexer rest
                ("val",        rest)     -> TokenValDef      : lexer rest
                ("if",         rest)     -> TokenIf          : lexer rest
@@ -483,7 +521,7 @@ lexVar cs = case span isAlpha cs of
                ("as",         rest)     -> TokenAs          : lexer rest
                (var,          rest)     -> TokenVar var     : lexer rest
 
-parseImplementation :: String -> Maybe ParseImplementationData
+parseImplementation :: String -> Maybe ParseImplData
 parseImplementation input = case implementationParser (lexer input) of
                                    result -> Just result
                                    _      -> Nothing                    
@@ -531,7 +569,7 @@ runTest :: Int -> [(String, SurfaceTm)] -> IO()
 runTest n []        = putStrLn $ (show (n + 1) ++ " Tests Completed.")
 runTest n (x:xs)    = do
                          case parseImplementation (fst x) of
-                              Just (_, _, _, tm)  -> 
+                              Just (_, _, _, _, tm)  -> 
                                    if tm == (snd x) 
                                         then putStrLn $ "Test " ++ (show (n + 1)) ++ ": Passed"
                                         else putStrLn $ "Test " ++ (show (n + 1)) ++ ": Failed: " ++ (show tm)

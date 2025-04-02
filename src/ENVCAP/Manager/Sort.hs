@@ -109,19 +109,33 @@ topologicalSort (curr:queue) indegree graph  count result   =
 --
 -- >>> getDependencyOrder cyclicGraph
 -- Left "Cyclic dependencies detected."
-getDependencyOrder  :: Graph 
-                    -> Either String [FilePath]
+-- getDependencyOrder  :: Graph 
+--                     -> Either String [FilePath]
+-- getDependencyOrder graph =
+--     let
+--         reversedGraph   = reverseGraph graph
+--         queue           = initialQueue reversedGraph
+--         (count, order)  = topologicalSort queue (inDegree reversedGraph) reversedGraph 0 []
+--     in
+--         if count == length (getNodes graph) then
+--             Right order
+--         else
+            -- Left "Cyclic dependencies detected."
+getDependencyOrder :: Graph -> Either String [FilePath]
 getDependencyOrder graph =
     let
-        reversedGraph   = reverseGraph graph
-        queue           = initialQueue reversedGraph
-        (count, order)  = topologicalSort queue (inDegree reversedGraph) reversedGraph 0 []
+        reversedGraph = reverseGraph graph
+        queue = initialQueue reversedGraph
+        (count, order) = topologicalSort queue (inDegree reversedGraph) reversedGraph 0 []
+        totalNodes = length (getNodes graph)
+        -- Add any missing nodes (isolated ones) in arbitrary order at the end
+        allNodes = getNodes graph
+        missingNodes = filter (`notElem` order) allNodes
     in
-        if count == length (getNodes graph) then
-            Right order
+        if count + length missingNodes == totalNodes then
+            Right (order ++ missingNodes)
         else
             Left "Cyclic dependencies detected."
-
 -- Example 1
 validGraph :: Graph
 validGraph = M.fromList
@@ -137,3 +151,11 @@ cyclicGraph = M.fromList
   , ("B", ["C"])
   , ("C", ["A"])
   ]
+
+-- Example 3
+validGraph2 :: Graph
+validGraph2 = M.fromList
+    [ ("A", [])
+    , ("B", [])
+    , ("C", [])
+    ]

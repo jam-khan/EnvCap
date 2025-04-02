@@ -92,3 +92,5 @@ eval env (BinOp (Logic op) e1 e2)
 eval env (UnOp Not e1)          = case eval env e1 of
                                         Just (VBool b)       -> Just (VBool (not b))
                                         _                    -> Nothing
+eval _ (CLam _ _)               = Nothing
+eval env (Anno tm _)            = eval env tm

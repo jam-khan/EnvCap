@@ -1,150 +1,202 @@
-{-|
-Module      : ENVCAP.Manager.Interface
-Description : Module is responsible for parsing and loading of multiple interface files.
-Copyright   : (c) Jam Kabeer Ali Khan, 2025
-License     : MIT
-Maintainer  : jamkhan@connect.hku.hk
-Stability   : experimental
-
-Key functionalities:
-- Functionality 1: Parse interface files.
-- Functionality 2: Structure interface files.
-
-For more details, see the individual function documentation.
--}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 module ENVCAP.Manager.Interface where
 import ENVCAP.Source.Errors
+import ENVCAP.Manager.Manage
 import ENVCAP.Parser.Interface.ParseInterface (parseInterface)
 import ENVCAP.Syntax
 import ENVCAP.Source.TypeExpansion (expandTyAlias, expandAliasTypParams)
 import ENVCAP.Source.Desugar (getFixpointType, desugarTyp)
-import ENVCAP.Source.Errors (SeparateCompilationError(SepCompError))
+import Control.Exception
+import System.FilePath ((</>), takeBaseName, takeFileName)
+import System.IO (readFile)
+import System.Directory (doesDirectoryExist, doesFileExist)
+import Control.Monad (unless)
+import Data.Either (rights, partitionEithers)
+import Data.List
+import ENVCAP.Utils (readFileSafe)
+import Data.Maybe ( mapMaybe)
+import ENVCAP.Manager.Sort (Graph, getDependencyOrder, getNodes)
+import qualified Data.Map.Strict as M
 
--- | `expandInterface` is a utility function that performs type alias expansion
--- on interface files.
+-- `parseInterfaceFile` takes one file content and parses
+-- 
+-- Returns either separate compilation error or the result
+parseIntfFile   :: (FilePath, String)
+                -> Either SeparateCompilationError (FilePath, ParseIntfData)
+parseIntfFile (path, contents) =
+    case parseInterface contents of
+        Just res -> Right (path, res)  -- Preserve path in success case
+        Nothing  -> Left $ SepCompError ("Parse failed: " ++ path)
+
+-- `parseInterfaceFiles` takes file contents and parses
+-- each files and returns a list of parsed data.
+-- 
+-- returns the parsed data
+parseInterfaceFiles :: [(FilePath, String)]
+                    -> Either SeparateCompilationError [(FilePath, ParseIntfData)]
+parseInterfaceFiles = traverse parseIntfFile
+
+-- `readInterfaceFiles` basically takes filepaths of multiple interface files
+-- and reads each with some basic checks on files.
 --
--- === Example:
+-- returns the content of the files.
+readInterfaceFiles  :: [FilePath]
+                    -> IO [(FilePath, String)]
+readInterfaceFiles files = do
+    case partition (".epi" `isSuffixOf`) files of
+        (validFiles, []) -> do
+            contents <- mapM readFileSafe validFiles
+            return $ zip validFiles (rights contents)
+        (_, invalidFiles) ->
+            fail $ "Invalid extensions in: " ++ show invalidFiles
+
+-- `verifyFileNames` is a utility function that ensures that 
+-- top-level interface name matches the file name
 --
--- >>> expandInterface STUnit (InterfaceAnd (IAliasTyp "INT" STInt) (Binding "x" (STIden "INT")))
--- Right (Binding "x" STInt)
-expandInterface :: SurfaceTyp   -- ^ Typing context for type expansion.
-                -> Interface    -- ^ Interface to be expanded.
-                -> Either SeparateCompilationError Interface    -- ^ Returns error or expanded interface.
-expandInterface _ (IAliasTyp name ty)   =
-    Left $ SepCompError ("Type Alias: type " ++ name ++ " = " ++ show ty ++ " not expanded properly.")
+-- Returns Error or Nothing
+verifyFileNames :: [(FilePath, ParseIntfData)] -> Maybe SeparateCompilationError
+verifyFileNames parsedFiles =
+    let check (path, (name, _, _, _)) =
+            if name == getFileBaseName path
+            then Nothing
+            else Just $ SepCompError $
+                 "Interface name '" ++ name ++ "' doesn't match filename '" ++ getFileBaseName path ++ "'"
+    in case mapMaybe check parsedFiles of
+        [] -> Nothing
+        (err:_) -> Just err  -- Return first error found
 
-expandInterface tyGamma (IType     ty)  = 
-    case expandTyAlias tyGamma ty of
-        Right ty'   -> Right    $ IType ty'
-        Left  _     -> Left     $ SepCompError ("Type " ++ show ty ++ "did not expand properly.")
+-- | `buildDependencyGraph` converts the parsed interface data
+-- into a dependencyGraph
+-- 
+-- Convert parsed interfaces into a dependency graph
+buildDependencyGraph :: [ParseIntfData] -> Graph
+buildDependencyGraph interfaces = 
+    M.fromList $ map (\(name, _, requirements, _) -> 
+        (name, extractDependencies requirements)) interfaces
+    where
+        -- Extract all dependencies from requirements
+        extractDependencies :: Requirements -> [Name]
+        extractDependencies reqs = 
+            [ dep | Req _ dep <- reqs ]  -- Only take Req constructs, ignore Params
 
-expandInterface tyGamma (FunctionTyp name params ty)=
-    case expandAliasTypParams tyGamma params of
-        Right params'  ->
-            case expandTyAlias tyGamma ty of
-                Right ty'   -> Right $ FunctionTyp name params' ty'
-                Left  _   ->
-                    Left  $ SepCompError
-                            ("Interface Type Expansion Failed during output type expansion of function " ++ name)
-        Left _    ->
-                Left  $ SepCompError
-                            ("Interface Type Expansion Failed during the params expansion of function " ++ name)
+-- | `sortByDependencyOrder` simply returns the topological
+--  sort of the parsed interfaces.
+-- 
+-- Returns list of topologically sorted interface lists
+sortByDependencyOrder :: [ParseIntfData] -> [Name] -> [ParseIntfData]
+sortByDependencyOrder interfaces order =
+    let 
+        interfaceMap = M.fromList [(name, intf) | intf@(name, _, _, _) <- interfaces]
+    in
+        mapMaybe (`M.lookup` interfaceMap) order
 
-expandInterface tyGamma (ModuleTyp name params ty)=   
-    case expandAliasTypParams tyGamma params of
-        Right params'   ->
-            case expandTyAlias tyGamma ty of
-                Right ty'   ->
-                    Right $ ModuleTyp name params' ty'
-                Left _    ->
-                    Left $ SepCompError
-                            ("Interface Type Expansion Failed during output type expansion of module " ++ name)
-        Left _        ->
-            Left $ SepCompError
-                            ("Interface Type Expansion Failed during the params expansion of module " ++ name)
+-- | `sortInterfacesTopologically` creates a dependency graph
+-- performs topological sorting and detects cycles, if any. 
+-- 
+-- Returns the ParsedIntfData in the topological sort order
+sortInterfacesTopologically :: [ParseIntfData] -> Either SeparateCompilationError [ParseIntfData]
+sortInterfacesTopologically interfaces =
+    let 
+        graph           = buildDependencyGraph interfaces
+        interfaceNames  = map (\(name, _, _, _) -> name) interfaces
+        allNodes        = getNodes graph
+        missingDeps     = filter (`notElem` interfaceNames) allNodes
+    in  
+        if      not (null missingDeps)
+        then    Left $ SepCompError $ "Missing interface dependencies: " ++ show missingDeps
+        else    case getDependencyOrder graph of
+                    Right order -> 
+                        Right (sortByDependencyOrder interfaces order)
+                    Left _      -> 
+                        Left $ SepCompError "Cyclic dependencies detected between interfaces"
 
-expandInterface tyGamma (Binding name ty)=   
-    case expandTyAlias tyGamma ty of
-        Right ty'   -> Right $ Binding name ty'
-        Left _      -> Left  $ SepCompError ("Interface Type Expansion Failed during the type expansion of binding " ++ name)
+processInterfaceFiles   :: ProjectName 
+                        -> IO (Either SeparateCompilationError [ParseIntfData])
+processInterfaceFiles projname = do
+    -- Step 1: Read interface files
+    (interfaceFiles, _) <- getInterfaceAndImplFiles projname
+    if null interfaceFiles
+        then    return $ Right []
+        else    do  contentsWithPaths <- readInterfaceFiles interfaceFiles
+                    let processingResult = 
+                            do  parseWithPaths <- parseInterfaceFiles contentsWithPaths
+                                case verifyFileNames parseWithPaths of
+                                    Nothing     -> return () -- check this!! maybe
+                                    Just err    -> Left err
+                                let intfDataOnly = map snd parseWithPaths
+                                sortInterfacesTopologically intfDataOnly
+                    return processingResult
+                
+-- -- `processInterfaceFiles` basically takes filepaths of multiple interface files
+-- -- and processes each.
+-- -- 
+-- -- returns the final processed interfaces
+-- processInterfaceFiles :: [FilePath] -> IO (Either SeparateCompilationError [ParseIntfData])
+-- processInterfaceFiles files = do
+--     -- Read files (already checks .epi extensixon)
+--     contents <- readInterfaceFiles files
+--     case parseInterfaceFiles contents of
+--         Left err -> return $ Left err
+--         Right parsed ->
+--             -- Verify names match filenames
+--             case verifyFileNames parsed of
+--                 Nothing ->  return $ Right . map snd $ parsed  -- Return just ParseIntfData
+--                 Just err -> return $ Left err
 
-expandInterface tyGamma (InterfaceAnd stmt1 stmt2)=   
-    case stmt1 of
-        (IAliasTyp name ty) ->
-            case expandTyAlias tyGamma ty of
-                Right ty'   ->
-                    expandInterface (STAnd tyGamma (STRecord name ty')) stmt2
-                Left  _     ->
-                    Left $ SepCompError ("Interface Type Expansion Failed when expanding type inside the alias " ++ name)
-        _       -> InterfaceAnd <$> expandInterface tyGamma stmt1 <*> expandInterface tyGamma stmt2
-
-
-
-
--- | `interfaceToTyp` is a utility function to desugar interface
--- to a type.
---
--- Note: Types and Interfaces are unified.
---
--- === Example:
--- >>> interfaceToTyp (IType (STInt))
--- Right TySInt
-interfaceToTyp :: Interface -> Either SeparateCompilationError SourceTyp
-interfaceToTyp (IAliasTyp _name _ty)
-                =   Left (SepCompError "Type Alias detected at interface desugaring stage (Should not be possible) if expansion done correctly.")
-interfaceToTyp (IType ty)
-                =   case desugarTyp ty of
-                        Right ty'                   ->  Right ty'
-                        Left (DesugarFailed err)    ->
-                            Left $ SepCompError ("Interface Type Expansion Failed " ++ err)
-interfaceToTyp (FunctionTyp name params ty)
-                =   case desugarTyp ty of
-                        Right ty'   ->
-                            case getFixpointType params ty' of
-                                Right ty''                  -> Right $ TySRecord name ty''
-                                Left  (DesugarFailed err)   -> Left  $ SepCompError ("Interface Type Expansion Failed " ++ err)
-                        Left (DesugarFailed err) ->
-                            Left $ SepCompError ("Interface Type Expansion Failed " ++ err)
-interfaceToTyp (ModuleTyp name params ty)
-                =   case getModuleInputType params of
-                        Right tyA   ->
-                            case desugarTyp ty of
-                                Right tyB   -> Right $ TySRecord name (TySSig tyA tyB)
-                                Left err    -> Left  $ SepCompError ("Interface Type Expansion Failed " ++ show err)
-                        Left err    -> Left $ SepCompError ("Interface Type Expansion Failed" ++ show err)
-interfaceToTyp (Binding name ty)
-                =   case desugarTyp ty of
-                        Right ty'   -> Right $ TySRecord name ty'
-                        Left  err   -> Left $ SepCompError ("Interface Type Expansion Failed" ++ show err)
-interfaceToTyp (InterfaceAnd ty1 ty2)
-                =   TySAnd <$> interfaceToTyp ty1 <*> interfaceToTyp ty2
-
--- | `getModuleInputType` is a utility function that
--- desugars the parameters of a module to a type.
---
--- === Example:
--- >>> getModuleInputType [("num", STInt)]
--- Right TySInt
-getModuleInputType :: Params -> Either DesugarError SourceTyp
-getModuleInputType []           =
-            Left  $ DesugarFailed "Module must have at least one parameter!"
-getModuleInputType [(_, ty)]    =
-            desugarTyp ty
-getModuleInputType ((_, ty):xs) =
-            TySAnd <$> desugarTyp ty <*> getModuleInputType xs
+-- Now, we have ParseIntfData
 
 
--- | `getInterface` is a utility function that parses the interface
--- and desugars into a type.
---
--- === Example:
--- >>> getInterface "val x : Int"
--- Right (TySRecord "x" TySInt)
-getInterface :: String -> Either SeparateCompilationError SourceTyp
-getInterface code = 
-    case parseInterface code of
-        Just (_, _, interface) ->
-                expandInterface STUnit interface >>=
-                    \expanded   -> interfaceToTyp expanded
-        _   -> Left $ SepCompError "Interface parsing failed."
+
+-- -- Read all the headers
+-- getHeaders :: ProjectName -> IO (Either SeparateCompilationError [ParseIntfData])
+-- getHeaders projName = 
+--     do
+--         baseDir <- getBaseDir
+--         let projDir = baseDir </> projName
+--         exists <- doesDirectoryExist projDir
+--         unless exists $ 
+
+-- parseHeader :: FilePath -> IO (Either SeparateCompilationError ParseIntfData)
+-- parseHeader filePath = 
+--     do  fileContent <- try (readFile filePath) :: IO (Either IOException String)
+--         case fileContent of
+--             Left  e       -> return $ Left $ SepCompError $ show e
+--             Right content -> 
+--                 case parseInterface content of
+--                     Nothing     -> return $ Left $ SepCompError ("Interface Parsing Failed for file: " ++ filePath)
+--                     Just result -> return $ Right result
+
+-- extractRequirements :: FilePath -> Requirements -> Either SeparateCompilationError SourceRequirements
+-- extractRequirements path []      = Right []
+-- extractRequirements path (x:xs)  =
+--     case x of
+--         -- Assumption intfName is found in the current path
+--         Req name intfName       -> 
+--             case processHeader (FilePath </> intfName) of
+--                 Right ty        -> uhhjnmkm,
+--         Param name typ          -> extractRequirements xs >>= 
+--                                         \xs' -> 
+--                                             ((name, typ):xs')
+
+-- -- Write Tests
+-- -- 
+-- ---------------------------------
+-- processHeader :: ParseIntfData -> Either SeparateCompilationError SourceHeader
+-- processHeader (name, auth, reqs, intf) =
+--     -- 
+-- -- 1st Pass
+-- -- Remove Type Aliases and Expand
+-- -- TBC
+-- -- Test
+
+-- -- 2nd Pass
+-- -- Read other interface files
+-- -- in the requirements
+--     -- Perform 1st and 2nd pass for each interface file read
+-- -- Test
+
+-- -- Put interface file in the proper simplified form
+-- -- desugar into source level
+-- -- Test
+
+-- -- P

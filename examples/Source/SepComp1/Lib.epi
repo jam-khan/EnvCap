@@ -1,3 +1,0 @@
-@pure
-
-val inc : Int -> Int

@@ -1,0 +1,3 @@
+@resource interface Variants
+
+val res : String

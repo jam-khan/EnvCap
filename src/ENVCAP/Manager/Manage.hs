@@ -13,36 +13,24 @@ For more details, see the individual function documentation.
 -}
 module ENVCAP.Manager.Manage where
 import System.Directory ( doesFileExist, listDirectory )
-import System.FilePath ((</>), takeBaseName)
-import Control.Monad (filterM, forM_, unless, forM)
+import System.FilePath ((</>), takeBaseName, takeFileName)
+import Control.Monad (filterM, forM_, forM)
 import Data.Configurator ( load, require, Worth(Required) )
-import Data.Text (pack)
-import System.IO.Error (catchIOError, isDoesNotExistError)
+import Data.Text (pack, isSuffixOf)
+import System.IO.Error 
 import ENVCAP.Source.Errors 
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import ENVCAP.Manager.Implementation (Fragment, readImplementation)
 import ENVCAP.Syntax
 import ENVCAP.Source.Elaboration (elaborateInfer)
-import System.Directory.Internal.Prelude (unless)
+import Data.List (isSuffixOf) 
+import System.Directory.Internal.Prelude
 import qualified Data.ByteString.Lazy as BL
-import Data.Binary (encode, decode, Binary, decodeOrFail)
-import Control.Exception (try, SomeException (SomeException))
-import GHC.Generics (Generic)
-import ENVCAP.Syntax (Value)
-import System.IO (stderr, hPutStrLn)
+import Data.Binary (encode, decodeOrFail)
 import ENVCAP.Interpreter (evaluate)
 
-instance Binary CoreTm
-instance Binary CoreTyp
-instance Binary Value
-instance Binary BinaryOp
-instance Binary UnaryOp
-instance Binary ArithOp
-instance Binary CompOp
-instance Binary LogicOp
 
 type ProjectName = String
-
 
 -- | `getBaseDir` loads the path from environment variable `ENVCAP_CODE` in `config.cfg`
 -- and returns the project path.
@@ -58,6 +46,10 @@ createCompiledDir projectName =
                 let compiledDir  = baseDir </> projectName </> "compiled"
                 exists  <- doesDirectoryExist compiledDir
                 unless exists $ createDirectoryIfMissing True compiledDir
+
+-- Extracts "Variants" from "/path/to/Variants.epi"
+getFileBaseName :: FilePath -> String
+getFileBaseName = takeBaseName . takeFileName
 
 -- | `getFileNames` is a utility function that returns the file names
 -- present in a specific directory.
@@ -77,6 +69,24 @@ getProjectFiles projectName =
     do  baseDir     <- getBaseDir
         filesNames  <- getFileNames (baseDir ++ projectName) `catchIOError` handleDirectoryError
         return $ map (\x -> baseDir </> projectName </> x) filesNames
+
+-- | `getInterfaceAndImplFiles` is a utility function that returns the path of
+-- all implementation and interface Files present in the specified project.
+--
+-- It utilizes the path specified in environment variable `ENVCAP_CODE`.
+-- Reads all the files present and returns list of interface paths and list of impl paths.
+getInterfaceAndImplFiles  :: ProjectName                  -- ^ Name of the project
+                          -> IO ([FilePath], [FilePath])  -- ^ (interface files, implementation files)
+getInterfaceAndImplFiles projName = 
+    do
+      allFiles <- getProjectFiles projName `catchIOError` handleDirectoryError
+      return $ foldr categorize ([], []) allFiles
+    where
+      categorize :: FilePath -> ([FilePath], [FilePath]) -> ([FilePath], [FilePath])
+      categorize file (epis, eps)
+        | ".epi"  `Data.List.isSuffixOf` file = (file:epis, eps)
+        | ".ep"   `Data.List.isSuffixOf` file = (epis, file:eps)
+        | otherwise                           = (epis, eps)
 
 -- | `loadProjectFiles` loads and parses the implementation files of a project.
 -- It returns a list of successfully parsed fragments and a list of errors.
@@ -130,19 +140,19 @@ loadCoreTmFile  :: ProjectName
                 -> String 
                 -> IO (Either String CoreTm)
 loadCoreTmFile projectName fileName = 
-    do  baseDir     <- getBaseDir
-        let filePath = baseDir </> projectName </> "compiled" </> (fileName ++ ".epc")
-        fileExists  <- doesFileExist filePath
+    do  baseDir       <- getBaseDir
+        let filePath  = baseDir </> projectName </> "compiled" </> (fileName ++ ".epc")
+        fileExists    <- doesFileExist filePath
         if not fileExists
-            then return $ Left ("File not found: " ++ filePath)
-            else do
-                result  <-  try (BL.readFile filePath) :: IO (Either SomeException BL.ByteString)
-                case result of
-                    Left exception      -> return $ Left (show exception)
-                    Right byteString    ->
-                        case decodeOrFail byteString of
-                            Left    (_, _, errMsg)  -> return $ Left ("Decoding error: " ++ errMsg)
-                            Right   (_, _, coreTm)  -> return $ Right coreTm
+          then return $ Left ("File not found: " ++ filePath)
+          else do
+            result  <-  try (BL.readFile filePath) :: IO (Either SomeException BL.ByteString)
+            case result of
+              Left exception      -> return $ Left (show exception)
+              Right byteString    ->
+                case decodeOrFail byteString of
+                  Left    (_, _, errMsg)  -> return $ Left ("Decoding error: " ++ errMsg)
+                  Right   (_, _, coreTm)  -> return $ Right coreTm
 
 -- | `compiledProject` creates a compiled directory in the project
 -- if it doesn't exists and then, loads the project files, elaborates to
@@ -152,7 +162,7 @@ compileProject  :: ProjectName
 compileProject projectName = do
   createCompiledDir projectName
   projectFiles              <- getProjectFiles projectName
-  (fragments, parseErrors)  <- loadProjectFiles projectFiles
+  (fragments, _)  <- loadProjectFiles projectFiles
 
   case elaborateFragments fragments of
     Left typeError -> return $ Left [show typeError]
@@ -189,7 +199,7 @@ executeProject projectName = do
     case coreTmResult of
       Left loadError -> hPutStrLn stderr $ "Error loading " ++ epcFileName ++ ": " ++ loadError
       Right coreTm -> do
-        case evaluate coreTm of
+        case ENVCAP.Interpreter.evaluate coreTm of
           Left evalError -> hPutStrLn stderr $ "Error evaluating " ++ epcFileName ++ ": " ++ show evalError
           Right value    -> print value  
 

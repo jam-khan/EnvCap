@@ -6,61 +6,34 @@
 
 module ENVCAP.Syntax where
 import GHC.Generics (Generic)
+import Data.Binary 
 
-data UnaryOp    =       Not
-        deriving (Eq, Show, Generic)
-
-data BinaryOp   =       Arith ArithOp   -- Arithmetic
-                |       Comp  CompOp    -- CompOp
-                |       Logic LogicOp   -- Boolean Logic
-                deriving (Eq, Show, Generic)
-
-data ArithOp    = Add | Sub | Mul | Div | Mod
-                deriving (Eq, Show, Generic)
-
-data CompOp     = Eql | Neq | Lt | Le | Gt | Ge
-                deriving (Eq, Show, Generic)
-
-data LogicOp    = And | Or
-                deriving (Eq, Show, Generic)
-
-
-type Params       = [(String, SurfaceTyp)]
-type Letargs      = [(String, SurfaceTyp, SurfaceTm)] 
-type Name         = String
-type Pattern      = (String, [String])
-type Cases        = [(Pattern, SurfaceTm)]
-
-data Interface  =       IAliasTyp       String SurfaceTyp
-                |       IType           SurfaceTyp
-                |       FunctionTyp     Name Params SurfaceTyp
-                |       ModuleTyp       Name Params SurfaceTyp
-                |       Binding         Name SurfaceTyp
-                |       InterfaceAnd    Interface Interface
-                deriving (Eq, Show)
-
-data SecurityLevel      = Pure | Resource deriving (Eq, Show)
-
+type Params             = [(String, SurfaceTyp)]
+type Letargs            = [(String, SurfaceTyp, SurfaceTm)] 
+type Name               = String
+type Pattern            = (String, [String])
+type Cases              = [(Pattern, SurfaceTm)]
 type Imports            = [String]
 
-data Requirement        = Implicit String String | Explicit String SurfaceTyp
+data Requirement        = Req String String | Param String SurfaceTyp
                         deriving (Eq, Show)
 
 type Requirements       = [Requirement]
+type ParseImplData      = (Name, Authority, Imports, Requirements, SurfaceTm)
+type ParseIntfData      = (Name, Authority,          Requirements, Interface)
 
--- Info returned by parser of implementation
-type ParseImplementationData       
-                        = (SecurityLevel, Imports, Requirements, SurfaceTm)
+type Interface          = [InterfaceStmt]
 
--- Info returned by parser of interface
-type ParseInterfaceData = (SecurityLevel, Requirements, Interface)
+data InterfaceStmt      =   IAliasTyp       String SurfaceTyp
+                        |   IAliasIntf      String Interface
+                        |   IType           SurfaceTyp
+                        |   IIden           String
+                        |   FunctionTyp     Name Params SurfaceTyp
+                        |   ModuleTyp       Name Params Interface
+                        |   Binding         Name SurfaceTyp
+                        deriving (Eq, Show)
 
--- After parsing implementation and interface
--- SurfaceFragment is created
---
--- In case of Repl, elaboration of surfaceTm can be directly called
--- Fragment must have separate elaboration rules for clarity and formalization
-data SurfaceFragment    = SFragment Name SecurityLevel Imports Requirements SurfaceTm Interface
+type Statements         = [SurfaceTm]
 
 data SurfaceTm          =   SCtx                                        -- Query
                         |   SUnit                                       -- Unit
@@ -79,7 +52,10 @@ data SurfaceTm          =   SCtx                                        -- Query
                         |   SStruct    Params   SurfaceTm
                         |   SFunc      Name Params SurfaceTyp SurfaceTm
                         |   SModule    Name Params SurfaceTm
+                        {-- CAREFUL: Type Expansion --}
                         |   SAliasTyp  String SurfaceTyp
+                        |   SAliasIntf String Interface
+                        {-- CAREFUL: Type Expansion --}
                         |   SLet       Letargs  SurfaceTm
                         |   SLetrec    Letargs  SurfaceTm
                         |   SBinOp     BinaryOp SurfaceTm SurfaceTm
@@ -87,15 +63,20 @@ data SurfaceTm          =   SCtx                                        -- Query
                         |   SAnno      SurfaceTm SurfaceTyp
                         |   SIf        SurfaceTm SurfaceTm SurfaceTm
                         |   SPair      SurfaceTm SurfaceTm
-                        |   SFst       SurfaceTm
-                        |   SSnd       SurfaceTm
-                        |   SNil       SurfaceTyp
-                        |   SCons      SurfaceTm SurfaceTm
                         |   STuple     [SurfaceTm]
                         |   SSwitch    SurfaceTm [(SurfaceTm, SurfaceTm)]
                         |   SADTInst   (String, [SurfaceTm]) SurfaceTyp 
                         |   SCase      SurfaceTm Cases
-                        |   SOpen      SurfaceTm
+                        |   SOpen      SurfaceTm SurfaceTm
+                        -- List matching
+                        |   SList      [SurfaceTm]
+                        |   SIsEmpty   SurfaceTm
+                        |   SHead      SurfaceTm
+                        |   STail      SurfaceTm
+                        |   SRest      SurfaceTm
+                        |   SCons      SurfaceTm SurfaceTm
+                        |   SAppend    SurfaceTm SurfaceTm
+                        |   SConcat    SurfaceTm SurfaceTm
                         deriving (Eq, Show)
 
 data SurfaceTyp         =   STUnit                              -- ^ Unit type for empty environment
@@ -112,11 +93,13 @@ data SurfaceTyp         =   STUnit                              -- ^ Unit type f
                         |   STIden      String                  -- ^ Simply an alias
                         deriving (Eq, Show)
 
--- These must be added to the source at desugaring stage or something
-type SourceImport       = [(String, SourceTyp)]
-type SourceRequirements = [(String, SourceTyp)]
+data SourceFragment     = TmFragment Name Authority SourceImport SourceRequirements SourceTyp
+data Authority          = Pure | Resource 
+                        deriving (Eq, Show)
 
-data SourceFragment     = TmFragment Name SecurityLevel SourceImport SourceRequirements SourceTyp
+data SourceHeader       = TmInterface Name Authority SourceRequirements SourceTyp
+type SourceImport       = [(String, SourceHeader)]
+type SourceRequirements = [(String, SourceHeader)]
 
 data SourceTm           =   TmCtx                               -- Query
                         |   TmUnit                              -- Unit
@@ -182,6 +165,9 @@ data CoreTm             =   Ctx                                 -- Context
                         |   Case   CoreTm [(Pattern, CoreTm)]
                         |   BinOp  BinaryOp CoreTm CoreTm       -- Binary operations
                         |   UnOp   UnaryOp CoreTm               -- Unary operations
+                        -- Lambda for linking
+                        |   CLam   CoreTyp CoreTm               -- 
+                        |   Anno   CoreTm CoreTyp 
                         deriving (Eq, Show, Generic)
 
 data CoreTyp            =   TyCUnit                       -- Unit type for empty environment
@@ -190,6 +176,7 @@ data CoreTyp            =   TyCUnit                       -- Unit type for empty
                         |   TyCArrow      CoreTyp CoreTyp -- Arrow type, e.g. A -> B
                         |   TyCRecord     String  CoreTyp -- Single-Field Record Type
                         |   TyCUnion      CoreTyp CoreTyp -- Union type
+                        |   TyCList       CoreTyp         -- List Type
                         -- Extensions
                         |   TyCBool                       -- Boolean type
                         |   TyCString                     -- String type
@@ -205,3 +192,29 @@ data Value              =       VUnit                      -- Unit value
                         |       VBool   Bool               -- Boolean Value
                         |       VString String             -- String Value
                         deriving (Show, Eq, Generic)
+
+instance Binary CoreTm
+instance Binary CoreTyp
+instance Binary Value
+instance Binary BinaryOp
+instance Binary UnaryOp
+instance Binary ArithOp
+instance Binary CompOp
+instance Binary LogicOp
+
+data UnaryOp    =       Not
+                deriving (Eq, Show, Generic)
+
+data BinaryOp   =       Arith ArithOp   -- Arithmetic
+                |       Comp  CompOp    -- CompOp
+                |       Logic LogicOp   -- Boolean Logic
+                deriving (Eq, Show, Generic)
+
+data ArithOp    = Add | Sub | Mul | Div | Mod
+                deriving (Eq, Show, Generic)
+
+data CompOp     = Eql | Neq | Lt | Le | Gt | Ge
+                deriving (Eq, Show, Generic)
+
+data LogicOp    = And | Or
+                deriving (Eq, Show, Generic)

@@ -1,0 +1,7 @@
+@resource module Main
+
+import Lib Utils;
+
+open Utils(Lib);
+
+val y = apply(10)

@@ -14,12 +14,30 @@ For more details, see the individual function documentation.
 -}
 module ENVCAP.Manager.Implementation where
 
-import ENVCAP.Syntax (SourceTm, Requirements, Imports, SurfaceTm, SecurityLevel)
+import ENVCAP.Syntax 
 import ENVCAP.Source.Errors ( InterpreterError(..) ) 
 import Control.Exception ( IOException, try )
 import System.FilePath (takeBaseName, takeFileName)
 import ENVCAP.Interpreter (parseCode, typeAliasExpansion, locallyNameless, desugarSource)
-import ENVCAP.Parser.Implementation.ParseImp (parseImplementation)
+import Data.List 
+import ENVCAP.Utils (readFileSafe)
+import Data.Either (rights)
+
+-- `readInterfaceFiles` basically takes filepaths of multiple interface files
+-- and reads each with some basic checks on files.
+--
+-- returns the content of the files.
+readImplementationFiles  :: [FilePath] 
+                    -> IO [String]
+readImplementationFiles files = do
+    -- Check all files have .ep extension first
+    case partition (".ep" `Data.List.isSuffixOf`) files of
+        (_, []) -> do  -- All files are valid
+            contents <- mapM readFileSafe files
+            return (rights contents)
+        (_, invalidFiles) -> 
+            fail $ "These files must have .ep extension: " ++ show invalidFiles
+
 
 type Path     = String
 type FileName = String
@@ -44,10 +62,10 @@ getNameFromPath path    = takeBaseName $ takeFileName path
 getImplementationAST    :: Code                             -- ^ Implementation code
                         -> Either InterpreterError SourceTm -- ^ SourceAST or Interpreter Error with message
 getImplementationAST code =
-                do  surfaceAST                  <- parseCode code
-                    surfaceASTExpanded          <- typeAliasExpansion surfaceAST
-                    surfacelocallyNameLessAST   <- locallyNameless surfaceASTExpanded
-                    desugarSource surfacelocallyNameLessAST
+    do  surfaceAST                  <- parseCode code
+        surfaceASTExpanded          <- typeAliasExpansion surfaceAST
+        surfacelocallyNameLessAST   <- locallyNameless surfaceASTExpanded
+        desugarSource surfacelocallyNameLessAST
 
 -- A function to load an implementation file. 
 -- 

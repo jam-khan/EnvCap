@@ -1,0 +1,7 @@
+@pure module Utils
+
+require Lib;
+
+open Lib;
+
+val apply = \(x: Int) => { inc(x) }

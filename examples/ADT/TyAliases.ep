@@ -1,0 +1,7 @@
+@pure module TyAliases
+
+type newInt = Int;
+
+val hello =  \(x: newInt) => { x };
+
+hello(1)
