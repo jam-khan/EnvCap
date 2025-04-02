@@ -97,37 +97,51 @@ sortByDependencyOrder interfaces order =
 sortInterfacesTopologically :: [ParseIntfData] -> Either SeparateCompilationError [ParseIntfData]
 sortInterfacesTopologically interfaces =
     let 
-        graph = buildDependencyGraph interfaces
-        interfaceNames = map (\(name, _, _, _) -> name) interfaces
-        allNodes = getNodes graph
-        missingDeps = filter (`notElem` interfaceNames) allNodes
+        graph           = buildDependencyGraph interfaces
+        interfaceNames  = map (\(name, _, _, _) -> name) interfaces
+        allNodes        = getNodes graph
+        missingDeps     = filter (`notElem` interfaceNames) allNodes
     in  
-        if not (null missingDeps)
-        then Left $ SepCompError $ "Missing interface dependencies: " ++ show missingDeps
-        else
-            case getDependencyOrder graph of
-                Right order -> 
-                    Right (sortByDependencyOrder interfaces order)
-                Left _ -> 
-                    Left $ SepCompError "Cyclic dependencies detected between interfaces"
+        if      not (null missingDeps)
+        then    Left $ SepCompError $ "Missing interface dependencies: " ++ show missingDeps
+        else    case getDependencyOrder graph of
+                    Right order -> 
+                        Right (sortByDependencyOrder interfaces order)
+                    Left _      -> 
+                        Left $ SepCompError "Cyclic dependencies detected between interfaces"
 
-
-
--- `processInterfaceFiles` basically takes filepaths of multiple interface files
--- and processes each.
--- 
--- returns the final processed interfaces
-processInterfaceFiles :: [FilePath] -> IO (Either SeparateCompilationError [ParseIntfData])
-processInterfaceFiles files = do
-    -- Read files (already checks .epi extensixon)
-    contents <- readInterfaceFiles files
-    case parseInterfaceFiles contents of
-        Left err -> return $ Left err
-        Right parsed ->
-            -- Verify names match filenames
-            case verifyFileNames parsed of
-                Nothing ->  return $ Right . map snd $ parsed  -- Return just ParseIntfData
-                Just err -> return $ Left err
+processInterfaceFiles   :: ProjectName 
+                        -> IO (Either SeparateCompilationError [ParseIntfData])
+processInterfaceFiles projname = do
+    -- Step 1: Read interface files
+    (interfaceFiles, _) <- getInterfaceAndImplFiles projname
+    if null interfaceFiles
+        then    return $ Right []
+        else    do  contentsWithPaths <- readInterfaceFiles interfaceFiles
+                    let processingResult = 
+                            do  parseWithPaths <- parseInterfaceFiles contentsWithPaths
+                                case verifyFileNames parseWithPaths of
+                                    Nothing     -> return () -- check this!! maybe
+                                    Just err    -> Left err
+                                let intfDataOnly = map snd parseWithPaths
+                                sortInterfacesTopologically intfDataOnly
+                    return processingResult
+                
+-- -- `processInterfaceFiles` basically takes filepaths of multiple interface files
+-- -- and processes each.
+-- -- 
+-- -- returns the final processed interfaces
+-- processInterfaceFiles :: [FilePath] -> IO (Either SeparateCompilationError [ParseIntfData])
+-- processInterfaceFiles files = do
+--     -- Read files (already checks .epi extensixon)
+--     contents <- readInterfaceFiles files
+--     case parseInterfaceFiles contents of
+--         Left err -> return $ Left err
+--         Right parsed ->
+--             -- Verify names match filenames
+--             case verifyFileNames parsed of
+--                 Nothing ->  return $ Right . map snd $ parsed  -- Return just ParseIntfData
+--                 Just err -> return $ Left err
 
 -- Now, we have ParseIntfData
 
