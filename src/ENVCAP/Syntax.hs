@@ -15,7 +15,10 @@ type Pattern            = (String, [String])
 type Cases              = [(Pattern, SurfaceTm)]
 type Imports            = [String]
 
-data Requirement        = Req String String | Param String SurfaceTyp
+-- data Requirement        = Req String String | Param String SurfaceTyp
+--                         deriving (Eq, Show)
+-- For sake of simplicity, parameter requirements are not allowed yet.
+data Requirement        = Req String String
                         deriving (Eq, Show)
 
 type Requirements       = [Requirement]

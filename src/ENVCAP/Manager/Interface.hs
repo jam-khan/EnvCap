@@ -156,8 +156,24 @@ substTyAliasIntf _ _ _          = Left $ SepCompError "Not implemented yet."
 -- | `interfaceToSourceTy` takes the Interface Type and proceses
 -- the type aliases, and then, converts the Interface to SourceTyp
 interfaceToSurfaceTyp   ::  Interface
-                        ->  Either SeparateCompilationError SurfaceTyp
+                        ->  Either SeparateCompilationError SourceTyp
 interfaceToSurfaceTyp _         = Left $ SepCompError "Not implemented yet."
+
+expandRequirements  :: [SourceHeader]
+                    -> Requirements
+                    -> Either SeparateCompilationError SourceRequirements
+expandRequirements _ [] = Right []
+expandRequirements _ _  = Left $ SepCompError "Not Implemented yet."
+
+-- | `intfToHeader` is a utility function that takes
+-- an expanded parsed interface and converts into source level header.
+-- 
+-- === Example:
+parseIntfToHeader   :: [SourceHeader]
+                    -> ParseIntfData 
+                    -> Either SeparateCompilationError SourceHeader
+parseIntfToHeader headers (name, auth, reqs, intf) =
+    TmInterface name auth <$> expandRequirements headers reqs <*> interfaceToSurfaceTyp intf
 
 -- | `processInterfaceFiles` loads the interface files from
 -- the project, parses and returns in topologically sorted
