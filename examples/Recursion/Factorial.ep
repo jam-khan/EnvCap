@@ -1,4 +1,4 @@
-@pure
+@pure module Factorial
 
 function factorial(n: Int, dec : Int -> Int) : Int {
     if (n == 0) then {

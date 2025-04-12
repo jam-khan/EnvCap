@@ -151,8 +151,10 @@ data SourceTyp          =   TySUnit                             -- Unit type for
 data CoreTm             =   Ctx                                 -- Context
                         |   Unit                                -- Unit
                         |   Lit    Integer                      -- Integer literal
+                        |   EBool   Bool                        -- Boolean Term
+                        |   EString String                      -- String Term
                         |   Lam    CoreTyp CoreTm               -- Lambda Abstraction
-                        |   Proj   CoreTm Integer                   -- Projection
+                        |   Proj   CoreTm Integer               -- Projection
                         |   Clos   CoreTm  CoreTm               -- Closure
                         |   Rec    String CoreTm                -- Single-Field Record
                         |   RProj  CoreTm String                -- Record Projection by Label
@@ -160,17 +162,18 @@ data CoreTm             =   Ctx                                 -- Context
                         |   Mrg    CoreTm CoreTm                -- Merge
                         |   Box    CoreTm CoreTm                -- Box
                         -- Extensions
-                        |   EBool   Bool                        -- Boolean Term
-                        |   EString String                      -- String Term
                         |   If     CoreTm CoreTm CoreTm         -- Conditionals
                         |   Fix    CoreTyp CoreTm               -- Recursion
                         |   Tag    CoreTm CoreTyp
                         |   Case   CoreTm [(Pattern, CoreTm)]
                         |   BinOp  BinaryOp CoreTm CoreTm       -- Binary operations
                         |   UnOp   UnaryOp CoreTm               -- Unary operations
+                        |   Nil    CoreTyp                      -- Nil List with Type
+                        |   Cons   CoreTm CoreTm                -- List expression
+                        |   LCase  CoreTm CoreTm CoreTm
                         -- Lambda for linking
-                        |   CLam   CoreTyp CoreTm               -- 
-                        |   Anno   CoreTm CoreTyp 
+                        |   CLam   CoreTyp  CoreTm
+                        |   Anno   CoreTm   CoreTyp 
                         deriving (Eq, Show, Generic)
 
 data CoreTyp            =   TyCUnit                       -- Unit type for empty environment
@@ -191,6 +194,8 @@ data Value              =       VUnit                      -- Unit value
                         |       VRcd    String Value       -- Single-field record value
                         |       VMrg    Value Value        -- Merge of two values
                         |       VTag    Value CoreTyp      
+                        |       VNil    CoreTyp
+                        |       VCons   Value Value
                         -- Extensions
                         |       VBool   Bool               -- Boolean Value
                         |       VString String             -- String Value

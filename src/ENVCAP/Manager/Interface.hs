@@ -70,13 +70,13 @@ verifyFileNames parsedFiles =
 -- 
 -- Convert parsed interfaces into a dependency graph
 buildDependencyGraph :: [ParseIntfData] -> Graph
-buildDependencyGraph interfaces = 
-    M.fromList $ map (\(name, _, requirements, _) -> 
+buildDependencyGraph interfaces =
+    M.fromList $ map (\(name, _, requirements, _) ->
         (name, extractDependencies requirements)) interfaces
     where
         -- Extract all dependencies from requirements
         extractDependencies :: Requirements -> [Name]
-        extractDependencies reqs = 
+        extractDependencies reqs =
             [ dep | Req _ dep <- reqs ]  -- Only take Req constructs, ignore Params
 
 -- | `sortByDependencyOrder` simply returns the topological
@@ -85,7 +85,7 @@ buildDependencyGraph interfaces =
 -- Returns list of topologically sorted interface lists
 sortByDependencyOrder :: [ParseIntfData] -> [Name] -> [ParseIntfData]
 sortByDependencyOrder interfaces order =
-    let 
+    let
         interfaceMap = M.fromList [(name, intf) | intf@(name, _, _, _) <- interfaces]
     in
         mapMaybe (`M.lookup` interfaceMap) order
@@ -96,23 +96,23 @@ sortByDependencyOrder interfaces order =
 -- Returns the ParsedIntfData in the topological sort order
 sortInterfacesTopologically :: [ParseIntfData] -> Either SeparateCompilationError [ParseIntfData]
 sortInterfacesTopologically interfaces =
-    let 
+    let
         graph           = buildDependencyGraph interfaces
         interfaceNames  = map (\(name, _, _, _) -> name) interfaces
         allNodes        = getNodes graph
         missingDeps     = filter (`notElem` interfaceNames) allNodes
-    in  
+    in
         if      not (null missingDeps)
         then    Left $ SepCompError $ "Missing interface dependencies: " ++ show missingDeps
         else    case getDependencyOrder graph of
-                    Right order -> 
+                    Right order ->
                         Right (sortByDependencyOrder interfaces order)
-                    Left _      -> 
+                    Left _      ->
                         Left $ SepCompError "Cyclic dependencies detected between interfaces"
 
 -- | `interfaceStmtToSurfaceTyp` converts an interface statement 
 --  into surface type
-interfaceStmtToSurfaceTyp   :: InterfaceStmt 
+interfaceStmtToSurfaceTyp   :: InterfaceStmt
                             -> Either SeparateCompilationError SurfaceTyp
 interfaceStmtToSurfaceTyp _  = Left $ SepCompError "Not implemented"
 
@@ -147,10 +147,10 @@ substTyAliasInTyp l ty (STIden l')           =
     if l == l'  then Right ty
                 else Right $ STIden l'
 
-substTyAliasIntf    ::  String 
-                    ->  SurfaceTyp 
+substTyAliasIntf    ::  String
+                    ->  SurfaceTyp
                     ->  Interface
-                    ->  Either SeparateCompilationError Interface 
+                    ->  Either SeparateCompilationError Interface
 substTyAliasIntf _ _ _          = Left $ SepCompError "Not implemented yet."
 
 -- | `interfaceToSourceTy` takes the Interface Type and proceses
@@ -170,7 +170,7 @@ expandRequirements _ _  = Left $ SepCompError "Not Implemented yet."
 -- 
 -- === Example:
 parseIntfToHeader   :: [SourceHeader]
-                    -> ParseIntfData 
+                    -> ParseIntfData
                     -> Either SeparateCompilationError SourceHeader
 parseIntfToHeader headers (name, auth, reqs, intf) =
     TmInterface name auth <$> expandRequirements headers reqs <*> interfaceToSurfaceTyp intf
@@ -182,7 +182,7 @@ parseIntfToHeader headers (name, auth, reqs, intf) =
 -- === Example:
 -- >>> processInterfaceFiles "ADT"
 -- Right [("TyAliases",Pure,[],[IAliasTyp "newInt" STInt,Binding "hello" (STArrow (STIden "newInt") (STIden "newInt")),IType (STIden "newInt")]),("Variants",Resource,[],[Binding "res" STString])]
-processInterfaceFiles :: ProjectName 
+processInterfaceFiles :: ProjectName
                      -> IO (Either SeparateCompilationError [ParseIntfData])
 processInterfaceFiles projname = do
     -- Step 1: Read interface files
@@ -199,3 +199,13 @@ processInterfaceFiles projname = do
                     let intfDataOnly = map snd parseWithPaths
                     sortInterfacesTopologically intfDataOnly
             return processingResult
+
+-- Need to do:
+-- Convert and expand the headers from left to right
+-- translating to the source level
+-- Clean up and test
+-- Repeat the same for implementation files
+-- Once completed, then work on source to core translation
+-- Test imports and required (A lot)
+-- Then, add lists and test and finish
+-- Document the project and write thesis/report

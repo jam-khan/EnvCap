@@ -14,7 +14,7 @@ For more details, see the individual function documentation.
 -}
 module ENVCAP.Manager.Implementation where
 
-import ENVCAP.Syntax 
+import ENVCAP.Syntax ( SourceTm ) 
 import ENVCAP.Source.Errors ( InterpreterError(..) ) 
 import Control.Exception ( IOException, try )
 import System.FilePath (takeBaseName, takeFileName)
