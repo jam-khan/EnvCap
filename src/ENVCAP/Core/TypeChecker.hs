@@ -279,7 +279,10 @@ infer ctx (LCase e1 e2 e3)      = case infer ctx e1 of
                                                                 if ty2 == ty3 
                                                                         then Right $ TyCList ty1
                                                                         else Left  $ TypeError  "Case branches list pattern match don't have same types."
-
+infer ctx (CLam ty tm)          = Left $ TypeError "Linking not resolved properly"
+infer ctx (Anno tm ty)          = if check ctx tm ty 
+                                        then Right ty 
+                                        else Left $ TypeError "Types and Annotation don't match."
 infer _ _                       = Left $ TypeError "Unknown expression"
 
 check :: CoreTyp -> CoreTm -> CoreTyp -> Bool
