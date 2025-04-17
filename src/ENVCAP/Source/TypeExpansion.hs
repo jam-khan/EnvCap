@@ -3,19 +3,6 @@ module ENVCAP.Source.TypeExpansion where
 import ENVCAP.Syntax
 import ENVCAP.Source.Errors 
 
-
-
-{-- 
-
-        PROBLEM: Type expansion is left associative, but expansion depends on right associativity.
-
-        Potential solution:
-                Parse right-associative
-                        -> Expand
-                                -> Left associative ~~> elaboration
-
---}
-
 -- | Finds a `SurfaceTyp` by its alias (`label`) in a nested `STAnd` / `STRecord` type context.
 --
 -- This function searches for a type alias (`label`) in a type context composed of nested `STAnd`
@@ -39,7 +26,7 @@ lookupAliasTyp :: SurfaceTyp -> String -> Either TypeExpansionError SurfaceTyp
 lookupAliasTyp (STAnd ty1 (STRecord label' ty2)) label
             = if label' == label then Right ty2
                                  else lookupAliasTyp ty1 label
-lookupAliasTyp STUnit l = Left $ AliasNotFound ("Error: Type not found for alias: " ++ show l)
+lookupAliasTyp STUnit l = Left $ AliasNotFound   ("Error: Type not found for alias: " ++ show l)
 lookupAliasTyp _ _      = Left $ TypeContextError "Error: Type context not well-formed. Must only compose of intersection types."
 
 

@@ -121,9 +121,7 @@ Required            :                                                 { [] }
 Requirements        :    Requirement                                  { [$1]  }
                     |    Requirement ',' Requirements                 { $1 : $3 }
 
-Requirement         :    var ':' Type                                 { Param    $1 $3 }
-                    |    var ':' 'interface' var                      { Req      $1 $4 }
-                    |    var                                          { Req      $1 $1 }
+Requirement         :    var                                          { Req      $1 $1 }
 
 Statements          : Statements ';' Statement          { SMrg $1 $3 }
                     | Statement                         { $1 }

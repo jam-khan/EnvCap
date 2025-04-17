@@ -193,6 +193,7 @@ inferMatch ctx  (Case tm (fstcase:cases))   =
                                         []  -> True
 inferMatch _ _ =
     Left $ TypeError ""
+
 -- `infer` infers the type of the expression.
 --
 -- === Example:
@@ -204,17 +205,24 @@ infer _ Unit                  = Right TyCUnit
 infer _ (Lit _)               = Right TyCInt
 infer _ (EBool _)             = Right TyCBool
 infer _ (EString _)           = Right TyCString
-
+infer ctx (Lam tA e)          = infer (TyCAnd ctx tA) e >>= \tB -> Right (TyCArrow tA tB)
 infer ctx (Proj e n)          = infer ctx e >>= \tB -> 
                                 case lookupt tB n of
                                     Just t  -> Right t
                                     Nothing -> Left $ TypeError $ "Projection " ++ show n 
                                                                         ++ " failed on type " ++ show tB  ++ " ctx: "  ++ show ctx
-
+infer ctx (Clos e1 (Lam tA e2)) = infer ctx e1 >>= \ctx1 -> 
+                                    infer (TyCAnd ctx1 tA) e2 >>= \tB -> 
+                                        Right (TyCArrow tA tB)
+infer ctx (Rec l e)             = infer ctx e >>= \tA -> Right (TyCRecord l tA)
+infer ctx (RProj e l)           = infer ctx e >>= \tB ->
+                                    case rlookupt tB l of 
+                                        Just tA -> if containment (TyCRecord l tA) tB 
+                                                then Right tA 
+                                                else Left $ TypeError "Record projection failed due to containment"
+                                        Nothing -> Left $ TypeError $ "Field " ++ show l ++ " not found in type " ++ show tB 
 infer ctx (Box e1 e2)           = infer ctx e1 >>= \ctx1 -> infer ctx1 e2
-
 infer ctx (Mrg e1 e2)           = infer ctx e1 >>= \tA -> infer (TyCAnd ctx tA) e2 >>= \tB -> Right (TyCAnd tA tB)
-
 infer ctx (App e1 e2)           = infer ctx e1 >>= \ty1 -> 
                                     case ty1 of
                                         TyCArrow tA tB -> if check ctx e2 tA  then Right tB    
@@ -222,26 +230,6 @@ infer ctx (App e1 e2)           = infer ctx e1 >>= \ty1 ->
                                         _            -> Left $ 
                                                             TypeError ("Expected a function type in application Function Type: " 
                                                                         ++ show ty1 ++ " Function: " ++ show e1)
-
-infer ctx (Lam tA e)            = infer (TyCAnd ctx tA) e >>= \tB -> Right (TyCArrow tA tB)
-
-infer ctx (Clos e1 (Lam tA e2)) = infer ctx e1 >>= \ctx1 -> 
-                                    infer (TyCAnd ctx1 tA) e2 >>= \tB -> 
-                                        Right (TyCArrow tA tB)
-
-infer ctx (Rec l e)             = infer ctx e >>= \tA -> Right (TyCRecord l tA)
-
-infer ctx (RProj e l)           = infer ctx e >>= \tB ->
-                                    case rlookupt tB l of 
-                                        Just tA -> if containment (TyCRecord l tA) tB 
-                                                then Right tA 
-                                                else Left $ TypeError "Record projection failed due to containment"
-                                        Nothing -> Left $ TypeError $ "Field " ++ show l ++ " not found in type " ++ show tB 
-
-infer ctx (Fix tA e)            = if check (TyCAnd ctx tA) e tA 
-                                        then Right tA 
-                                        else Left $ TypeError "Fixpoint type check failed"
-
 infer ctx (If cond e1 e2)       = if check ctx cond TyCBool 
                                         then infer ctx e1 >>= \t1 -> 
                                                 infer ctx e2 >>= \t2 -> 
@@ -249,7 +237,9 @@ infer ctx (If cond e1 e2)       = if check ctx cond TyCBool
                                                             then Right t1 
                                                             else Left $ TypeError "Branches of if must have the same type"  
                                         else Left $ TypeError "Condition must be of type Bool"
-
+infer ctx (Fix tA e)            = if check (TyCAnd ctx tA) e tA 
+                                        then Right tA 
+                                        else Left $ TypeError "Fixpoint type check failed"
 infer ctx (Tag  tm ty)          = case infer ctx tm of
                                     Right tm'@(TyCRecord _ _)   ->
                                         if containmentUnion tm' ty
@@ -257,30 +247,38 @@ infer ctx (Tag  tm ty)          = case infer ctx tm of
                                             else    Left $ TypeError ("Ambiguous label on ADT. Elaboration FAILED. " ++ show (Tag tm ty))
                                     Right _                     -> Left $ TypeError "Value can't be tagged with ADT" 
                                     Left _      ->   Left $ TypeError "Elaboration Failed"
-
 infer ctx (Case tm cases)       = inferMatch ctx (Case tm cases)
-
 infer ctx (BinOp (Arith _) e1 e2) 
                                 = infer ctx e1 >>= \t1 ->
                                         infer ctx e2 >>= \t2 ->
                                             if t1 == TyCInt && check ctx e2 TyCInt  
                                                 then Right TyCInt 
                                                 else Left $ TypeError ("Type mismatch in arithmetic operation " ++ show t1 ++ " " ++ show t2)
-
 infer ctx (BinOp (Comp _) e1 e2) 
                                 =  infer ctx e1 >>= \t1 -> if check ctx e2 t1
                                                                 then Right TyCBool 
                                                                 else Left $ 
                                                                     TypeError "Type mismatch in comparison operation. Expected an integer, boolean, or string for comparison" 
-
 infer ctx (BinOp (Logic _) e1 e2) 
                                 = infer ctx e1 >>= \t1 ->   if t1 == TyCBool && check ctx e2 TyCBool 
                                                                 then Right TyCBool
                                                                 else Left $ TypeError "Type mismatch in logical operation"   
-
 infer ctx (UnOp Not e)          = if check ctx e TyCBool  
                                         then Right TyCBool 
                                         else Left $ TypeError "Expected boolean for negation"
+infer ctx (Nil ty)              = Right ty
+infer ctx (Cons e1 e2)          = infer ctx e1 >>= \t1 -> 
+                                        infer ctx e2 >>= \t2 ->
+                                                if      TyCList t1 == t2 
+                                                then    Right $ TyCList t1
+                                                else    Left  $ TypeError ("List type check failed: " ++ "Expected type of list " ++ show t1 ++ ", but got " ++ show t2)
+infer ctx (LCase e1 e2 e3)      = case infer ctx e1 of
+                                        Right (TyCList ty1)      -> 
+                                                infer ctx e2 >>= \ty2 ->
+                                                        infer (TyCAnd (TyCAnd ctx ty1) (TyCList ty1)) e3 >>= \ty3 ->
+                                                                if ty2 == ty3 
+                                                                        then Right $ TyCList ty1
+                                                                        else Left  $ TypeError  "Case branches list pattern match don't have same types."
 
 infer _ _                       = Left $ TypeError "Unknown expression"
 

@@ -4,14 +4,14 @@ import ENVCAP.Source.Errors
 import ENVCAP.Manager.Manage
 import ENVCAP.Parser.Interface.ParseInterface (parseInterface)
 import ENVCAP.Syntax
-import ENVCAP.Source.TypeExpansion (expandTyAlias, expandAliasTypParams)
-import ENVCAP.Source.Desugar (getFixpointType, desugarTyp)
-import Control.Exception
-import System.FilePath ((</>), takeBaseName, takeFileName)
-import System.IO (readFile)
-import System.Directory (doesDirectoryExist, doesFileExist)
-import Control.Monad (unless)
-import Data.Either (rights, partitionEithers)
+import ENVCAP.Source.TypeExpansion()
+import ENVCAP.Source.Desugar()
+import Control.Exception()
+import System.FilePath()
+import System.IO()
+import System.Directory()
+import Control.Monad ()
+import Data.Either (rights)
 import Data.List
 import ENVCAP.Utils (readFileSafe)
 import Data.Maybe ( mapMaybe)
@@ -70,13 +70,13 @@ verifyFileNames parsedFiles =
 -- 
 -- Convert parsed interfaces into a dependency graph
 buildDependencyGraph :: [ParseIntfData] -> Graph
-buildDependencyGraph interfaces = 
-    M.fromList $ map (\(name, _, requirements, _) -> 
+buildDependencyGraph interfaces =
+    M.fromList $ map (\(name, _, requirements, _) ->
         (name, extractDependencies requirements)) interfaces
     where
         -- Extract all dependencies from requirements
         extractDependencies :: Requirements -> [Name]
-        extractDependencies reqs = 
+        extractDependencies reqs =
             [ dep | Req _ dep <- reqs ]  -- Only take Req constructs, ignore Params
 
 -- | `sortByDependencyOrder` simply returns the topological
@@ -85,7 +85,7 @@ buildDependencyGraph interfaces =
 -- Returns list of topologically sorted interface lists
 sortByDependencyOrder :: [ParseIntfData] -> [Name] -> [ParseIntfData]
 sortByDependencyOrder interfaces order =
-    let 
+    let
         interfaceMap = M.fromList [(name, intf) | intf@(name, _, _, _) <- interfaces]
     in
         mapMaybe (`M.lookup` interfaceMap) order
@@ -96,107 +96,116 @@ sortByDependencyOrder interfaces order =
 -- Returns the ParsedIntfData in the topological sort order
 sortInterfacesTopologically :: [ParseIntfData] -> Either SeparateCompilationError [ParseIntfData]
 sortInterfacesTopologically interfaces =
-    let 
+    let
         graph           = buildDependencyGraph interfaces
         interfaceNames  = map (\(name, _, _, _) -> name) interfaces
         allNodes        = getNodes graph
         missingDeps     = filter (`notElem` interfaceNames) allNodes
-    in  
+    in
         if      not (null missingDeps)
         then    Left $ SepCompError $ "Missing interface dependencies: " ++ show missingDeps
         else    case getDependencyOrder graph of
-                    Right order -> 
+                    Right order ->
                         Right (sortByDependencyOrder interfaces order)
-                    Left _      -> 
+                    Left _      ->
                         Left $ SepCompError "Cyclic dependencies detected between interfaces"
 
-processInterfaceFiles   :: ProjectName 
-                        -> IO (Either SeparateCompilationError [ParseIntfData])
+-- | `interfaceStmtToSurfaceTyp` converts an interface statement 
+--  into surface type
+interfaceStmtToSurfaceTyp   :: InterfaceStmt
+                            -> Either SeparateCompilationError SurfaceTyp
+interfaceStmtToSurfaceTyp _  = Left $ SepCompError "Not implemented"
+
+-- | `substTyAliasInTyp` is an utility function that
+-- takes the alias (string + typ) as input along with surface typ
+-- and then, substitutes any type alias that matches the string label.
+-- 
+-- === Example:
+-- >>> substTyAliasInTyp "X" STInt (STAnd STUnit (STIden "X"))
+-- Right (STAnd STUnit STInt)
+substTyAliasInTyp   :: String
+                    -> SurfaceTyp
+                    -> SurfaceTyp
+                    -> Either SeparateCompilationError SurfaceTyp
+substTyAliasInTyp _ _ STUnit                = Right STUnit
+substTyAliasInTyp _ _ STInt                 = Right STInt
+substTyAliasInTyp _ _ STBool                = Right STBool
+substTyAliasInTyp _ _ STString              = Right STString
+substTyAliasInTyp l ty (STAnd ty1 ty2)      =
+    STAnd <$> substTyAliasInTyp l ty ty1 <*> substTyAliasInTyp l ty ty2
+substTyAliasInTyp l ty (STArrow tyA tyB)    =
+    STArrow <$> substTyAliasInTyp l ty tyA <*> substTyAliasInTyp l ty tyB
+substTyAliasInTyp l ty (STRecord l' ty')     =
+    STRecord l' <$> substTyAliasInTyp l ty ty'
+substTyAliasInTyp l ty (STUnion ty1 ty2)    =
+    STUnion <$> substTyAliasInTyp l ty ty1 <*> substTyAliasInTyp l ty ty2
+substTyAliasInTyp l ty (STList ty')         =
+    STList <$> substTyAliasInTyp l ty ty'
+substTyAliasInTyp l ty (STSig tyA tyB)      =
+    STSig <$> substTyAliasInTyp l ty tyA <*> substTyAliasInTyp l ty tyB
+substTyAliasInTyp l ty (STIden l')           =
+    if l == l'  then Right ty
+                else Right $ STIden l'
+
+substTyAliasIntf    ::  String
+                    ->  SurfaceTyp
+                    ->  Interface
+                    ->  Either SeparateCompilationError Interface
+substTyAliasIntf _ _ _          = Left $ SepCompError "Not implemented yet."
+
+-- | `interfaceToSourceTy` takes the Interface Type and proceses
+-- the type aliases, and then, converts the Interface to SourceTyp
+interfaceToSurfaceTyp   ::  Interface
+                        ->  Either SeparateCompilationError SourceTyp
+interfaceToSurfaceTyp _         = Left $ SepCompError "Not implemented yet."
+
+expandRequirements  :: [SourceHeader]
+                    -> Requirements
+                    -> Either SeparateCompilationError SourceRequirements
+expandRequirements _ [] = Right []
+expandRequirements _ _  = Left $ SepCompError "Not Implemented yet."
+
+-- | `intfToHeader` is a utility function that takes
+-- an expanded parsed interface and converts into source level header.
+-- 
+-- === Example:
+parseIntfToHeader   :: [SourceHeader]
+                    -> ParseIntfData
+                    -> Either SeparateCompilationError SourceHeader
+parseIntfToHeader headers (name, auth, reqs, intf) =
+    TmInterface name auth <$> expandRequirements headers reqs <*> interfaceToSurfaceTyp intf
+
+-- | `processInterfaceFiles` loads the interface files from
+-- the project, parses and returns in topologically sorted
+-- order based on the requirements of the interfaces
+--
+-- === Example:
+-- >>> processInterfaceFiles "ADT"
+-- Right [("TyAliases",Pure,[],[IAliasTyp "newInt" STInt,Binding "hello" (STArrow (STIden "newInt") (STIden "newInt")),IType (STIden "newInt")]),("Variants",Resource,[],[Binding "res" STString])]
+processInterfaceFiles :: ProjectName
+                     -> IO (Either SeparateCompilationError [ParseIntfData])
 processInterfaceFiles projname = do
     -- Step 1: Read interface files
     (interfaceFiles, _) <- getInterfaceAndImplFiles projname
     if null interfaceFiles
-        then    return $ Right []
-        else    do  contentsWithPaths <- readInterfaceFiles interfaceFiles
-                    let processingResult = 
-                            do  parseWithPaths <- parseInterfaceFiles contentsWithPaths
-                                case verifyFileNames parseWithPaths of
-                                    Nothing     -> return () -- check this!! maybe
-                                    Just err    -> Left err
-                                let intfDataOnly = map snd parseWithPaths
-                                sortInterfacesTopologically intfDataOnly
-                    return processingResult
-                
--- -- `processInterfaceFiles` basically takes filepaths of multiple interface files
--- -- and processes each.
--- -- 
--- -- returns the final processed interfaces
--- processInterfaceFiles :: [FilePath] -> IO (Either SeparateCompilationError [ParseIntfData])
--- processInterfaceFiles files = do
---     -- Read files (already checks .epi extensixon)
---     contents <- readInterfaceFiles files
---     case parseInterfaceFiles contents of
---         Left err -> return $ Left err
---         Right parsed ->
---             -- Verify names match filenames
---             case verifyFileNames parsed of
---                 Nothing ->  return $ Right . map snd $ parsed  -- Return just ParseIntfData
---                 Just err -> return $ Left err
+        then return $ Right []
+        else do
+            contentsWithPaths <- readInterfaceFiles interfaceFiles
+            let processingResult = do
+                    parseWithPaths <- parseInterfaceFiles contentsWithPaths
+                    case verifyFileNames parseWithPaths of
+                        Nothing     -> return () -- check this!! maybe
+                        Just err    -> Left err
+                    let intfDataOnly = map snd parseWithPaths
+                    sortInterfacesTopologically intfDataOnly
+            return processingResult
 
--- Now, we have ParseIntfData
-
-
-
--- -- Read all the headers
--- getHeaders :: ProjectName -> IO (Either SeparateCompilationError [ParseIntfData])
--- getHeaders projName = 
---     do
---         baseDir <- getBaseDir
---         let projDir = baseDir </> projName
---         exists <- doesDirectoryExist projDir
---         unless exists $ 
-
--- parseHeader :: FilePath -> IO (Either SeparateCompilationError ParseIntfData)
--- parseHeader filePath = 
---     do  fileContent <- try (readFile filePath) :: IO (Either IOException String)
---         case fileContent of
---             Left  e       -> return $ Left $ SepCompError $ show e
---             Right content -> 
---                 case parseInterface content of
---                     Nothing     -> return $ Left $ SepCompError ("Interface Parsing Failed for file: " ++ filePath)
---                     Just result -> return $ Right result
-
--- extractRequirements :: FilePath -> Requirements -> Either SeparateCompilationError SourceRequirements
--- extractRequirements path []      = Right []
--- extractRequirements path (x:xs)  =
---     case x of
---         -- Assumption intfName is found in the current path
---         Req name intfName       -> 
---             case processHeader (FilePath </> intfName) of
---                 Right ty        -> uhhjnmkm,
---         Param name typ          -> extractRequirements xs >>= 
---                                         \xs' -> 
---                                             ((name, typ):xs')
-
--- -- Write Tests
--- -- 
--- ---------------------------------
--- processHeader :: ParseIntfData -> Either SeparateCompilationError SourceHeader
--- processHeader (name, auth, reqs, intf) =
---     -- 
--- -- 1st Pass
--- -- Remove Type Aliases and Expand
--- -- TBC
--- -- Test
-
--- -- 2nd Pass
--- -- Read other interface files
--- -- in the requirements
---     -- Perform 1st and 2nd pass for each interface file read
--- -- Test
-
--- -- Put interface file in the proper simplified form
--- -- desugar into source level
--- -- Test
-
--- -- P
+-- Need to do:
+-- Convert and expand the headers from left to right
+-- translating to the source level
+-- Clean up and test
+-- Repeat the same for implementation files
+-- Once completed, then work on source to core translation
+-- Test imports and required (A lot)
+-- Then, add lists and test and finish
+-- Document the project and write thesis/report
