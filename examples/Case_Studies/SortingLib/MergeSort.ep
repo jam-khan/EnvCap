@@ -1,0 +1,31 @@
+@pure module MergeSort
+
+require Listutils;
+
+function merge(ls1: [Int], ls2: [Int]) : [Int] {
+    match (ls1, ls2) of
+        case ([], _)            => { ls2 }
+        case (_, [])            => { ls1 }
+        case ((x:xs), (y:ys))  => {
+            if (x <= y)
+            then concat([x]<Int>, merge(xs, ls2))
+            else concat([y]<Int>, merge(ls1, ys))
+        }
+};
+
+function split(ls: [Int]) : ([Int], [Int]) {
+    let mid = length(ls) / 2 in {
+        (take(mid, ls), drop(mid, ls))
+    }
+};
+
+function mergeSort(ls: [Int]) : [Int] {
+    match ls of
+        case []         => { []<Int> }
+        case [x]        => { [x]<Int> }  // Single-element list is already sorted
+        case _          => {
+            let { (left, right) = split(ls) } in {
+                merge(mergeSort(left), mergeSort(right))
+            }
+        }
+}

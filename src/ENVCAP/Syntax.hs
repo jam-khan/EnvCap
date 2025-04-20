@@ -72,14 +72,9 @@ data SurfaceTm          =   SCtx                                        -- Query
                         |   SCase      SurfaceTm Cases
                         |   SOpen      SurfaceTm SurfaceTm
                         -- List matching
-                        |   SList      [SurfaceTm]
-                        |   SIsEmpty   SurfaceTm
-                        |   SHead      SurfaceTm
-                        |   STail      SurfaceTm
-                        |   SRest      SurfaceTm
+                        |   SNil       SurfaceTyp
                         |   SCons      SurfaceTm SurfaceTm
-                        |   SAppend    SurfaceTm SurfaceTm
-                        |   SConcat    SurfaceTm SurfaceTm
+                        |   SList      [SurfaceTm] SurfaceTyp
                         deriving (Eq, Show)
 
 data SurfaceTyp         =   STUnit                              -- ^ Unit type for empty environment

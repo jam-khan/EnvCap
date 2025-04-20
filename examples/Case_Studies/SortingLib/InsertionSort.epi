@@ -1,0 +1,7 @@
+@pure module InsertionSort
+
+require Listutils;
+
+function insert(sorted: [Int], elem: Int) : [Int];
+
+function insertionSort(ls: [Int]) : [Int]

@@ -117,9 +117,9 @@ interpreter code =
         surfacelocallyNameLessAST   <- locallyNameless surfaceASTExpanded
         sourceASTDesugared          <- desugarSource surfacelocallyNameLessAST
         (sourceTy, coreAST)         <- elaboration sourceASTDesugared
-        if check TyCUnit coreAST (elaborateTyp sourceTy)
+        if  check TyCUnit coreAST (elaborateTyp sourceTy)
             then evaluate coreAST
-            else Left $ InterpreterFailed ("Type checking faile at core level" ++ show (infer TyCUnit coreAST))
+            else Left   $ InterpreterFailed ("Type checking faile at core level" ++ show (infer TyCUnit coreAST))
 
 -- | Runs a file by reading its contents. Handles potential I/O errors.
 --

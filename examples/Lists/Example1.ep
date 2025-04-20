@@ -1,11 +1,8 @@
-@pure
+@pure module Example
 
-let x = [1, 2, 3];
+type alias = {x: Int, y: Int};
 
-let y = 1;
-
-let testOne     = isempty(x);
-let testTwo     = head(y);
-let testThree   = tail(x);
-let testFour    = rest(x);
-let testFive    = [1] ++ [1, 2, 3]
+let one     = [1, 2, 3, 4]<Int>;
+let two     = [1, 2]<Int -> Int>;
+let three   = [1]<alias>;
+let empty   = []<Int>
