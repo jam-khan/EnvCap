@@ -72,14 +72,9 @@ data SurfaceTm          =   SCtx                                        -- Query
                         |   SCase      SurfaceTm Cases
                         |   SOpen      SurfaceTm SurfaceTm
                         -- List matching
-                        |   SList      [SurfaceTm]
-                        |   SIsEmpty   SurfaceTm
-                        |   SHead      SurfaceTm
-                        |   STail      SurfaceTm
-                        |   SRest      SurfaceTm
+                        |   SNil       SurfaceTyp
                         |   SCons      SurfaceTm SurfaceTm
-                        |   SAppend    SurfaceTm SurfaceTm
-                        |   SConcat    SurfaceTm SurfaceTm
+                        |   SList      [SurfaceTm] SurfaceTyp
                         deriving (Eq, Show)
 
 data SurfaceTyp         =   STUnit                              -- ^ Unit type for empty environment
@@ -151,8 +146,6 @@ data SourceTyp          =   TySUnit                             -- Unit type for
 data CoreTm             =   Ctx                                 -- Context
                         |   Unit                                -- Unit
                         |   Lit    Integer                      -- Integer literal
-                        |   EBool   Bool                        -- Boolean Term
-                        |   EString String                      -- String Term
                         |   Lam    CoreTyp CoreTm               -- Lambda Abstraction
                         |   Proj   CoreTm Integer               -- Projection
                         |   Clos   CoreTm  CoreTm               -- Closure
@@ -162,15 +155,17 @@ data CoreTm             =   Ctx                                 -- Context
                         |   Mrg    CoreTm CoreTm                -- Merge
                         |   Box    CoreTm CoreTm                -- Box
                         -- Extensions
+                        |   EBool   Bool                        -- Boolean Term
+                        |   EString String                      -- String Term
                         |   If     CoreTm CoreTm CoreTm         -- Conditionals
                         |   Fix    CoreTyp CoreTm               -- Recursion
                         |   Tag    CoreTm CoreTyp
                         |   Case   CoreTm [(Pattern, CoreTm)]
-                        |   BinOp  BinaryOp CoreTm CoreTm       -- Binary operations
-                        |   UnOp   UnaryOp CoreTm               -- Unary operations
                         |   Nil    CoreTyp                      -- Nil List with Type
                         |   Cons   CoreTm CoreTm                -- List expression
                         |   LCase  CoreTm CoreTm CoreTm
+                        |   BinOp  BinaryOp CoreTm CoreTm       -- Binary operations
+                        |   UnOp   UnaryOp CoreTm               -- Unary operations
                         -- Lambda for linking
                         |   CLam   CoreTyp  CoreTm
                         |   Anno   CoreTm   CoreTyp 
@@ -181,9 +176,9 @@ data CoreTyp            =   TyCUnit                       -- Unit type for empty
                         |   TyCAnd        CoreTyp CoreTyp -- Intersection type
                         |   TyCArrow      CoreTyp CoreTyp -- Arrow type, e.g. A -> B
                         |   TyCRecord     String  CoreTyp -- Single-Field Record Type
+                        -- Extensions
                         |   TyCUnion      CoreTyp CoreTyp -- Union type
                         |   TyCList       CoreTyp         -- List Type
-                        -- Extensions
                         |   TyCBool                       -- Boolean type
                         |   TyCString                     -- String type
                         deriving (Eq, Show, Generic)
@@ -193,10 +188,10 @@ data Value              =       VUnit                      -- Unit value
                         |       VClos   Value CoreTm       -- Closure
                         |       VRcd    String Value       -- Single-field record value
                         |       VMrg    Value Value        -- Merge of two values
-                        |       VTag    Value CoreTyp      
+                        -- Extensions
                         |       VNil    CoreTyp
                         |       VCons   Value Value
-                        -- Extensions
+                        |       VTag    Value CoreTyp      
                         |       VBool   Bool               -- Boolean Value
                         |       VString String             -- String Value
                         deriving (Show, Eq, Generic)

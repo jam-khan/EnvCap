@@ -1,0 +1,5 @@
+@pure interface QuickSort
+
+require Listutils;
+
+function quickSort(ls: [Int]) : [Int]

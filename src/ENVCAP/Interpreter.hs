@@ -10,7 +10,7 @@ import ENVCAP.Source.Elaboration (Elab, elaborateInfer, elaborateTyp)
 import ENVCAP.Core.Evaluator (eval)
 import ENVCAP.Core.TypeChecker (check, infer)
 import ENVCAP.Parser.Interface.ParseInterface (parseInterface)
-
+import ENVCAP.Core.PrettyPrint (prettyPrint)
 
 -- | Parses a string of code into a 'SurfaceTm' or returns an 'InterpreterError' on failure.
 --
@@ -117,9 +117,9 @@ interpreter code =
         surfacelocallyNameLessAST   <- locallyNameless surfaceASTExpanded
         sourceASTDesugared          <- desugarSource surfacelocallyNameLessAST
         (sourceTy, coreAST)         <- elaboration sourceASTDesugared
-        if check TyCUnit coreAST (elaborateTyp sourceTy)
+        if  check TyCUnit coreAST (elaborateTyp sourceTy)
             then evaluate coreAST
-            else Left $ InterpreterFailed ("Type checking faile at core level" ++ show (infer TyCUnit coreAST))
+            else Left   $ InterpreterFailed ("Type checking faile at core level" ++ show (infer TyCUnit coreAST))
 
 -- | Runs a file by reading its contents. Handles potential I/O errors.
 --
@@ -135,7 +135,7 @@ runFile filePath = do
     case result of
         Left ioexception -> putStrLn ("I/O error: " ++ show ioexception)
         Right code       -> case interpreter code of
-                                Right res                       -> print res
+                                Right res                       -> putStrLn $ prettyPrint res
                                 Left (InterpreterFailed err)    -> putStrLn err
 
 -- | Reads and parses the file (Testing purposes)

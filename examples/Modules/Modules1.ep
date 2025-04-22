@@ -1,10 +1,10 @@
-@pure
+@pure module Test
 
-val x = 1;
+let x = 1;
 
-module example (x: Int) {
-    val y   = x + 1;
-    val inc = 10
+functor example (x: Int) : {y: Int, inc: Int} {
+    let y   = x + 1;
+    let inc = 10
 };
 
-example(x + 1)
+let result = example(x + 1)

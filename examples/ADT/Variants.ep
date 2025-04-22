@@ -12,10 +12,10 @@ type Day    = Monday
 let y  = {Weekend 10 (\(x:Int) => { "Whynot" })} as Day;
 
 let res = 
-        match y 
-            of  case Monday             => { "Monday" }
-                case Tuesday            => { "Tuesday" }
-                case Wednesday          => { "Wednesday" }
-                case Thursday           => { "Thursday" }
-                case Friday             => { "Friday" }
-                case (Weekend n msg)    => { msg(1) }
+        match y of  
+            case   Monday             => { "Monday"    }
+            case   Tuesday            => { "Tuesday"   }
+            case   Wednesday          => { "Wednesday" }
+            case   Thursday           => { "Thursday"  }
+            case   Friday             => { "Friday"    }
+            case   (Weekend n msg)    => {  msg(1)  }

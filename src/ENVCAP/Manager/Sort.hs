@@ -106,22 +106,8 @@ topologicalSort (curr:queue) indegree graph  count result   =
 -- === Examples:
 -- >>> getDependencyOrder validGraph
 -- Right ["C","B","A"]
---
--- >>> getDependencyOrder cyclicGraph
--- Left "Cyclic dependencies detected."
--- getDependencyOrder  :: Graph 
---                     -> Either String [FilePath]
--- getDependencyOrder graph =
---     let
---         reversedGraph   = reverseGraph graph
---         queue           = initialQueue reversedGraph
---         (count, order)  = topologicalSort queue (inDegree reversedGraph) reversedGraph 0 []
---     in
---         if count == length (getNodes graph) then
---             Right order
---         else
-            -- Left "Cyclic dependencies detected."
-getDependencyOrder :: Graph -> Either String [FilePath]
+getDependencyOrder  :: Graph 
+                    -> Either String [FilePath]
 getDependencyOrder graph =
     let
         reversedGraph = reverseGraph graph
@@ -136,6 +122,7 @@ getDependencyOrder graph =
             Right (order ++ missingNodes)
         else
             Left "Cyclic dependencies detected."
+
 -- Example 1
 validGraph :: Graph
 validGraph = M.fromList
