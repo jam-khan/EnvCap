@@ -4,46 +4,68 @@ import styles from './styles.module.css';
 
 const FeatureList = [
   {
-    title: 'Easy to Use',
-    Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
+    title: 'Capabilities as Modules',
     description: (
       <>
-        Docusaurus was designed from the ground up to be easily installed and
-        used to get your website up and running quickly.
+        ENVCAP treats capabilities as first-class modules, enabling fine-grained control over resources and effects while maintaining type safety.
       </>
     ),
   },
   {
-    title: 'Focus on What Matters',
-    Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
+    title: 'Separate Compilation',
     description: (
       <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go
-        ahead and move your docs into the <code>docs</code> directory.
+        The language supports separate compilation of modules while preserving abstraction boundaries through its capability system.
       </>
     ),
   },
   {
-    title: 'Powered by React',
-    Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
+    title: 'First-Class Environments',
     description: (
       <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
+        Environments are first-class values in ENVCAP, allowing flexible composition and manipulation of module contexts.
       </>
     ),
   },
 ];
 
-function Feature({Svg, title, description}) {
+function Feature({title, description}) {
   return (
     <div className={clsx('col col--4')}>
-      <div className="text--center">
-        <Svg className={styles.featureSvg} role="img" />
-      </div>
       <div className="text--center padding-horiz--md">
         <Heading as="h3">{title}</Heading>
         <p>{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function Contributors() {
+  return (
+    <div className={styles.contributors}>
+      <Heading as="h2">Contributors</Heading>
+      <div className={styles.contributorList}>
+        <div className={styles.contributor}>
+          <strong>Main Author:</strong>
+          <a href="https://jam-khan.github.io/" target="_blank" rel="noopener noreferrer">
+            Jam Kabeer Ali Khan
+          </a>
+        </div>
+        <div className={styles.contributor}>
+          <strong>Advisors:</strong>
+          <ul>
+            <li>
+              <a href="https://i.cs.hku.hk/~bruno/" target="_blank" rel="noopener noreferrer">
+                Prof. Bruno C. d. S. Oliveira
+              </a>
+            </li>
+            <li>
+              <a href="https://jinhaotan.com/" target="_blank" rel="noopener noreferrer">
+                Jinhao Tan
+              </a>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
   );
@@ -58,6 +80,7 @@ export default function HomepageFeatures() {
             <Feature key={idx} {...props} />
           ))}
         </div>
+        <Contributors />
       </div>
     </section>
   );
