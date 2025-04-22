@@ -25,5 +25,6 @@ proofs/*.d
 proofs/*.glob
 proofs/Makefile
 proofs/Makefile.conf
+proofs/Makefile
 src/ENVCAP/Parser/Happy.info
 .vscode/*
