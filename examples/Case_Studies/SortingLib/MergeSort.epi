@@ -1,9 +1,0 @@
-@pure interface MergeSort
-
-require Listutils;
-
-function merge(ls1: [Int], ls2: [Int]) : [Int];
-
-function split(ls: [Int]) : ([Int], [Int]);
-
-function mergeSort(ls: [Int]) : [Int]

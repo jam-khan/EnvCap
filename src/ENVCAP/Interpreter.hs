@@ -10,7 +10,7 @@ import ENVCAP.Source.Elaboration (Elab, elaborateInfer, elaborateTyp)
 import ENVCAP.Core.Evaluator (eval)
 import ENVCAP.Core.TypeChecker (check, infer)
 import ENVCAP.Parser.Interface.ParseInterface (parseInterface)
-
+import ENVCAP.Core.PrettyPrint (prettyPrint)
 
 -- | Parses a string of code into a 'SurfaceTm' or returns an 'InterpreterError' on failure.
 --
@@ -135,7 +135,7 @@ runFile filePath = do
     case result of
         Left ioexception -> putStrLn ("I/O error: " ++ show ioexception)
         Right code       -> case interpreter code of
-                                Right res                       -> print res
+                                Right res                       -> putStrLn $ prettyPrint res
                                 Left (InterpreterFailed err)    -> putStrLn err
 
 -- | Reads and parses the file (Testing purposes)

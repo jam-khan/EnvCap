@@ -96,7 +96,7 @@ import ENVCAP.Syntax
 
 %%
 
-Program             :    Fragment                                     { $1 }
+Program             :    Fragment                                               { $1 }
 
 Fragment            :    'module' var Statements                                { ($2, Pure,      [], [], $3) }
                     |    '@pure'     'module' var Import Required Statements    { ($3, Pure,      $4, $5, $6) }
@@ -221,8 +221,8 @@ IntersectionType    : IntersectionType ',' Type             {  STAnd $1 $3  }
 Projection               : Term '.' int                          {  SProj  $1 $3  }
                          | Term '.' var                          {  SRProj $1 $3  }
 
-Module                   : 'functor' var '(' ParamList ')' ':' Type '{' Statements '}'    { SAnno (SModule $2 $4 $9) $7 }
-                         | 'module' var ':' Type '{' Statements '}'                       { SAnno (SRec $2 $6) $4 }
+Module                   : 'functor' var '(' ParamList ')' ':' Type '{' Statements '}'   { (SModule $2 $4 $9) }    -- { SAnno  $7 }
+                         | 'module' var ':' Type '{' Statements '}'                      { (SRec $2 $6) }          -- { SAnno  $4 }
 
 Struct                   : 'module' 'struct' '{' Statements '}'                      { $4 }
                          | 'module' 'struct' '(' ParamList ')' '{' Statements '}'    { SStruct $4 $7 }
