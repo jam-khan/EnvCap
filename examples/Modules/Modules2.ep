@@ -28,6 +28,6 @@ let moduleTwo =
         }
     };
 
-
+let result      = with 
 let sumResult   = let { f : Int -> Int = getFunction(moduleOne) } in { f(10) };
 let fibResult   = let { f : Int -> Int = getFunction(moduleTwo) } in { f(10) }

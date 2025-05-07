@@ -1,0 +1,15 @@
+@pure module Test
+
+let moduleG = 
+    struct (g : Int -> (Int -> Int)) {
+        let y = 12;
+        function f(n : Int) : Int {
+            if (n == 0) then {
+                0
+            } else {
+                g(n, f(n - 1))
+            }
+        }
+    };
+
+let result      = with moduleG(\(n : Int, m : Int) => { n + m }) in { f(y) }

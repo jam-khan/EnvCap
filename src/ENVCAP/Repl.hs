@@ -22,5 +22,3 @@ repl = runInputT defaultSettings loop
                                 Right result -> outputStrLn result
                             loop
         Nothing -> outputStrLn "Goodbye!"
-
-

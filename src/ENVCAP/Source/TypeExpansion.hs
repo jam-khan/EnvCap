@@ -56,6 +56,14 @@ expandTyAlias tyCtx (STSig  tyA tyB)    =
 expandTyAlias tyCtx (STIden label)      =
         lookupAliasTyp tyCtx label
 
+-- This functions translates the interface and desugars it into a type
+translateIntfToTyp :: SurfaceTyp -> Interface -> SurfaceTyp
+translateIntfToTyp [] = []
+translateIntfToTyp 
+-- Extract type aliases
+extractTyAliases :: SurfaceTm -> Either TypeExpansionError [(String, SurfaceTyp)]
+extractTyAliases (SAliasTyp s ty)       = Right [(s, ty)]
+extractTyAliases (SAliasIntf s intf)    =
 -- -- | Utility function/wrapper for type expansion of requirements.
 -- expandTyAliasRequirements :: SurfaceTyp -> [Requirement] -> Either TypeExpansionError Requirement
 -- expandTyAliasRequirements ctx   (Explicit name ty)    
@@ -103,13 +111,12 @@ expandAlias ctx (SProj tm i)    = SProj <$> expandAlias ctx tm
 expandAlias ctx (SApp tm params)= SApp  <$> expandAlias ctx tm 
                                         <*> traverse (expandAlias ctx) params
 expandAlias ctx (SMrg tm1 tm2)  = 
-                case tm1 of
-                        (SAliasTyp l ty) -> 
-                                expandTyAlias ctx ty >>= \ty' ->
-                                        expandAlias (STAnd ctx (STRecord l ty')) tm2
-                                        
-                        _                ->
-                                SMrg <$> expandAlias ctx tm1 <*> expandAlias ctx tm2
+                expandAlias ctx tm1 >>= \tm1' ->
+                        case tm1' of
+                                SAliasTyp l ty ->
+                                        expandTyAlias ctx ty >>= \ty' ->
+                                                expandAlias (STAnd ctx (STRecord l ty')) tm2
+                                _               -> SMrg tm1' <$> expandAlias ctx tm2
 expandAlias ctx (SBox tm1 tm2)  = 
         SBox  <$> expandAlias ctx tm1 <*> expandAlias ctx tm2
 expandAlias _   (SVar x)        = Right $ SVar x

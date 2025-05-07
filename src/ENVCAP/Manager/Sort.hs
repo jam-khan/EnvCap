@@ -1,8 +1,9 @@
 module ENVCAP.Manager.Sort where
 
-import qualified Data.Map.Strict as M
-import qualified Data.Set as S
+import qualified Data.Map.Strict    as M
+import qualified Data.Set           as S
 import Data.Maybe   (fromMaybe)
+import Data.List    (nub)
 
 type Node       = FilePath
 type Neighbours = [FilePath]

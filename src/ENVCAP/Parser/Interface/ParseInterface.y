@@ -71,22 +71,6 @@ InterfaceStatement  : TyAlias                                              { $1 
                     | BindingInterface                                     { $1 }
                     | IType                                                { $1 }
 
-TyAlias             : 'type' var '=' Type                                  {    IAliasTyp  $2 $4   }
-
-IntfAlias           : 'interface' var '{' Interface '}'                    {    IAliasIntf $2 $4   }
-
-FunctionInterface   : 'function' var '(' ParamList ')' ':' Type            {    FunctionTyp $2 $4 $7     }
-
-ModuleInterface     : 'module'  var '{' Interface '}'                      {    ModuleTyp   $2 [] $4     }
-                    | 'module'  var ':' var                                {    ModuleTyp   $2 [] [(IIden $4)] }
-
-FunctorInterface    : 'functor' var '(' ParamList ')' '{' Interface '}'    {    ModuleTyp   $2 $4 $7     }
-                    | 'functor' var '(' ParamList ')' ':' var              {    ModuleTyp   $2 $4 [(IIden $7)]  }
-
-BindingInterface    : 'val'      var ':' Type                              {    Binding $2 $4  }
-
-IType               : Type                                            {    IType $1  }
-
 Type                : 'Int'                                           {    STInt          }
                     | 'Bool'                                          {    STBool         }
                     | 'String'                                        {    STString       }

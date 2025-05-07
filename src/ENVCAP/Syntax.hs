@@ -13,68 +13,63 @@ type Letargs            = [(String, SurfaceTyp, SurfaceTm)]
 type Name               = String
 type Pattern            = (String, [String])
 type Cases              = [(Pattern, SurfaceTm)]
-type Imports            = [String]
+type Import             = String
+type Requirement        = String
 
--- data Requirement        = Req String String | Param String SurfaceTyp
---                         deriving (Eq, Show)
--- For sake of simplicity, parameter requirements are not allowed yet.
-data Requirement        = Req String String
-                        deriving (Eq, Show)
 
-type Requirements       = [Requirement]
-type ParseImplData      = (Name, Authority, Imports, Requirements, SurfaceTm)
+data Parsed             = IMPL ParseImplData | INTF ParseIntfData
+
+type ParseImplData      = (Name, Authority, Imports, Requirements, Statements)
 type ParseIntfData      = (Name, Authority,          Requirements, Interface)
+
+type Imports            = [Import]
+type Requirements       = [Requirement]
+
 
 type Interface          = [InterfaceStmt]
 
 data InterfaceStmt      =   IAliasTyp       String SurfaceTyp
                         |   IAliasIntf      String Interface
+                        |   FunctionIntf    Name Params SurfaceTyp
+                        |   ModuleIntf      Name Params Interface
+                        |   BindingTy       Name SurfaceTyp
                         |   IType           SurfaceTyp
-                        |   IIden           String
-                        |   FunctionTyp     Name Params SurfaceTyp
-                        |   ModuleTyp       Name Params Interface
-                        |   Binding         Name SurfaceTyp
+                        |   IVar            String
                         deriving (Eq, Show)
 
 type Statements         = [SurfaceTm]
 
-data SurfaceTm          =   SCtx                                        -- Query
-                        |   SUnit                                       -- Unit
-                        |   SLit       Integer                          -- Integer Literal
-                        |   SBool      Bool                             -- Boolean Literal
-                        |   SString    String                           -- String  Literal
-                        |   SLam       Params SurfaceTm                 -- Abstraction with binding
-                        |   SClos      SurfaceTm Params SurfaceTm
-                        |   SRec       String SurfaceTm
-                        |   SRProj     SurfaceTm String
-                        |   SProj      SurfaceTm Integer                -- Projection on Expression
-                        |   SApp       SurfaceTm [SurfaceTm]
-                        |   SMrg       SurfaceTm SurfaceTm
-                        |   SBox       SurfaceTm SurfaceTm
-                        |   SVar       String
-                        |   SStruct    Params   SurfaceTm
-                        |   SFunc      Name Params SurfaceTyp SurfaceTm
-                        |   SModule    Name Params SurfaceTm
-                        {-- CAREFUL: Type Expansion --}
-                        |   SAliasTyp  String SurfaceTyp
-                        |   SAliasIntf String Interface
-                        {-- CAREFUL: Type Expansion --}
-                        |   SLet       Letargs  SurfaceTm
-                        |   SLetrec    Letargs  SurfaceTm
-                        |   SBinOp     BinaryOp SurfaceTm SurfaceTm
-                        |   SUnOp      UnaryOp  SurfaceTm
-                        |   SAnno      SurfaceTm SurfaceTyp
-                        |   SIf        SurfaceTm SurfaceTm SurfaceTm
-                        |   SPair      SurfaceTm SurfaceTm
-                        |   STuple     [SurfaceTm]
-                        |   SSwitch    SurfaceTm [(SurfaceTm, SurfaceTm)]
-                        |   SADTInst   (String, [SurfaceTm]) SurfaceTyp 
-                        |   SCase      SurfaceTm Cases
-                        |   SOpen      SurfaceTm SurfaceTm
-                        -- List matching
-                        |   SNil       SurfaceTyp
-                        |   SCons      SurfaceTm SurfaceTm
-                        |   SList      [SurfaceTm] SurfaceTyp
+data SurfaceTm          =   SCtx                                            -- ^ Query
+                        |   SUnit                                           -- ^ Unit
+                        |   SLit       Integer                              -- ^ Integer Literal
+                        |   SBool      Bool                                 -- ^ Boolean Literal
+                        |   SString    String                               -- ^ String  Literal
+                        |   SVar       String                               -- ^ Variable
+                        |   SOpen      SurfaceTm                            -- ^ Open
+                        |   SLam       Params       SurfaceTm               -- ^ Abstraction with binding
+                        |   SRec       String       SurfaceTm               -- ^ Record
+                        |   SProj      SurfaceTm    Integer                 -- ^ Indexed lookup
+                        |   SRProj     SurfaceTm    String                  -- ^ Labeled lookup
+                        |   SApp       SurfaceTm    [SurfaceTm]             -- ^ Application
+                        |   SMrg       [SurfaceTm]                          -- ^ Dependent Merge
+                        |   STuple     [SurfaceTm]                          -- ^ Tuple
+                        |   SWith      SurfaceTm    SurfaceTm               -- ^ With sandboxing
+                        |   SStruct    Params       Statements              -- ^ First-class module
+                        |   SLet       Letargs      SurfaceTm               -- ^ Let
+                        |   SLetrec    Letargs      SurfaceTm               -- ^ Letrec
+                        |   SIf        SurfaceTm    SurfaceTm SurfaceTm     -- ^ Conditional If
+                        |   SADTInst   (String, [SurfaceTm])  SurfaceTyp    -- ^ Algebraic Data Type Instance
+                        |   SCase      SurfaceTm    Cases                   -- ^ Pattern Matching
+                        |   SSwitch    SurfaceTm    [(SurfaceTm, SurfaceTm)]-- ^ Switch coniditional
+                        |   SCons      SurfaceTm    SurfaceTm               -- ^ List constructor
+                        |   SList      [SurfaceTm]  SurfaceTyp              -- ^ List with type annotation
+                        |   SBinOp     BinaryOp     SurfaceTm SurfaceTm     -- ^ Binary operation
+                        |   SUnOp      UnaryOp      SurfaceTm               -- ^ Unary operation
+                        |   SFunc      Name Params  SurfaceTyp SurfaceTm    -- ^ Function
+                        |   SModule    Name Params  Interface Statements    -- ^ Module
+                        |   SAliasTyp  String       SurfaceTyp              -- ^ Type Alis
+                        |   SAliasIntf String       Interface               -- ^ Interface
+                        |   SAnno      SurfaceTm    SurfaceTyp              -- ^ Type annotation
                         deriving (Eq, Show)
 
 data SurfaceTyp         =   STUnit                              -- ^ Unit type for empty environment
@@ -85,7 +80,6 @@ data SurfaceTyp         =   STUnit                              -- ^ Unit type f
                         |   STArrow     SurfaceTyp SurfaceTyp   -- ^ Arrow type, e.g. A -> B
                         |   STRecord    String     SurfaceTyp   -- ^ Single-Field Record Type
                         |   STUnion     SurfaceTyp SurfaceTyp   -- ^ Union
-                        -- Extensions
                         |   STList      SurfaceTyp              -- ^ Type for built-in list 
                         |   STSig       SurfaceTyp SurfaceTyp   -- ^ Sig Type End
                         |   STIden      String                  -- ^ Simply an alias
@@ -145,6 +139,8 @@ data SourceTyp          =   TySUnit                             -- Unit type for
 
 data CoreTm             =   Ctx                                 -- Context
                         |   Unit                                -- Unit
+                        |   EBool   Bool                        -- Boolean Term
+                        |   EString String                      -- String Term
                         |   Lit    Integer                      -- Integer literal
                         |   Lam    CoreTyp CoreTm               -- Lambda Abstraction
                         |   Proj   CoreTm Integer               -- Projection
@@ -154,21 +150,15 @@ data CoreTm             =   Ctx                                 -- Context
                         |   App    CoreTm CoreTm                -- Application
                         |   Mrg    CoreTm CoreTm                -- Merge
                         |   Box    CoreTm CoreTm                -- Box
-                        -- Extensions
-                        |   EBool   Bool                        -- Boolean Term
-                        |   EString String                      -- String Term
                         |   If     CoreTm CoreTm CoreTm         -- Conditionals
                         |   Fix    CoreTyp CoreTm               -- Recursion
-                        |   Tag    CoreTm CoreTyp
-                        |   Case   CoreTm [(Pattern, CoreTm)]
+                        |   Tag    CoreTm CoreTyp               -- Tagging for ADTs
+                        |   Case   CoreTm [(Pattern, CoreTm)]   -- Pattern Matching
                         |   Nil    CoreTyp                      -- Nil List with Type
                         |   Cons   CoreTm CoreTm                -- List expression
-                        |   LCase  CoreTm CoreTm CoreTm
+                        |   LCase  CoreTm CoreTm CoreTm         -- 
                         |   BinOp  BinaryOp CoreTm CoreTm       -- Binary operations
                         |   UnOp   UnaryOp CoreTm               -- Unary operations
-                        -- Lambda for linking
-                        |   CLam   CoreTyp  CoreTm
-                        |   Anno   CoreTm   CoreTyp 
                         deriving (Eq, Show, Generic)
 
 data CoreTyp            =   TyCUnit                       -- Unit type for empty environment
