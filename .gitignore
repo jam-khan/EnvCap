@@ -9,7 +9,6 @@ src/FullIsorec/*
 .vscode/*
 proofs/core/*.aux
 proofs/core/*.glob
-# proofs/core/*.mk
 src/ENVCAP/Parser/Interface/ParseInterface.info
 src/ENVCAP/Parser/Interface/ParseInterface.hs
 src/ENVCAP/Parser/Implementation/ParseImp.info
@@ -28,3 +27,4 @@ proofs/Makefile.conf
 proofs/Makefile
 src/ENVCAP/Parser/Happy.info
 .vscode/*
+config.cfg
