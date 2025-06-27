@@ -25,7 +25,6 @@ extra-source-files: CHANGELOG.md
 library
     exposed-modules:    ENVCAP.Interpreter ENVCAP.Utils ENVCAP.Repl ENVCAP.Syntax
                         ENVCAP.Source.Desugar   ENVCAP.Source.Errors ENVCAP.Source.LocallyNameless ENVCAP.Source.TypeExpansion
-                        ENVCAP.Manager.Interface ENVCAP.Manager.Implementation ENVCAP.Manager.Manage ENVCAP.Manager.Resolve
                         ENVCAP.Core.PrettyPrint
                         ENVCAP.Parser.Interface.ParseInterface 
                         ENVCAP.Core.Evaluator ENVCAP.Core.TypeChecker
