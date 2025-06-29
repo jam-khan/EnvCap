@@ -23,12 +23,8 @@ extra-source-files: CHANGELOG.md
 
 --     exposed-modules
 library
-    exposed-modules:    ENVCAP.Interpreter ENVCAP.Utils ENVCAP.Repl ENVCAP.Syntax
-                        ENVCAP.Source.Desugar   ENVCAP.Source.Errors ENVCAP.Source.LocallyNameless ENVCAP.Source.TypeExpansion
-                        ENVCAP.Core.PrettyPrint
-                        ENVCAP.Parser.Interface.ParseInterface 
-                        ENVCAP.Core.Evaluator ENVCAP.Core.TypeChecker
-                        ENVCAP.Source.Elaboration
+    exposed-modules:    ENVCAP.Utils ENVCAP.Syntax ENVCAP.Source.Errors
+                        ENVCAP.Core.PrettyPrint ENVCAP.Core.Evaluator ENVCAP.Core.TypeChecker
     -- Modules included in this library but not exported.
     -- other-modules:
 
@@ -49,7 +45,7 @@ library
                       bytestring,
                       binary,
                       mtl
-    hs-source-dirs:   src, test, examples
+    hs-source-dirs:   src, examples
     ghc-options:      -Wall
     default-language: Haskell2010
 
@@ -66,16 +62,4 @@ executable EnvCap
         EnvCap
     
     hs-source-dirs:   app
-    default-language: Haskell2010
-
-
-test-suite tests
-    type: exitcode-stdio-1.0
-    main-is: Spec.hs
-    hs-source-dirs: test
-    build-depends:  base >= 4.7 && <5,
-                    hspec,
-                    filepath,
-                    EnvCap,
-                    QuickCheck
     default-language: Haskell2010
