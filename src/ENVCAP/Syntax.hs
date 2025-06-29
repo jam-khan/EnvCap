@@ -11,36 +11,37 @@ import Data.Binary
 type Params             = [(String, SourceTyp)]
 type Letargs            = [(String, SourceTyp, SourceTm)] 
 type Name               = String
-type Pattern            = (String, [String])
-type Cases              = [(Pattern, SourceTm)]
-type Imports            = [String]
-type SourceImport       = [(String, SourceHeader)]
-type SourceRequirements = [(String, SourceHeader)]
 
+type SourceImports      = [(String, SourceInterface)]
+type SourceRequirements = [(String, SourceInterface)]
 
-data SourceFragment     = TmFragment Name Authority SourceImport SourceRequirements SourceIntf
+data SourceFragment     = TmFragment Name Authority SourceImports SourceRequirements SourceInterface
+data SourceInterface    =   STy             SourceTyp
+                        |   STyFunc         Name SourceTyp
+                        |   STyModule       Name SourceInterface
+                        |   STyBind         Name SourceTyp
+                        |   STyInterface    Name Authority SourceRequirements SourceInterface
+                        deriving (Eq, Show)
 data Authority          = Pure | Resource 
                         deriving (Eq, Show)
 
-data SourceHeader       = TmInterface Name Authority SourceRequirements SourceIntf
-
-type SourceIntf         = SourceTyp -- Placeholder for now
 data SourceTm           =   TmCtx                               -- Query
                         |   TmUnit                              -- Unit
                         |   TmLit       Integer                 -- Integer Literal
                         |   TmBool      Bool                    -- Boolean Literal
                         |   TmString    String                  -- String  Literal
-                        |   TmLam       Params SourceTm      -- Abstraction with binding
-                        |   TmRec       String SourceTm
+                        |   TmLam       Params SourceTm         -- Abstraction with binding
+                        |   TmRec       String SourceTm         
                         |   TmRProj     SourceTm String
                         |   TmProj      SourceTm Integer        -- Projection on Expression
                         |   TmApp       SourceTm SourceTm
                         |   TmMrg       SourceTm SourceTm
-                        |   TmBox       SourceTm SourceTm
+                        |   TmWith      SourceTm SourceTm
                         -- To be elaborated
+                        |   TmOpen      SourceTm SourceTm
                         |   TmSeq       SourceTm SourceTm
                         |   TmFunc      Params SourceTm
-                        |   TmTuple     [SourceTm]
+                        |   TmPair      SourceTm SourceTm
                         |   TmStruct    Params SourceTm
                         |   TmModule    Params SourceTm
                         -- Basic operation support
@@ -55,7 +56,6 @@ data SourceTyp          =   TySUnit                             -- Unit type for
                         |   TySRecord   String SourceTyp        -- Single-Field Record Type
                         |   TySBool                             -- Boolean type
                         |   TySString                           -- String type
-                        |   TySSig      SourceTyp SourceTyp     -- Sig Type End
                         deriving (Eq, Show)
 
 data CoreTm             =   Ctx                                 -- Context

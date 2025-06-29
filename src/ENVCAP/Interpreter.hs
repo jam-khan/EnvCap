@@ -2,11 +2,7 @@ module ENVCAP.Interpreter where
 import Control.Exception (try, IOException)
 import ENVCAP.Syntax
 import ENVCAP.Parser.Implementation.ParseImp (parseImplementation)
-import ENVCAP.Source.TypeExpansion (expandAlias)
-import ENVCAP.Source.LocallyNameless
 import ENVCAP.Source.Errors
-import ENVCAP.Source.Desugar (desugar)
-import ENVCAP.Source.Elaboration (Elab, elaborateInfer, elaborateTyp)
 import ENVCAP.Core.Evaluator (eval)
 import ENVCAP.Core.TypeChecker (check, infer)
 import ENVCAP.Parser.Interface.ParseInterface (parseInterface)

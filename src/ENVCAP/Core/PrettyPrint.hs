@@ -20,9 +20,6 @@ prettyPrint val = case collectRecords val of
     ppValue (VClos v _) = "Closure<" ++ ppValue v ++ ", ...>"
     ppValue (VRcd label v) = "{" ++ label ++ " = " ++ ppValue v ++ "}"
     ppValue (VMrg v1 v2) = ppValue v1 ++ "; " ++ ppValue v2
-    ppValue (VNil ty) = "[]@" ++ show ty
-    ppValue (VCons v1 v2) = ppValue v1 ++ " : " ++ ppValue v2
-    ppValue (VTag v ty) = "Tag<" ++ ppValue v ++ ">@" ++ show ty
     
     renderTable :: [(String, String)] -> String
     renderTable records = 
