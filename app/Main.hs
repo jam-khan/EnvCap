@@ -1,7 +1,4 @@
 module Main where
--- main :: IO ()
--- main = do
---   putStrLn "Starting App"
 
 main :: IO ()
 main = do
