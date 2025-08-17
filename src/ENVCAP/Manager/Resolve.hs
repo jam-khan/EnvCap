@@ -1,4 +1,4 @@
-{-|
+{- |
 Module      : ENVCAP.Manager.Resolve
 Description : Module is responsible for the dependency management and resolution.
 Copyright   : (c) Jam Kabeer Ali Khan, 2025
@@ -17,4 +17,3 @@ Key functionalities:
 For more details, see the individual function documentation.
 -}
 module ENVCAP.Manager.Resolve where
-
