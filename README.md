@@ -25,7 +25,7 @@ Key features include:
 2. Generate parsers:
    ```bash
    happy src/ENVCAP/Parser/Implementation/ParseImp.y --ghc --info
-   happy src/ENVCAP/Parser/Interface/ParseIntf.y --ghc --info
+   happy src/ENVCAP/Parser/Interface/ParseInterface.y --ghc --info
    ```
 3. Build the project:
    ```bash
