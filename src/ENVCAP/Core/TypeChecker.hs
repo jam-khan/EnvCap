@@ -56,7 +56,8 @@ containmentUnion (TyCRecord l tA) (TyCUnion tB tC)
                                         (containmentUnion (TyCRecord l tA) tC && not (isLabel l tB))
 containmentUnion _ _            = False
 
-
+-- `rlookupt` performs a look on the typing context by record
+-- 
 -- === Example:
 -- >>> rlookupt (TyCRecord "X" TyCInt) "X"
 -- Just TyCInt

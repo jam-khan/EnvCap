@@ -53,7 +53,7 @@ ghci> repl
 ```
 Then enter expressions like:
 ```
-module Test 1 + 2
+module Test 1 + 4
 ```
 
 ## Language Overview
