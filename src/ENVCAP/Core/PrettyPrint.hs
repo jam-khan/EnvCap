@@ -1,4 +1,5 @@
 module ENVCAP.Core.PrettyPrint where
+
 import ENVCAP.Syntax
 import Text.Printf (printf)
 
@@ -11,7 +12,7 @@ prettyPrint val = case collectRecords val of
     collectRecords (VMrg v1 v2) = collectRecords v1 ++ collectRecords v2
     collectRecords (VRcd label v) = [(label, ppValue v)]
     collectRecords _ = []
-    
+
     ppValue :: Value -> String
     ppValue VUnit = "()"
     ppValue (VInt n) = show n
@@ -23,12 +24,12 @@ prettyPrint val = case collectRecords val of
     ppValue (VNil ty) = "[]@" ++ show ty
     ppValue (VCons v1 v2) = ppValue v1 ++ " : " ++ ppValue v2
     ppValue (VTag v ty) = "Tag<" ++ ppValue v ++ ">@" ++ show ty
-    
+
     renderTable :: [(String, String)] -> String
-    renderTable records = 
+    renderTable records =
         let maxKeyLen = maximum (map (length . fst) records)
             maxValLen = maximum (map (length . snd) records)
-            totalWidth = maxKeyLen + maxValLen + 7  -- Account for borders and padding
+            totalWidth = maxKeyLen + maxValLen + 7 -- Account for borders and padding
             separator = replicate totalWidth '-'
             formatRow (key, val) = printf "| %-*s | %*s |" maxKeyLen key maxValLen val
-        in unlines $ separator : concatMap (\r -> [formatRow r, separator]) records
+         in unlines $ separator : concatMap (\r -> [formatRow r, separator]) records
