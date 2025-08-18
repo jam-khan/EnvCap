@@ -1,6 +1,13 @@
 
+/-!
+# ENVCAP Language
+
+This module defines the syntax of the ENVCAP calculus.
+-/
+
 namespace ENVCAP
 
+/-- Types in the ENVCAP language. -/
 inductive Typ where
   | int  : Typ
   | top  : Typ
@@ -10,6 +17,7 @@ inductive Typ where
   | sig  : Typ → Typ → Typ
   deriving Repr
 
+/-- Binary operators in the ENVCAP language. -/
 inductive Op where
   | app
   | withE
@@ -18,6 +26,7 @@ inductive Op where
   | mapp
   deriving Repr
 
+/-- Expressions in the ENVCAP language. -/
 inductive Exp where
   | ctx    : Exp
   | unit   : Exp
@@ -35,8 +44,16 @@ inductive Exp where
 
 end ENVCAP
 
+/-!
+# LambdaE Calculus
+
+This module defines the syntax of the λE calculus.
+-/
 namespace LambdaE
 
+/--
+Types in the λE calculus.
+-/
 inductive Typ where
   | int  : Typ
   | top  : Typ
@@ -45,12 +62,18 @@ inductive Typ where
   | rcd  : String → Typ → Typ
   deriving Repr
 
+/--
+Binary operators in λE.
+-/
 inductive Op where
   | app
   | box
   | mrg
   deriving Repr
 
+/--
+Expressions in the λE.
+-/
 inductive Exp where
   | ctx    : Exp
   | lit    : Nat → Exp
