@@ -35,16 +35,6 @@ Inductive typ :=
   | and : typ -> typ -> typ
   | rcd : string -> typ -> typ.
 
-Fixpoint elaborate_typ (s : styp) : typ :=
-  match s with
-  | Sint       => int
-  | Stop       => top
-  | Sarr A B   => arr (elaborate_typ A) (elaborate_typ B)
-  | Sand A B   => and (elaborate_typ A) (elaborate_typ B)
-  | Srcd l A   => rcd l (elaborate_typ A)
-  | Ssig A B   => arr (elaborate_typ A) (elaborate_typ B)
-  end.
-
 Inductive op := app | box | mrg.
 
 Inductive exp :=
@@ -58,6 +48,15 @@ Inductive exp :=
   | rec         : string -> exp -> exp
   | rproj       : exp -> string -> exp.
 
+Fixpoint elaborate_typ (s : styp) : typ :=
+  match s with
+  | Sint       => int
+  | Stop       => top
+  | Sarr A B   => arr (elaborate_typ A) (elaborate_typ B)
+  | Sand A B   => and (elaborate_typ A) (elaborate_typ B)
+  | Srcd l A   => rcd l (elaborate_typ A)
+  | Ssig A B   => arr (elaborate_typ A) (elaborate_typ B)
+  end.
 
 Inductive Slookup : styp -> nat -> styp -> Prop :=
   | Slzero : forall A B, 
