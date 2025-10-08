@@ -3,6 +3,22 @@ import Formalization.LambdaE.Syntax
 
 namespace ENVCAP
 
+/-
+  Type Elaboration from ENVCAP Types to λE Types
+
+  This module defines the type translation |·| from ENVCAP types
+  (used in the source language) to λE types (used in the elaborated/core language).
+
+  The elaboration rules are as follows:
+
+    |i|          = i
+    |ε|          = ε
+    |A → B|      = |A| → |B|
+    |{l : A}|    = {l : |A|}
+    |Sig[A, B]|  = |A| → |B|
+
+-/
+
 def ElaborateType : Typ → LambdaE.Typ
   | Typ.int        => LambdaE.Typ.int
   | Typ.top        => LambdaE.Typ.top
@@ -30,7 +46,7 @@ inductive ElaborateExp : Typ -> Exp -> Typ -> LambdaE.Exp -> Prop
 | clos (EnvT EnvT₁ A B : Typ) (e env : Exp) (ce cenv : LambdaE.Exp) :
     ElaborateExp EnvT env EnvT₁ cenv →
     ElaborateExp (Typ.and EnvT₁ A) e B ce →
-    ElaborateExp EnvT (Exp.clos env A e) (Typ.arr A B) 
+    ElaborateExp EnvT (Exp.clos env A e) (Typ.arr A B)
     (LambdaE.Exp.binop LambdaE.Op.box cenv (LambdaE.Exp.lam (ElaborateType A) ce))
 | app (EnvT A B : Typ) (e₁ e₂ : Exp) (ce₁ ce₂ : LambdaE.Exp) :
     ElaborateExp EnvT e₁ (Typ.arr A B) ce₁ →
