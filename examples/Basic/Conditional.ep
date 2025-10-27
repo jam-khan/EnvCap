@@ -1,4 +1,4 @@
-@pure
+@pure module Conditional
 
 import Arithmetic;
 require (x : Int, y: Bool);

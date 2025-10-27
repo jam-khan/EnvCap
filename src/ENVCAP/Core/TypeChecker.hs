@@ -308,7 +308,6 @@ infer ctx (Cons e1 e2) =
             then Right $ TyCUnion TyCUnit t2
             else Left $ TypeError "Type mismatch in Cons: head and tail types don't match."
         _ -> Left $ TypeError "Second argument of Cons must be a list"
-
 infer ctx (LCase e1 e2 e3) = case infer ctx e1 of
   Right (TyCList ty1) ->
     infer ctx e2 >>= \ty2 ->
@@ -325,5 +324,5 @@ infer _ _ = Left $ TypeError "Unknown expression"
 
 check :: CoreTyp -> CoreTm -> CoreTyp -> Bool
 check ctx e tA = case infer ctx e of
-  Right tB -> trace ("Inferred type: " ++ show tB ++ ", Expected type: " ++ show tA) $ tA == tB
+  Right tB -> tA == tB
   _ -> False
