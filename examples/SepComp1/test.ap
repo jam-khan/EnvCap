@@ -1,0 +1,8 @@
+-- utils.ep
+let inc : Int -> Int = \x => x + 1
+
+-- main.ep
+import utils
+let result = inc (1)
+
+

@@ -571,6 +571,31 @@ elaborateInfer ctx (TmAnno tm typ) =
                     "Type error on the annotation."
                     ("Type inferred from term does not checks with the type on the annotation. \n \n----Further info-----\n \n" ++ show err)
 
+elaborateInfer _ (TmNil ty) = Right (TySUnion TySUnit ty, Nil (elaborateTyp ty))
+elaborateInfer ctx (TmCons tm1 tm2) =
+    case elaborateInfer ctx tm1 of
+        Right (ty1, tm1') ->
+            case elaborateInfer ctx tm2 of
+                Right (TySUnion TySUnit ty2, tm2') ->
+                    if ty1 == ty2
+                        then Right (TySUnion TySUnit ty1, Cons tm1' tm2')
+                        else
+                            Left $
+                                generateError
+                                    ctx
+                                    (TmCons tm1 tm2)
+                                    "Type error on list construction: element type doesn't match with list type."
+                                    "Make sure that the type of the element being added matches with the list type."
+                Left err -> Left err
+        Left err -> Left err
+
+elaborateInfer _ tm =
+    Left $
+        STypeError
+            ( "Elaboration inference not implemented for term: "
+                ++ show tm
+            )
+
 elaborateCheck :: SourceTyp -> SourceTm -> SourceTyp -> Either SourceTypeError CoreTm
 elaborateCheck ctx tm typ =
     case elaborateInfer ctx tm of

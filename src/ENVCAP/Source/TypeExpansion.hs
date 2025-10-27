@@ -161,6 +161,11 @@ expandAlias ctx (SCase tm cases) =
 expandAlias ctx (SAliasTyp l ty) =
     SAliasTyp l <$> expandTyAlias ctx ty
 -- Left $ TypeExpansionFailed ("Unresolved type alias detected. Only declare as part of merge: " ++ l ++ " as " ++ show ty)
+expandAlias ctx (SList terms typ) = 
+    do 
+        terms' <- expandAliasTerms ctx terms
+        typ' <- expandTyAlias ctx typ
+        return $ SList terms' typ'
 expandAlias _ctx tm =
     Left $ TypeExpansionFailed ("Expansion function not completed." ++ show tm)
 

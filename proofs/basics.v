@@ -6,27 +6,27 @@ Require Import Coq.Classes.EquivDec.
 
 Inductive styp :=
   | Sint : styp
-  | Stop : styp
-  | Sarr : styp -> styp -> styp
-  | Sand : styp -> styp -> styp
-  | Srcd : string -> styp -> styp
-  | Ssig : styp -> styp -> styp.
+  | Stop : styp (* unit *)
+  | Sarr : styp -> styp -> styp (* function with input : first_arg & return : second_arg *)
+  | Sand : styp -> styp -> styp (* intersection type *)
+  | Srcd : string -> styp -> styp (* record type *)
+  | Ssig : styp -> styp -> styp. (* module signature type *)
 
 Inductive sop := Sapp | Swith | SDmrg | SNmrg | SMapp.
 
 Inductive sexp :=
-  | Sctx        : sexp  
+  | Sctx        : sexp  (* query current environment*)
   | Sunit       : sexp
   | Slit        : nat   -> sexp
   | Sbinop      : sop   -> sexp -> sexp -> sexp
-  | Slam        : styp  -> sexp -> sexp
-  | Sproj       : sexp  -> nat  -> sexp
-  | SClos       : sexp  -> styp -> sexp -> sexp
-  | SStruct     : styp  -> sexp -> sexp
-  | Srec        : string -> sexp -> sexp
-  | Srproj      : sexp -> string -> sexp
-  | Slet        : sexp -> styp -> sexp -> sexp
-  | Sopen       : sexp -> sexp -> sexp.
+  | Slam        : styp  -> sexp -> sexp (* arg, type body*)
+  | Sproj       : sexp  -> nat  -> sexp (* env, index*)
+  | SClos       : sexp  -> styp -> sexp -> sexp  (* env, arg, type body *)
+  | SStruct     : styp  -> sexp -> sexp (* types for all struct members, values for all struct members*)
+  | Srec        : string -> sexp -> sexp (* recond name, record value*)
+  | Srproj      : sexp -> string -> sexp (* env, record name *) 
+  | Slet        : sexp -> styp -> sexp -> sexp (* env, ?, body *)
+  | Sopen       : sexp -> sexp -> sexp. (**)
 
 Inductive typ :=
   | int : typ
@@ -82,7 +82,7 @@ Inductive Srlookup : styp -> string -> styp -> Prop :=
       Srlookup A l C ->
       Slin l A /\ ~ Slin l B ->
       Srlookup (Sand A B) l C
-  | Slandr : forall A B C l, 
+  | Slndr : forall A B C l, 
       Srlookup B l C ->
       ~ Slin l A /\ Slin l B ->
       Srlookup (Sand A B) l C.
@@ -305,11 +305,9 @@ Lemma type_elaboration_unique : forall E E' E'',
   E' = E''.
 Proof.
   intros E E' E'' H1 H2.
-  generalize dependent E''.
-  induction H1; intros E'' H2; try inversion H2; subst; try reflexivity;
-    try ( apply IHelaborate_typ1 in H1;
-          apply IHelaborate_typ2 in H4;
-          rewrite H1; rewrite H4; reflexivity).
+  rewrite <- H1.
+  rewrite <- H2.
+  reflexivity.
 Qed.
 
 Lemma type_safe_lookup : forall A n B,
@@ -504,8 +502,15 @@ Proof.
   intros E SE A1 A2 CE1 CE2 H1 H2.
   generalize dependent A2.
   generalize dependent CE2.
-  induction H1; intros; inversion H2; subst; eauto.
-  + apply IHelaborate_sexp in H5.
+  induction H1; intros. 
+  + inversion H2.
+    subst.
+    reflexivity.
+  + inversion H2; subst; reflexivity. 
+  + inversion H2; subst; reflexivity.
+  + inversion H2.
+    subst.
+    apply IHelaborate_sexp in H5.
     rewrite H5 in H.
     apply uniqueness_of_Slookup with B0 n; try assumption.
   + apply IHelaborate_sexp in H6. rewrite H6; reflexivity.

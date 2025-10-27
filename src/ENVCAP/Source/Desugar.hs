@@ -200,6 +200,12 @@ desugar (SCase tm cases) = do
     tm' <- desugar tm
     return $ TmCase tm' cases'
 
+desugar (SList terms listTy) =
+    do
+        terms' <- desugarMultipleTerms terms
+        listTy' <- desugarTyp listTy
+        return $ foldr TmCons (TmNil listTy') terms'
+
 -- desugar (SADTInst (label, terms) ty)
 --                         =  do
 --                             terms' <- desugarMultipleTerms terms

@@ -144,6 +144,10 @@ astToLocallyNameless stack (SIf tm1 tm2 tm3) =
         <$> astToLocallyNameless stack tm1
         <*> astToLocallyNameless stack tm2
         <*> astToLocallyNameless stack tm3
+astToLocallyNameless stack (SList terms listTy) = 
+    do
+        terms' <- processMultipleTerms stack terms
+        return $ SList terms' listTy
 astToLocallyNameless _ (SAliasTyp l ty) =
     Left $
         LocallyNamelessFailed

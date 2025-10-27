@@ -28,6 +28,7 @@ library
                         ENVCAP.Manager.Interface ENVCAP.Manager.Implementation ENVCAP.Manager.Manage ENVCAP.Manager.Resolve
                         ENVCAP.Core.PrettyPrint
                         ENVCAP.Parser.Interface.ParseInterface 
+                        ENVCAP.Parser.Implementation.ParseImp
                         ENVCAP.Core.Evaluator ENVCAP.Core.TypeChecker
                         ENVCAP.Source.Elaboration
     -- Modules included in this library but not exported.

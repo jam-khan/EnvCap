@@ -50,7 +50,7 @@ typeAliasExpansion surfaceAST =
         Left (AliasNotFound err) -> Left (InterpreterFailed ("Type Expansion Failed: some type alias not located. " ++ err))
         Left (DuplicateAlias err) -> Left (InterpreterFailed ("Type Expansion Failed: duplicate type aliases detected. " ++ err))
         Left (TypeContextError err) -> Left (InterpreterFailed ("Type Expansion Failed: typing context not well-defined during expansion. " ++ err))
-        Left (TypeExpansionFailed err) -> Left (InterpreterFailed ("Type Expansion Failed: " ++ err))
+        Left (TypeExpansionFailed err) -> Left (InterpreterFailed ("Type Expansion Failed : " ++ err))
 
 {- | Converts 'SurfaceTm' to locally nameless, returning 'Right' or 'Left' 'InterpreterError'.
 
@@ -128,7 +128,7 @@ interpreter code =
         (sourceTy, coreAST) <- elaboration sourceASTDesugared
         if check TyCUnit coreAST (elaborateTyp sourceTy)
             then evaluate coreAST
-            else Left $ InterpreterFailed ("Type checking faile at core level" ++ show (infer TyCUnit coreAST))
+            else Left $ InterpreterFailed ("Type checking failed at core level: " ++ show (infer TyCUnit coreAST))
 
 {- | Runs a file by reading its contents. Handles potential I/O errors.
 

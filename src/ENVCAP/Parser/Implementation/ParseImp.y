@@ -117,8 +117,13 @@ Requirements        :    Requirement                                  { [$1]  }
 
 Requirement         :    var                                          { Req      $1 $1 }
 
-Statements          : Statements ';' Statement          { SMrg $1 $3 }
-                    | Statement                         { $1 }
+Statements          : Statements1 OptSemi                              { $1 }
+
+Statements1         : Statements1 ';' Statement                        { SMrg $1 $3 }
+                    | Statement                                        { $1 }
+
+OptSemi             : ';'                                              { () }
+                    |                                                  { () }
 
 Statement           : Function                          { $1 }
                     | Module                            { $1 }
