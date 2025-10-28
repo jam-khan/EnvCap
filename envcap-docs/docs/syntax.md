@@ -98,7 +98,7 @@ x || y
 
 ### Control Flow
 ```envcap
-if condition then e1 else e2
+if (condition) then {e1} else {e2}
 
 match expr of
   case pattern1 => e1
@@ -172,7 +172,7 @@ function f(y:Int):Int
 ### Let Expressions
 ```envcap
 let {
-  x:Int = 1,
+  x:Int = 1;
   y:String = "test"
 } in {
   x + length(y)
